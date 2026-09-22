@@ -22,4 +22,5 @@ public class User
 
     public DateTime UpdatedAt { get; set; }
     
+
 }
