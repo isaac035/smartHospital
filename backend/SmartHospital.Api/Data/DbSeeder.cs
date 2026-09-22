@@ -18,6 +18,7 @@ public static class DbSeeder
         {
             return;
         }
+        
 
         var admin = new User
         {
