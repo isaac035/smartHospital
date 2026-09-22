@@ -93,6 +93,15 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IUserService, UserService>();
 
+// Hospital Resource & Bed Management Services
+builder.Services.AddScoped<IWardService, WardService>();
+builder.Services.AddScoped<IRoomService, RoomService>();
+builder.Services.AddScoped<IBedService, BedService>();
+builder.Services.AddScoped<IAdmissionService, AdmissionService>();
+builder.Services.AddScoped<IMedicalResourceService, MedicalResourceService>();
+builder.Services.AddScoped<IResourceMaintenanceService, ResourceMaintenanceService>();
+builder.Services.AddScoped<IOccupancyService, OccupancyService>();
+
 
 // --------------------------------------------------
 // CORS
