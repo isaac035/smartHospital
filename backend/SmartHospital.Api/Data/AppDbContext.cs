@@ -23,6 +23,9 @@ public class AppDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
+        // --------------------------------------------------
+        // Existing User Entity Configuration (Preserved)
+        // --------------------------------------------------
         modelBuilder.Entity<User>(entity =>
         {
             entity.HasKey(u => u.Id);
