@@ -79,6 +79,7 @@ class HomeScreen extends StatelessWidget {
                           icon: Icons.description,
                           title: 'Medical Records',
                           color: Colors.purple,
+                          onTap: () => context.push('/medical-records'),
                         ),
                       ],
                     )
@@ -93,12 +94,13 @@ class HomeScreen extends StatelessWidget {
     required IconData icon,
     required String title,
     required Color color,
+    VoidCallback? onTap,
   }) {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
-        onTap: () {}, // Placeholder
+        onTap: onTap ?? () {},
         borderRadius: BorderRadius.circular(12),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

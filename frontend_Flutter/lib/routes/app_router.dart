@@ -10,6 +10,10 @@ import '../screens/home/home_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../screens/profile/edit_profile_screen.dart';
 import '../screens/profile/change_password_screen.dart';
+import '../screens/emr/patient_medical_records_screen.dart';
+import '../screens/emr/patient_vitals_screen.dart';
+import '../screens/emr/patient_prescriptions_screen.dart';
+import '../screens/emr/patient_lab_reports_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -69,6 +73,24 @@ class AppRouter {
             GoRoute(
               path: 'change-password',
               builder: (context, state) => const ChangePasswordScreen(),
+            ),
+          ],
+        ),
+        GoRoute(
+          path: '/medical-records',
+          builder: (context, state) => const PatientMedicalRecordsScreen(),
+          routes: [
+            GoRoute(
+              path: 'vitals',
+              builder: (context, state) => const PatientVitalsScreen(),
+            ),
+            GoRoute(
+              path: 'prescriptions',
+              builder: (context, state) => const PatientPrescriptionsScreen(),
+            ),
+            GoRoute(
+              path: 'lab-reports',
+              builder: (context, state) => const PatientLabReportsScreen(),
             ),
           ],
         ),

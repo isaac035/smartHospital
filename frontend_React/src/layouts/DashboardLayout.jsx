@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 
 export default function DashboardLayout({ role, navigation, title, subtitle, children }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const dashboardPath = `/${role.toLowerCase()}/dashboard`
 
   const handleLogout = () => {
@@ -13,15 +14,25 @@ export default function DashboardLayout({ role, navigation, title, subtitle, chi
     navigate('/login', { replace: true })
   }
 
+  const getItemPath = (item) => {
+    if (item === 'Dashboard') return dashboardPath
+    const slug = item.toLowerCase().replace(/\s+/g, '-')
+    return `/${role.toLowerCase()}/${slug}`
+  }
+
   return <div className="dashboard-shell">
     <aside className={`sidebar ${menuOpen ? 'sidebar-open' : ''}`}>
       <div className="brand"><span className="brand-mark">+</span><span>Smart Hospital</span></div>
       <nav className="sidebar-nav" aria-label={`${role} navigation`}>
-        {navigation.map((item) => <button
-          className={item === 'Dashboard' ? 'nav-item active' : 'nav-item'}
-          key={item}
-          onClick={() => { if (item === 'Dashboard') navigate(dashboardPath); setMenuOpen(false) }}
-        >{item}</button>)}
+        {navigation.map((item) => {
+          const itemPath = getItemPath(item)
+          const isActive = location.pathname === itemPath
+          return <button
+            className={isActive ? 'nav-item active' : 'nav-item'}
+            key={item}
+            onClick={() => { navigate(itemPath); setMenuOpen(false) }}
+          >{item}</button>
+        })}
       </nav>
       <button className="nav-item logout-button" onClick={handleLogout}>Logout</button>
     </aside>
