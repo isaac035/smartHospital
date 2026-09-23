@@ -22,4 +22,11 @@ class ApiConstants {
 
   // User Endpoints
   static const String users = '/Users';
+
+  // EMR Endpoints
+  static const String medicalRecords = '/MedicalRecords';
+  static const String vitals = '/Vitals';
+  static const String prescriptions = '/Prescriptions';
+  static const String labOrders = '/LabOrders';
+  static const String patientProfiles = '/PatientProfiles';
 }

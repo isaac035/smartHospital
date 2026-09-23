@@ -11,13 +11,13 @@ public class AppDbContext : DbContext
     }
 
     public DbSet<User> Users => Set<User>();
-    public DbSet<Ward> Wards => Set<Ward>();
-    public DbSet<Room> Rooms => Set<Room>();
-    public DbSet<Bed> Beds => Set<Bed>();
-    public DbSet<Admission> Admissions => Set<Admission>();
-    public DbSet<BedAllocation> BedAllocations => Set<BedAllocation>();
-    public DbSet<MedicalResource> MedicalResources => Set<MedicalResource>();
-    public DbSet<ResourceMaintenance> ResourceMaintenances => Set<ResourceMaintenance>();
+    public DbSet<PatientMedicalProfile> PatientMedicalProfiles => Set<PatientMedicalProfile>();
+    public DbSet<MedicalRecord> MedicalRecords => Set<MedicalRecord>();
+    public DbSet<VitalSign> VitalSigns => Set<VitalSign>();
+    public DbSet<Prescription> Prescriptions => Set<Prescription>();
+    public DbSet<PrescriptionItem> PrescriptionItems => Set<PrescriptionItem>();
+    public DbSet<LabOrder> LabOrders => Set<LabOrder>();
+    public DbSet<LabReport> LabReports => Set<LabReport>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -59,338 +59,250 @@ public class AppDbContext : DbContext
         });
 
         // --------------------------------------------------
-        // Ward Configuration
+        // EMR: PatientMedicalProfile Configuration
         // --------------------------------------------------
-        modelBuilder.Entity<Ward>(entity =>
+        modelBuilder.Entity<PatientMedicalProfile>(entity =>
         {
-            entity.HasKey(w => w.Id);
+            entity.HasKey(p => p.Id);
 
-            entity.Property(w => w.Name)
-                .IsRequired()
-                .HasMaxLength(100);
-
-            entity.Property(w => w.Code)
-                .IsRequired()
+            entity.Property(p => p.Gender)
                 .HasMaxLength(20);
 
-            entity.Property(w => w.Floor)
-                .IsRequired()
-                .HasMaxLength(50);
+            entity.Property(p => p.Allergies)
+                .HasMaxLength(500);
 
-            entity.Property(w => w.BuildingBlock)
-                .HasMaxLength(50);
+            entity.Property(p => p.ChronicDiseases)
+                .HasMaxLength(500);
 
-            entity.Property(w => w.Capacity)
-                .IsRequired();
+            entity.Property(p => p.EmergencyContactName)
+                .HasMaxLength(100);
 
-            entity.Property(w => w.Type)
-                .IsRequired();
+            entity.Property(p => p.EmergencyContactPhone)
+                .HasMaxLength(20);
 
-            entity.Property(w => w.IsActive)
-                .IsRequired()
-                .HasDefaultValue(true);
-
-            entity.Property(w => w.CreatedAt)
-                .IsRequired();
-
-            entity.Property(w => w.UpdatedAt)
-                .IsRequired();
-
-            entity.HasIndex(w => w.Code)
+            entity.HasIndex(p => p.PatientId)
                 .IsUnique();
 
-            entity.HasMany(w => w.Rooms)
-                .WithOne(r => r.Ward)
-                .HasForeignKey(r => r.WardId)
+            entity.HasOne(p => p.Patient)
+                .WithOne()
+                .HasForeignKey<PatientMedicalProfile>(p => p.PatientId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
         // --------------------------------------------------
-        // Room Configuration
+        // EMR: MedicalRecord Configuration
         // --------------------------------------------------
-        modelBuilder.Entity<Room>(entity =>
+        modelBuilder.Entity<MedicalRecord>(entity =>
         {
-            entity.HasKey(r => r.Id);
+            entity.HasKey(m => m.Id);
 
-            entity.Property(r => r.RoomNumber)
-                .IsRequired()
-                .HasMaxLength(30);
-
-            entity.Property(r => r.Type)
-                .IsRequired();
-
-            entity.Property(r => r.Capacity)
-                .IsRequired();
-
-            entity.Property(r => r.IsActive)
-                .IsRequired()
-                .HasDefaultValue(true);
-
-            entity.Property(r => r.CreatedAt)
-                .IsRequired();
-
-            entity.Property(r => r.UpdatedAt)
-                .IsRequired();
-
-            entity.HasMany(r => r.Beds)
-                .WithOne(b => b.Room)
-                .HasForeignKey(b => b.RoomId)
-                .OnDelete(DeleteBehavior.Restrict);
-        });
-
-        // --------------------------------------------------
-        // Bed Configuration
-        // --------------------------------------------------
-        modelBuilder.Entity<Bed>(entity =>
-        {
-            entity.HasKey(b => b.Id);
-
-            entity.Property(b => b.BedNumber)
-                .IsRequired()
-                .HasMaxLength(30);
-
-            entity.Property(b => b.Type)
-                .IsRequired();
-
-            entity.Property(b => b.Status)
-                .IsRequired();
-
-            entity.Property(b => b.IsActive)
-                .IsRequired()
-                .HasDefaultValue(true);
-
-            entity.Property(b => b.CreatedAt)
-                .IsRequired();
-
-            entity.Property(b => b.UpdatedAt)
-                .IsRequired();
-
-            entity.HasIndex(b => new { b.RoomId, b.BedNumber })
-                .IsUnique();
-
-            entity.HasMany(b => b.Allocations)
-                .WithOne(a => a.Bed)
-                .HasForeignKey(a => a.BedId)
-                .OnDelete(DeleteBehavior.Restrict);
-        });
-
-        // --------------------------------------------------
-        // Admission Configuration
-        // --------------------------------------------------
-        modelBuilder.Entity<Admission>(entity =>
-        {
-            entity.HasKey(a => a.Id);
-
-            entity.Property(a => a.AdmissionNumber)
+            entity.Property(m => m.RecordNumber)
                 .IsRequired()
                 .HasMaxLength(40);
 
-            entity.Property(a => a.ReasonForAdmission)
+            entity.Property(m => m.ChiefComplaint)
                 .IsRequired()
                 .HasMaxLength(500);
 
-            entity.Property(a => a.Diagnosis)
+            entity.Property(m => m.Symptoms)
                 .HasMaxLength(1000);
 
-            entity.Property(a => a.DischargeSummary)
-                .HasMaxLength(1000);
+            entity.Property(m => m.ExaminationNotes)
+                .HasMaxLength(2000);
 
-            entity.Property(a => a.Status)
-                .IsRequired();
-
-            entity.Property(a => a.Priority)
-                .IsRequired();
-
-            entity.Property(a => a.AdmissionDate)
-                .IsRequired();
-
-            entity.Property(a => a.CreatedAt)
-                .IsRequired();
-
-            entity.Property(a => a.UpdatedAt)
-                .IsRequired();
-
-            entity.HasIndex(a => a.AdmissionNumber)
-                .IsUnique();
-
-            entity.HasOne(a => a.Patient)
-                .WithMany()
-                .HasForeignKey(a => a.PatientId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            entity.HasOne(a => a.AdmittingDoctor)
-                .WithMany()
-                .HasForeignKey(a => a.AdmittingDoctorId)
-                .OnDelete(DeleteBehavior.SetNull);
-
-            entity.HasMany(a => a.BedAllocations)
-                .WithOne(ba => ba.Admission)
-                .HasForeignKey(ba => ba.AdmissionId)
-                .OnDelete(DeleteBehavior.Restrict);
-        });
-
-        // --------------------------------------------------
-        // BedAllocation Configuration
-        // --------------------------------------------------
-        modelBuilder.Entity<BedAllocation>(entity =>
-        {
-            entity.HasKey(ba => ba.Id);
-
-            entity.Property(ba => ba.Status)
-                .IsRequired();
-
-            entity.Property(ba => ba.AllocatedAt)
-                .IsRequired();
-
-            entity.Property(ba => ba.Notes)
+            entity.Property(m => m.Diagnosis)
+                .IsRequired()
                 .HasMaxLength(500);
 
-            entity.Property(ba => ba.CreatedAt)
-                .IsRequired();
+            entity.Property(m => m.TreatmentPlan)
+                .HasMaxLength(2000);
 
-            entity.Property(ba => ba.UpdatedAt)
-                .IsRequired();
+            entity.HasIndex(m => m.RecordNumber)
+                .IsUnique();
 
-            // PostgreSQL filtered unique index: only 1 active allocation per physical bed
-            entity.HasIndex(ba => ba.BedId)
-                .IsUnique()
-                .HasFilter("\"Status\" = 1"); // 1 = BedAllocationStatus.Active
-
-            entity.HasOne(ba => ba.Bed)
-                .WithMany(b => b.Allocations)
-                .HasForeignKey(ba => ba.BedId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            entity.HasOne(ba => ba.Admission)
-                .WithMany(a => a.BedAllocations)
-                .HasForeignKey(ba => ba.AdmissionId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            entity.HasOne(ba => ba.AllocatedByStaff)
+            entity.HasOne(m => m.Patient)
                 .WithMany()
-                .HasForeignKey(ba => ba.AllocatedByStaffId)
+                .HasForeignKey(m => m.PatientId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(m => m.Doctor)
+                .WithMany()
+                .HasForeignKey(m => m.DoctorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasMany(m => m.Prescriptions)
+                .WithOne(p => p.MedicalRecord)
+                .HasForeignKey(p => p.MedicalRecordId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasMany(m => m.VitalSigns)
+                .WithOne(v => v.MedicalRecord)
+                .HasForeignKey(v => v.MedicalRecordId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasMany(m => m.LabOrders)
+                .WithOne(l => l.MedicalRecord)
+                .HasForeignKey(l => l.MedicalRecordId)
                 .OnDelete(DeleteBehavior.SetNull);
         });
 
         // --------------------------------------------------
-        // MedicalResource Configuration
+        // EMR: VitalSign Configuration
         // --------------------------------------------------
-        modelBuilder.Entity<MedicalResource>(entity =>
+        modelBuilder.Entity<VitalSign>(entity =>
         {
-            entity.HasKey(mr => mr.Id);
+            entity.HasKey(v => v.Id);
 
-            entity.Property(mr => mr.ResourceCode)
+            entity.Property(v => v.TemperatureCelsius)
+                .HasPrecision(4, 1);
+
+            entity.Property(v => v.OxygenSaturationSpO2)
+                .HasPrecision(4, 1);
+
+            entity.Property(v => v.WeightKg)
+                .HasPrecision(5, 2);
+
+            entity.Property(v => v.HeightCm)
+                .HasPrecision(5, 1);
+
+            entity.Property(v => v.Bmi)
+                .HasPrecision(4, 1);
+
+            entity.Property(v => v.Notes)
+                .HasMaxLength(500);
+
+            entity.HasOne(v => v.Patient)
+                .WithMany()
+                .HasForeignKey(v => v.PatientId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(v => v.RecordedByUser)
+                .WithMany()
+                .HasForeignKey(v => v.RecordedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // --------------------------------------------------
+        // EMR: Prescription Configuration
+        // --------------------------------------------------
+        modelBuilder.Entity<Prescription>(entity =>
+        {
+            entity.HasKey(p => p.Id);
+
+            entity.Property(p => p.PrescriptionNumber)
+                .IsRequired()
+                .HasMaxLength(40);
+
+            entity.Property(p => p.GeneralInstructions)
+                .HasMaxLength(1000);
+
+            entity.HasIndex(p => p.PrescriptionNumber)
+                .IsUnique();
+
+            entity.HasOne(p => p.Patient)
+                .WithMany()
+                .HasForeignKey(p => p.PatientId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(p => p.Doctor)
+                .WithMany()
+                .HasForeignKey(p => p.DoctorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasMany(p => p.Items)
+                .WithOne(i => i.Prescription)
+                .HasForeignKey(i => i.PrescriptionId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<PrescriptionItem>(entity =>
+        {
+            entity.HasKey(i => i.Id);
+
+            entity.Property(i => i.MedicineName)
+                .IsRequired()
+                .HasMaxLength(150);
+
+            entity.Property(i => i.Dosage)
                 .IsRequired()
                 .HasMaxLength(50);
 
-            entity.Property(mr => mr.Name)
+            entity.Property(i => i.Route)
+                .HasMaxLength(50);
+
+            entity.Property(i => i.Frequency)
+                .IsRequired()
+                .HasMaxLength(50);
+
+            entity.Property(i => i.SpecialInstructions)
+                .HasMaxLength(500);
+        });
+
+        // --------------------------------------------------
+        // EMR: LabOrder & LabReport Configuration
+        // --------------------------------------------------
+        modelBuilder.Entity<LabOrder>(entity =>
+        {
+            entity.HasKey(l => l.Id);
+
+            entity.Property(l => l.OrderNumber)
+                .IsRequired()
+                .HasMaxLength(40);
+
+            entity.Property(l => l.TestName)
                 .IsRequired()
                 .HasMaxLength(120);
 
-            entity.Property(mr => mr.LocationDescription)
-                .IsRequired()
-                .HasMaxLength(200);
-
-            entity.Property(mr => mr.SerialNumber)
+            entity.Property(l => l.Category)
                 .HasMaxLength(100);
 
-            entity.Property(mr => mr.Manufacturer)
-                .HasMaxLength(100);
+            entity.Property(l => l.ClinicalNotes)
+                .HasMaxLength(1000);
 
-            entity.Property(mr => mr.ModelNumber)
-                .HasMaxLength(100);
-
-            entity.Property(mr => mr.Category)
-                .IsRequired();
-
-            entity.Property(mr => mr.Status)
-                .IsRequired();
-
-            entity.Property(mr => mr.IsActive)
-                .IsRequired()
-                .HasDefaultValue(true);
-
-            entity.Property(mr => mr.CreatedAt)
-                .IsRequired();
-
-            entity.Property(mr => mr.UpdatedAt)
-                .IsRequired();
-
-            entity.HasIndex(mr => mr.ResourceCode)
+            entity.HasIndex(l => l.OrderNumber)
                 .IsUnique();
 
-            entity.HasOne(mr => mr.Ward)
+            entity.HasOne(l => l.Patient)
                 .WithMany()
-                .HasForeignKey(mr => mr.WardId)
-                .OnDelete(DeleteBehavior.SetNull);
+                .HasForeignKey(l => l.PatientId)
+                .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasOne(mr => mr.Room)
+            entity.HasOne(l => l.Doctor)
                 .WithMany()
-                .HasForeignKey(mr => mr.RoomId)
-                .OnDelete(DeleteBehavior.SetNull);
+                .HasForeignKey(l => l.DoctorId)
+                .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasOne(mr => mr.Bed)
-                .WithMany()
-                .HasForeignKey(mr => mr.BedId)
-                .OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(l => l.Report)
+                .WithOne(r => r.LabOrder)
+                .HasForeignKey<LabReport>(r => r.LabOrderId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
-        // --------------------------------------------------
-        // ResourceMaintenance Configuration
-        // --------------------------------------------------
-        modelBuilder.Entity<ResourceMaintenance>(entity =>
+        modelBuilder.Entity<LabReport>(entity =>
         {
-            entity.HasKey(rm => rm.Id);
+            entity.HasKey(r => r.Id);
 
-            entity.Property(rm => rm.MaintenanceCode)
-                .IsRequired()
-                .HasMaxLength(40);
-
-            entity.Property(rm => rm.Description)
+            entity.Property(r => r.ResultSummary)
                 .IsRequired()
                 .HasMaxLength(500);
 
-            entity.Property(rm => rm.ResolutionNotes)
+            entity.Property(r => r.Findings)
+                .IsRequired()
+                .HasMaxLength(2000);
+
+            entity.Property(r => r.ReferenceRange)
+                .HasMaxLength(500);
+
+            entity.Property(r => r.DoctorRemarks)
                 .HasMaxLength(1000);
 
-            entity.Property(rm => rm.Type)
-                .IsRequired();
+            entity.Property(r => r.AttachmentUrl)
+                .HasMaxLength(500);
 
-            entity.Property(rm => rm.Status)
-                .IsRequired();
-
-            entity.Property(rm => rm.ScheduledStart)
-                .IsRequired();
-
-            entity.Property(rm => rm.CreatedAt)
-                .IsRequired();
-
-            entity.Property(rm => rm.UpdatedAt)
-                .IsRequired();
-
-            entity.HasIndex(rm => rm.MaintenanceCode)
-                .IsUnique();
-
-            // PostgreSQL check constraint: exactly one target must be present
-            entity.ToTable(t => t.HasCheckConstraint(
-                "CK_ResourceMaintenance_SingleTarget",
-                "(\"BedId\" IS NOT NULL AND \"MedicalResourceId\" IS NULL) OR (\"BedId\" IS NULL AND \"MedicalResourceId\" IS NOT NULL)"
-            ));
-
-            entity.HasOne(rm => rm.Bed)
+            entity.HasOne(r => r.ConductedByUser)
                 .WithMany()
-                .HasForeignKey(rm => rm.BedId)
+                .HasForeignKey(r => r.ConductedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
-
-            entity.HasOne(rm => rm.MedicalResource)
-                .WithMany(mr => mr.Maintenances)
-                .HasForeignKey(rm => rm.MedicalResourceId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            entity.HasOne(rm => rm.PerformedByStaff)
-                .WithMany()
-                .HasForeignKey(rm => rm.PerformedByStaffId)
-                .OnDelete(DeleteBehavior.SetNull);
         });
     }
 }
