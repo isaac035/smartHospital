@@ -19,6 +19,14 @@ public class AppDbContext : DbContext
     public DbSet<LabOrder> LabOrders => Set<LabOrder>();
     public DbSet<LabReport> LabReports => Set<LabReport>();
 
+    // ── Smart Appointment & Queue Management ──────────────────────────────────
+    public DbSet<Department>               Departments                => Set<Department>();
+    public DbSet<DoctorSchedule>           DoctorSchedules            => Set<DoctorSchedule>();
+    public DbSet<Appointment>              Appointments               => Set<Appointment>();
+    public DbSet<QueueEntry>               QueueEntries               => Set<QueueEntry>();
+    public DbSet<AppointmentStatusHistory> AppointmentStatusHistories => Set<AppointmentStatusHistory>();
+    public DbSet<AppointmentNotification>  AppointmentNotifications   => Set<AppointmentNotification>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -303,6 +311,143 @@ public class AppDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(r => r.ConductedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // ── Smart Appointment & Queue Management ──────────────────────────────
+        // TODO: Department owned by Doctor & Clinical Schedule Management module.
+        modelBuilder.Entity<Department>(entity =>
+        {
+            entity.HasKey(d => d.Id);
+
+            entity.Property(d => d.Name)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(d => d.Description)
+                .HasMaxLength(500);
+
+            entity.HasIndex(d => d.Name)
+                .IsUnique();
+        });
+
+        // TODO: DoctorSchedule owned by Doctor & Clinical Schedule Management module.
+        modelBuilder.Entity<DoctorSchedule>(entity =>
+        {
+            entity.HasKey(s => s.Id);
+
+            entity.HasOne(s => s.Doctor)
+                .WithMany()
+                .HasForeignKey(s => s.DoctorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(s => s.Department)
+                .WithMany()
+                .HasForeignKey(s => s.DepartmentId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // Appointment
+        modelBuilder.Entity<Appointment>(entity =>
+        {
+            entity.HasKey(a => a.Id);
+
+            entity.Property(a => a.ReferenceNumber)
+                .IsRequired()
+                .HasMaxLength(40);
+
+            entity.Property(a => a.Notes)
+                .HasMaxLength(1000);
+
+            entity.Property(a => a.CancelledReason)
+                .HasMaxLength(500);
+
+            entity.HasIndex(a => a.ReferenceNumber)
+                .IsUnique();
+
+            entity.HasOne(a => a.Patient)
+                .WithMany()
+                .HasForeignKey(a => a.PatientId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(a => a.Doctor)
+                .WithMany()
+                .HasForeignKey(a => a.DoctorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(a => a.Department)
+                .WithMany()
+                .HasForeignKey(a => a.DepartmentId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(a => a.RescheduledFrom)
+                .WithMany()
+                .HasForeignKey(a => a.RescheduledFromId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(a => a.QueueEntry)
+                .WithOne(q => q.Appointment)
+                .HasForeignKey<QueueEntry>(q => q.AppointmentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(a => a.StatusHistories)
+                .WithOne(h => h.Appointment)
+                .HasForeignKey(h => h.AppointmentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(a => a.Notifications)
+                .WithOne(n => n.Appointment)
+                .HasForeignKey(n => n.AppointmentId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // QueueEntry
+        modelBuilder.Entity<QueueEntry>(entity =>
+        {
+            entity.HasKey(q => q.Id);
+
+            entity.HasOne(q => q.Doctor)
+                .WithMany()
+                .HasForeignKey(q => q.DoctorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Appointment ↔ QueueEntry 1:1 is configured from the Appointment side above
+        });
+
+        // AppointmentStatusHistory
+        modelBuilder.Entity<AppointmentStatusHistory>(entity =>
+        {
+            entity.HasKey(h => h.Id);
+
+            entity.Property(h => h.Reason)
+                .HasMaxLength(500);
+
+            entity.HasOne(h => h.ChangedByUser)
+                .WithMany()
+                .HasForeignKey(h => h.ChangedBy)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Appointment relationship configured from Appointment side
+        });
+
+        // AppointmentNotification
+        modelBuilder.Entity<AppointmentNotification>(entity =>
+        {
+            entity.HasKey(n => n.Id);
+
+            entity.Property(n => n.Title)
+                .IsRequired()
+                .HasMaxLength(200);
+
+            entity.Property(n => n.Message)
+                .IsRequired()
+                .HasMaxLength(1000);
+
+            entity.HasOne(n => n.User)
+                .WithMany()
+                .HasForeignKey(n => n.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Appointment relationship configured from Appointment side
         });
     }
 }
