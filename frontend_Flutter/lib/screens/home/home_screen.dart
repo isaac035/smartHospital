@@ -64,16 +64,19 @@ class HomeScreen extends StatelessWidget {
                           icon: Icons.calendar_today,
                           title: 'My Appointments',
                           color: Colors.blue,
+                          onTap: () => context.push('/appointments'),
                         ),
                         _buildModuleCard(
                           icon: Icons.people,
                           title: 'Queue Status',
                           color: Colors.orange,
+                          onTap: () => context.push('/queue'),
                         ),
                         _buildModuleCard(
                           icon: Icons.medical_services,
                           title: 'Doctors',
                           color: Colors.green,
+                          onTap: () => context.push('/appointments/search'),
                         ),
                         _buildModuleCard(
                           icon: Icons.description,

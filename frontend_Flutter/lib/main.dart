@@ -8,6 +8,8 @@ import 'services/auth_service.dart';
 import 'services/user_service.dart';
 import 'providers/auth_provider.dart';
 import 'routes/app_router.dart';
+import 'services/appointment_service.dart';
+import 'providers/appointment_provider.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,6 +43,14 @@ class MyApp extends StatelessWidget {
           ),
           update: (_, authService, userService, storageService, previous) =>
               previous ?? AuthProvider(authService, userService, storageService),
+        ),
+        ProxyProvider<ApiClient, AppointmentService>(
+          update: (_, apiClient, __) => AppointmentService(apiClient),
+        ),
+        ChangeNotifierProxyProvider<AppointmentService, AppointmentProvider>(
+          create: (_) => AppointmentProvider(
+              AppointmentService(ApiClient(SecureStorageService()))),
+          update: (_, svc, previous) => previous ?? AppointmentProvider(svc),
         ),
       ],
       child: Builder(
