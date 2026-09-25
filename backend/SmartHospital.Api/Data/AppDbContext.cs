@@ -85,6 +85,9 @@ public class AppDbContext : DbContext
             entity.Property(p => p.Gender)
                 .HasMaxLength(20);
 
+            entity.Property(p => p.BloodGroup)
+                .IsRequired();
+
             entity.Property(p => p.Allergies)
                 .HasMaxLength(500);
 
@@ -96,6 +99,12 @@ public class AppDbContext : DbContext
 
             entity.Property(p => p.EmergencyContactPhone)
                 .HasMaxLength(20);
+
+            entity.Property(p => p.CreatedAt)
+                .IsRequired();
+
+            entity.Property(p => p.UpdatedAt)
+                .IsRequired();
 
             entity.HasIndex(p => p.PatientId)
                 .IsUnique();
@@ -117,6 +126,9 @@ public class AppDbContext : DbContext
                 .IsRequired()
                 .HasMaxLength(40);
 
+            entity.Property(m => m.VisitDate)
+                .IsRequired();
+
             entity.Property(m => m.ChiefComplaint)
                 .IsRequired()
                 .HasMaxLength(500);
@@ -133,6 +145,12 @@ public class AppDbContext : DbContext
 
             entity.Property(m => m.TreatmentPlan)
                 .HasMaxLength(2000);
+
+            entity.Property(m => m.CreatedAt)
+                .IsRequired();
+
+            entity.Property(m => m.UpdatedAt)
+                .IsRequired();
 
             entity.HasIndex(m => m.RecordNumber)
                 .IsUnique();
@@ -170,6 +188,9 @@ public class AppDbContext : DbContext
         {
             entity.HasKey(v => v.Id);
 
+            entity.Property(v => v.RecordedAt)
+                .IsRequired();
+
             entity.Property(v => v.TemperatureCelsius)
                 .HasPrecision(4, 1);
 
@@ -187,6 +208,9 @@ public class AppDbContext : DbContext
 
             entity.Property(v => v.Notes)
                 .HasMaxLength(500);
+
+            entity.Property(v => v.CreatedAt)
+                .IsRequired();
 
             entity.HasOne(v => v.Patient)
                 .WithMany()
@@ -210,8 +234,20 @@ public class AppDbContext : DbContext
                 .IsRequired()
                 .HasMaxLength(40);
 
+            entity.Property(p => p.IssueDate)
+                .IsRequired();
+
+            entity.Property(p => p.Status)
+                .IsRequired();
+
             entity.Property(p => p.GeneralInstructions)
                 .HasMaxLength(1000);
+
+            entity.Property(p => p.CreatedAt)
+                .IsRequired();
+
+            entity.Property(p => p.UpdatedAt)
+                .IsRequired();
 
             entity.HasIndex(p => p.PrescriptionNumber)
                 .IsUnique();
@@ -251,6 +287,9 @@ public class AppDbContext : DbContext
                 .IsRequired()
                 .HasMaxLength(50);
 
+            entity.Property(i => i.DurationDays)
+                .IsRequired();
+
             entity.Property(i => i.SpecialInstructions)
                 .HasMaxLength(500);
         });
@@ -272,6 +311,15 @@ public class AppDbContext : DbContext
 
             entity.Property(l => l.Category)
                 .HasMaxLength(100);
+
+            entity.Property(l => l.Priority)
+                .IsRequired();
+
+            entity.Property(l => l.Status)
+                .IsRequired();
+
+            entity.Property(l => l.OrderedAt)
+                .IsRequired();
 
             entity.Property(l => l.ClinicalNotes)
                 .HasMaxLength(1000);
@@ -299,6 +347,9 @@ public class AppDbContext : DbContext
         {
             entity.HasKey(r => r.Id);
 
+            entity.Property(r => r.ReportDate)
+                .IsRequired();
+
             entity.Property(r => r.ResultSummary)
                 .IsRequired()
                 .HasMaxLength(500);
@@ -315,6 +366,9 @@ public class AppDbContext : DbContext
 
             entity.Property(r => r.AttachmentUrl)
                 .HasMaxLength(500);
+
+            entity.Property(r => r.CreatedAt)
+                .IsRequired();
 
             entity.HasOne(r => r.ConductedByUser)
                 .WithMany()
