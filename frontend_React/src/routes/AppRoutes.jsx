@@ -18,6 +18,13 @@ import AppointmentDetails from '../pages/appointments/AppointmentDetails'
 import RescheduleAppointment from '../pages/appointments/RescheduleAppointment'
 import QueueDashboard from '../pages/queue/QueueDashboard'
 
+import ResourceDashboard from '../pages/hospitalResource/ResourceDashboard'
+import WardManagement from '../pages/hospitalResource/WardManagement'
+import BedManagement from '../pages/hospitalResource/BedManagement'
+import Admissions from '../pages/hospitalResource/Admissions'
+import MedicalResources from '../pages/hospitalResource/MedicalResources'
+import Maintenance from '../pages/hospitalResource/Maintenance'
+
 export default function AppRoutes() {
   return <Routes>
     <Route path="/login" element={<Login />} />
@@ -49,6 +56,14 @@ export default function AppRoutes() {
         <Route path="/staff/appointments/:id" element={<AppointmentDetails />} />
         <Route path="/staff/appointments/:id/reschedule" element={<RescheduleAppointment />} />
         <Route path="/staff/queue-management" element={<QueueDashboard />} />
+      </Route>
+      <Route element={<RoleRoute allowedRoles={['Admin', 'Staff']} />}>
+        <Route path="/hospital-resources" element={<ResourceDashboard />} />
+        <Route path="/hospital-resources/wards" element={<WardManagement />} />
+        <Route path="/hospital-resources/beds" element={<BedManagement />} />
+        <Route path="/hospital-resources/admissions" element={<Admissions />} />
+        <Route path="/hospital-resources/medical-resources" element={<MedicalResources />} />
+        <Route path="/hospital-resources/maintenance" element={<Maintenance />} />
       </Route>
       <Route path="/unauthorized" element={<Unauthorized />} />
     </Route>

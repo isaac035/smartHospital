@@ -16,17 +16,37 @@ export default function DashboardLayout({ role, navigation, title, subtitle, chi
 
   const getItemPath = (item) => {
     if (item === 'Dashboard') return dashboardPath
+    if (item === 'Resource Management') return '/hospital-resources'
     const slug = item.toLowerCase().replace(/\s+/g, '-')
     return `/${role.toLowerCase()}/${slug}`
+  }
+
+  const effectiveNavigation = [...navigation]
+  if (role === 'Admin' || role === 'Staff') {
+    if (!effectiveNavigation.includes('Resource Management')) {
+      const doctorMgmtIndex = effectiveNavigation.indexOf('Doctor Management')
+      if (doctorMgmtIndex !== -1) {
+        effectiveNavigation.splice(doctorMgmtIndex + 1, 0, 'Resource Management')
+      } else {
+        const resourcesIndex = effectiveNavigation.indexOf('Resources')
+        if (resourcesIndex !== -1) {
+          effectiveNavigation.splice(resourcesIndex, 1, 'Resource Management')
+        } else {
+          effectiveNavigation.push('Resource Management')
+        }
+      }
+    }
   }
 
   return <div className="dashboard-shell">
     <aside className={`sidebar ${menuOpen ? 'sidebar-open' : ''}`}>
       <div className="brand"><span className="brand-mark">+</span><span>Smart Hospital</span></div>
       <nav className="sidebar-nav" aria-label={`${role} navigation`}>
-        {navigation.map((item) => {
+        {effectiveNavigation.map((item) => {
           const itemPath = getItemPath(item)
-          const isActive = location.pathname === itemPath
+          const isActive = item === 'Resource Management'
+            ? location.pathname.startsWith('/hospital-resources')
+            : location.pathname === itemPath
           return <button
             className={isActive ? 'nav-item active' : 'nav-item'}
             key={item}
