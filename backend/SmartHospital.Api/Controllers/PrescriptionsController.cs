@@ -21,13 +21,34 @@ public class PrescriptionsController : ControllerBase
     [HttpGet("patient/{patientId:int}")]
     public async Task<IActionResult> GetByPatient(int patientId)
     {
-        var prescriptions = await _prescriptionService.GetByPatientIdAsync(patientId);
-        return Ok(prescriptions);
+        if (patientId <= 0)
+        {
+            return BadRequest(new { message = "Invalid patient identifier." });
+        }
+
+        try
+        {
+            var prescriptions = await _prescriptionService.GetByPatientIdAsync(patientId);
+            return Ok(prescriptions);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
     }
 
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)
     {
+        if (id <= 0)
+        {
+            return BadRequest(new { message = "Invalid prescription identifier." });
+        }
+
         var prescription = await _prescriptionService.GetByIdAsync(id);
         if (prescription == null)
         {
@@ -41,13 +62,34 @@ public class PrescriptionsController : ControllerBase
     [Authorize(Roles = "Doctor,Admin")]
     public async Task<IActionResult> Create(CreatePrescriptionRequest request)
     {
+        if (request == null)
+        {
+            return BadRequest(new { message = "Request body cannot be null." });
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
         var doctorIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (!int.TryParse(doctorIdStr, out var doctorId))
+        if (!int.TryParse(doctorIdStr, out var doctorId) || doctorId <= 0)
         {
             return Unauthorized(new { message = "Invalid doctor identification." });
         }
 
-        var created = await _prescriptionService.CreateAsync(doctorId, request);
-        return Created($"/api/prescriptions/{created.Id}", created);
+        try
+        {
+            var created = await _prescriptionService.CreateAsync(doctorId, request);
+            return Created($"/api/prescriptions/{created.Id}", created);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 }
