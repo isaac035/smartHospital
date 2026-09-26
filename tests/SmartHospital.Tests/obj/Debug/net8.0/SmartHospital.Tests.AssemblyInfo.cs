@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SmartHospital.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+7aa84f3c8869f974775587ed1c683d3826e00440")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9ae8a7c48761df0b0356f1d61683a376e2387b7f")]
 [assembly: System.Reflection.AssemblyProductAttribute("SmartHospital.Tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SmartHospital.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

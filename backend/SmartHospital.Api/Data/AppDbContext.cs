@@ -21,6 +21,7 @@ public class AppDbContext : DbContext
     public DbSet<ClinicalDiagnosis> ClinicalDiagnoses => Set<ClinicalDiagnosis>();
     public DbSet<ClinicalTreatmentPlan> ClinicalTreatmentPlans => Set<ClinicalTreatmentPlan>();
     public DbSet<MedicalRecordVersion> MedicalRecordVersions => Set<MedicalRecordVersion>();
+    public DbSet<EmrAuditLog> EmrAuditLogs => Set<EmrAuditLog>();
 
     // ── Smart Appointment & Queue Management ──────────────────────────────────
     public DbSet<Department>               Departments                => Set<Department>();
@@ -559,6 +560,41 @@ public class AppDbContext : DbContext
             entity.HasOne(v => v.ChangedByUser)
                 .WithMany()
                 .HasForeignKey(v => v.ChangedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // --------------------------------------------------
+        // EMR: EmrAuditLog Configuration
+        // --------------------------------------------------
+        modelBuilder.Entity<EmrAuditLog>(entity =>
+        {
+            entity.HasKey(a => a.Id);
+
+            entity.Property(a => a.Action)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(a => a.EntityType)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(a => a.Metadata)
+                .HasMaxLength(1000);
+
+            entity.Property(a => a.Timestamp)
+                .IsRequired();
+
+            entity.Property(a => a.IsSuccess)
+                .IsRequired();
+
+            entity.HasIndex(a => new { a.EntityType, a.EntityId });
+            entity.HasIndex(a => a.Timestamp);
+            entity.HasIndex(a => a.PatientId);
+            entity.HasIndex(a => a.UserId);
+
+            entity.HasOne(a => a.User)
+                .WithMany()
+                .HasForeignKey(a => a.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
