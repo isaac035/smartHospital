@@ -12,7 +12,6 @@ class DoctorService {
   Future<List<Doctor>> getDoctors({
     int? departmentId,
     String? specialization,
-    int? minExperience,
     int? consultationTypeId,
     String? searchTerm,
   }) async {
@@ -21,7 +20,6 @@ class DoctorService {
       queryParameters: {
         if (departmentId != null) 'departmentId': departmentId,
         if (specialization != null && specialization.isNotEmpty) 'specialization': specialization,
-        if (minExperience != null) 'minExperience': minExperience,
         if (consultationTypeId != null) 'consultationTypeId': consultationTypeId,
         if (searchTerm != null && searchTerm.isNotEmpty) 'searchTerm': searchTerm,
       },

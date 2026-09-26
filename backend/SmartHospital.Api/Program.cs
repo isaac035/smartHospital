@@ -220,6 +220,11 @@ using (var scope = app.Services.CreateScope())
             .GetRequiredService<AppDbContext>();
 
     await DbSeeder.SeedAsync(dbContext);
+
+    if (app.Environment.IsDevelopment())
+    {
+        await SampleDataSeeder.SeedAsync(dbContext);
+    }
 }
 
 app.Run();

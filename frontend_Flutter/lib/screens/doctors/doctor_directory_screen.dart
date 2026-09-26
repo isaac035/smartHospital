@@ -39,8 +39,23 @@ class _DoctorDirectoryScreenState extends State<DoctorDirectoryScreen> {
   }
 
   void _onSearchChanged(String value) {
+    context.read<DoctorProvider>().searchTerm = value;
+    _scheduleReload();
+  }
+
+  void _onSpecializationChanged(String value) {
+    context.read<DoctorProvider>().filterSpecialization = value.trim();
+    _scheduleReload();
+  }
+
+  // Placeholder for a future feature: stores the value but doesn't filter or reload
+  void _onReasonOfIllnessChanged(String value) {
+    context.read<DoctorProvider>().reasonOfIllness = value.trim();
+  }
+
+  // Debounced so typing doesn't fire a request per keystroke
+  void _scheduleReload() {
     final provider = context.read<DoctorProvider>();
-    provider.searchTerm = value;
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 350), () {
       if (mounted) provider.loadDirectory();
@@ -136,14 +151,15 @@ class _DoctorDirectoryScreenState extends State<DoctorDirectoryScreen> {
                     label: 'Specialization',
                     hint: 'e.g. Cardiology',
                     enabled: !availabilityOn,
-                    onChanged: (value) => provider.filterSpecialization = value,
+                    onChanged: _onSpecializationChanged,
                   ),
                 ),
                 const SizedBox(width: 12),
-                const Expanded(
+                Expanded(
                   child: AppTextField(
                     label: 'Reason for Illness',
                     hint: 'e.g. Fever, chest pain',
+                    onChanged: _onReasonOfIllnessChanged,
                   ),
                 ),
               ],
@@ -152,7 +168,7 @@ class _DoctorDirectoryScreenState extends State<DoctorDirectoryScreen> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: Text(
-                  'Specialization, experience and search aren\'t available when filtering by availability date.',
+                  'Specialization and search aren\'t available when filtering by availability date.',
                   style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                 ),
               )

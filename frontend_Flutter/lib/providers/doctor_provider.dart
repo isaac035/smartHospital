@@ -50,7 +50,8 @@ class DoctorProvider extends ChangeNotifier {
   // Directory filter state.
   int? filterDepartmentId;
   String filterSpecialization = '';
-  int? filterMinExperience;
+  // Reserved for future use; not sent to the API yet.
+  String reasonOfIllness = '';
   int? filterConsultationTypeId;
   String searchTerm = '';
   bool availabilityFilterOn = false;
@@ -129,7 +130,6 @@ class DoctorProvider extends ChangeNotifier {
         _directoryDoctors = await _doctorService.getDoctors(
           departmentId: filterDepartmentId,
           specialization: filterSpecialization,
-          minExperience: filterMinExperience,
           consultationTypeId: filterConsultationTypeId,
           searchTerm: searchTerm,
         );
@@ -159,7 +159,7 @@ class DoctorProvider extends ChangeNotifier {
   void clearFilters() {
     filterDepartmentId = null;
     filterSpecialization = '';
-    filterMinExperience = null;
+    reasonOfIllness = '';
     filterConsultationTypeId = null;
     searchTerm = '';
     availabilityFilterOn = false;

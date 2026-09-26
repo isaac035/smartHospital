@@ -1,10 +1,12 @@
 class Validators {
   static String? validateEmail(String? value) {
-    if (value == null || value.isEmpty) {
+    // Screens trim before submitting, so validate the trimmed value too
+    final email = value?.trim() ?? '';
+    if (email.isEmpty) {
       return 'Email is required';
     }
-    final emailRegExp = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-    if (!emailRegExp.hasMatch(value)) {
+    final emailRegExp = RegExp(r'^[\w.-]+@([\w-]+\.)+[\w-]{2,}$');
+    if (!emailRegExp.hasMatch(email)) {
       return 'Enter a valid email address';
     }
     return null;
