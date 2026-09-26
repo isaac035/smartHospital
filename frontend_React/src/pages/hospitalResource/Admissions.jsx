@@ -8,14 +8,14 @@ import AllocateBedModal from './components/AllocateBedModal'
 import TransferPatientModal from './components/TransferPatientModal'
 import DischargePatientModal from './components/DischargePatientModal'
 import AdmissionDetailsModal from './components/AdmissionDetailsModal'
+import { adminNavigation } from '../admin/adminNavigation'
 
-const adminNav = ['Dashboard', 'User Management', 'Doctor Management', 'Department Management', 'Appointments', 'Reports', 'Settings']
 const staffNav = ['Dashboard', 'Patients', 'Appointments', 'Queue Management', 'Resources']
 
 export default function Admissions() {
   const { user } = useAuth()
   const role = user?.role || 'Staff'
-  const navigation = role === 'Admin' ? adminNav : staffNav
+  const navigation = role === 'Admin' ? adminNavigation : staffNav
 
   // Data states
   const [admissions, setAdmissions] = useState([])
