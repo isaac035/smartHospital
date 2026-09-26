@@ -14,6 +14,12 @@ public class DoctorSchedule
 
     public TimeOnly EndTime { get; set; }
 
+    /// <summary>Duration of each bookable appointment slot in minutes, used by the Appointment module.</summary>
+    public int SlotDurationMinutes { get; set; } = 30;
+
+    /// <summary>Maximum number of patients the doctor accepts on this schedule day, used by the Appointment module.</summary>
+    public int MaxPatientsPerDay { get; set; } = 20;
+
     public ScheduleStatus Status { get; set; }
 
     public DateTime CreatedAt { get; set; }

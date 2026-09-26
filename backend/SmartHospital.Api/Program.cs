@@ -92,6 +92,11 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IPatientMedicalProfileService, PatientMedicalProfileService>();
+builder.Services.AddScoped<IMedicalRecordService, MedicalRecordService>();
+builder.Services.AddScoped<IVitalSignService, VitalSignService>();
+builder.Services.AddScoped<IPrescriptionService, PrescriptionService>();
+builder.Services.AddScoped<ILabOrderService, LabOrderService>();
 
 // Hospital Resource & Bed Management Services
 builder.Services.AddScoped<IWardService, WardService>();
@@ -108,6 +113,12 @@ builder.Services.AddScoped<IConsultationTypeService, ConsultationTypeService>();
 builder.Services.AddScoped<IDoctorService, DoctorService>();
 builder.Services.AddScoped<IScheduleService, ScheduleService>();
 builder.Services.AddScoped<ILeaveService, LeaveService>();
+
+// Smart Appointment & Queue Management Services
+builder.Services.AddScoped<IAvailabilityService, AvailabilityService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IAppointmentService, AppointmentService>();
+builder.Services.AddScoped<IQueueService, QueueService>();
 
 
 // --------------------------------------------------

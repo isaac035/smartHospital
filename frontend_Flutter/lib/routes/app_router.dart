@@ -14,6 +14,17 @@ import '../screens/doctors/doctor_directory_screen.dart';
 import '../screens/doctors/doctor_details_screen.dart';
 import '../screens/doctors/doctor_schedule_screen.dart';
 import '../screens/doctors/doctor_availability_screen.dart';
+import '../screens/emr/patient_medical_records_screen.dart';
+import '../screens/emr/patient_vitals_screen.dart';
+import '../screens/emr/patient_prescriptions_screen.dart';
+import '../screens/emr/patient_lab_reports_screen.dart';
+import '../screens/appointments/my_appointments_screen.dart';
+import '../screens/appointments/appointment_details_screen.dart';
+import '../screens/appointments/search_doctors_screen.dart';
+import '../screens/appointments/doctor_slots_screen.dart';
+import '../screens/appointments/book_appointment_screen.dart';
+import '../screens/appointments/reschedule_screen.dart';
+import '../screens/queue/queue_status_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -101,6 +112,67 @@ class AppRouter {
               ],
             ),
           ],
+        ),
+        GoRoute(
+          path: '/medical-records',
+          builder: (context, state) => const PatientMedicalRecordsScreen(),
+          routes: [
+            GoRoute(
+              path: 'vitals',
+              builder: (context, state) => const PatientVitalsScreen(),
+            ),
+            GoRoute(
+              path: 'prescriptions',
+              builder: (context, state) => const PatientPrescriptionsScreen(),
+            ),
+            GoRoute(
+              path: 'lab-reports',
+              builder: (context, state) => const PatientLabReportsScreen(),
+            ),
+          ],
+        ),
+        // --- Smart Appointment & Queue Management ---
+        GoRoute(
+          path: '/appointments',
+          builder: (context, state) => const MyAppointmentsScreen(),
+        ),
+        GoRoute(
+          path: '/appointments/search',
+          builder: (context, state) => const SearchDoctorsScreen(),
+        ),
+        GoRoute(
+          path: '/appointments/book',
+          builder: (context, state) {
+            final extra = state.extra as Map<String, dynamic>;
+            return BookAppointmentScreen(
+              doctorId: extra['doctorId'] as int,
+              slotStart: extra['slotStart'] as String,
+            );
+          },
+        ),
+        GoRoute(
+          path: '/appointments/doctor/:doctorId',
+          builder: (context, state) => DoctorSlotsScreen(
+            doctorId: int.parse(state.pathParameters['doctorId']!),
+          ),
+        ),
+        GoRoute(
+          path: '/appointments/:id',
+          builder: (context, state) => AppointmentDetailsScreen(
+            appointmentId: int.parse(state.pathParameters['id']!),
+          ),
+          routes: [
+            GoRoute(
+              path: 'reschedule',
+              builder: (context, state) => RescheduleScreen(
+                appointmentId: int.parse(state.pathParameters['id']!),
+              ),
+            ),
+          ],
+        ),
+        GoRoute(
+          path: '/queue',
+          builder: (context, state) => const QueueStatusScreen(),
         ),
       ],
     );

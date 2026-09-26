@@ -17,11 +17,16 @@ export default function DashboardLayout({ role, navigation, title, subtitle, chi
     <aside className={`sidebar ${menuOpen ? 'sidebar-open' : ''}`}>
       <div className="brand"><span className="brand-mark">+</span><span>Smart Hospital</span></div>
       <nav className="sidebar-nav" aria-label={`${role} navigation`}>
-        {navigation.map((item) => <button
-          className={item.path && location.pathname === item.path ? 'nav-item active' : 'nav-item'}
-          key={item.label}
-          onClick={() => { if (item.path) navigate(item.path); setMenuOpen(false) }}
-        >{item.label}</button>)}
+        {navigation.map((item) => {
+          const isActive = item.path === '/hospital-resources'
+            ? location.pathname.startsWith('/hospital-resources')
+            : item.path && location.pathname === item.path
+          return <button
+            className={isActive ? 'nav-item active' : 'nav-item'}
+            key={item.label}
+            onClick={() => { if (item.path) navigate(item.path); setMenuOpen(false) }}
+          >{item.label}</button>
+        })}
       </nav>
       <button className="nav-item logout-button" onClick={handleLogout}>Logout</button>
     </aside>

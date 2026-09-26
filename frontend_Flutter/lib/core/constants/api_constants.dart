@@ -38,4 +38,11 @@ class ApiConstants {
 
   // Leave Endpoints
   static const String leaves = '/leaves';
+
+  // EMR Endpoints
+  static const String medicalRecords = '/MedicalRecords';
+  static const String vitals = '/Vitals';
+  static const String prescriptions = '/Prescriptions';
+  static const String labOrders = '/LabOrders';
+  static const String patientProfiles = '/PatientProfiles';
 }

@@ -14,6 +14,8 @@ import 'services/consultation_type_service.dart';
 import 'providers/auth_provider.dart';
 import 'providers/doctor_provider.dart';
 import 'routes/app_router.dart';
+import 'services/appointment_service.dart';
+import 'providers/appointment_provider.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -75,6 +77,14 @@ class MyApp extends StatelessWidget {
           update: (_, doctorService, scheduleService, leaveService, departmentService, consultationTypeService, previous) =>
               previous ??
               DoctorProvider(doctorService, scheduleService, leaveService, departmentService, consultationTypeService),
+        ),
+        ProxyProvider<ApiClient, AppointmentService>(
+          update: (_, apiClient, __) => AppointmentService(apiClient),
+        ),
+        ChangeNotifierProxyProvider<AppointmentService, AppointmentProvider>(
+          create: (_) => AppointmentProvider(
+              AppointmentService(ApiClient(SecureStorageService()))),
+          update: (_, svc, previous) => previous ?? AppointmentProvider(svc),
         ),
       ],
       child: Builder(

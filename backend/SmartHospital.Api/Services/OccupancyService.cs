@@ -40,7 +40,7 @@ public class OccupancyService : IOccupancyService
             .ToListAsync();
 
         var lowAvailabilityWardCount = wards.Count(w =>
-            w.Available <= 2 || (w.Total > 0 && ((double)w.Available / w.Total) <= 0.10));
+            w.Total > 0 && ((double)w.Available / w.Total) <= 0.20);
 
         var totalResources = await _context.MedicalResources.CountAsync(mr => mr.IsActive);
         var availableResources = await _context.MedicalResources.CountAsync(mr => mr.IsActive && mr.Status == ResourceStatus.Available);
@@ -100,7 +100,7 @@ public class OccupancyService : IOccupancyService
         var blocked = beds.Count(b => b.Status == BedStatus.Blocked);
 
         var rate = total > 0 ? Math.Round((double)occupied / total * 100, 2) : 0;
-        var isLow = available <= 2 || (total > 0 && ((double)available / total) <= 0.10);
+        var isLow = total > 0 && ((double)available / total) <= 0.20;
 
         return new WardOccupancyResponse
         {
