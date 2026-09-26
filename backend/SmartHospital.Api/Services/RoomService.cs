@@ -15,6 +15,8 @@ public class RoomService : IRoomService
         _context = context;
     }
 
+    private const int StandardRoomCapacity = 4;
+
     public async Task<RoomResponse> CreateRoomAsync(CreateRoomRequest request)
     {
         var ward = await _context.Wards.FindAsync(request.WardId);
@@ -23,11 +25,11 @@ public class RoomService : IRoomService
             throw new InvalidOperationException("Target ward does not exist or is inactive.");
         }
 
-        var roomNumber = request.RoomNumber.Trim();
-        var roomExists = await _context.Rooms.AnyAsync(r => r.WardId == request.WardId && r.RoomNumber == roomNumber);
+        var roomNumber = request.RoomNumber.Trim().ToUpperInvariant();
+        var roomExists = await _context.Rooms.AnyAsync(r => r.RoomNumber == roomNumber);
         if (roomExists)
         {
-            throw new InvalidOperationException($"Room number '{roomNumber}' already exists in this ward.");
+            throw new InvalidOperationException($"Room number '{roomNumber}' already exists in the hospital.");
         }
 
         var room = new Room
@@ -35,7 +37,7 @@ public class RoomService : IRoomService
             WardId = request.WardId,
             RoomNumber = roomNumber,
             Type = request.Type,
-            Capacity = request.Capacity,
+            Capacity = StandardRoomCapacity,
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
@@ -138,17 +140,22 @@ public class RoomService : IRoomService
             return null;
         }
 
-        var activeBeds = room.Beds.Count(b => b.IsActive);
-        if (request.Capacity < activeBeds)
+        var roomNumber = request.RoomNumber.Trim().ToUpperInvariant();
+
+        // Only perform global RoomNumber duplicate validation if RoomNumber is actually being changed
+        if (!string.Equals(room.RoomNumber, roomNumber, StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException($"Room capacity cannot be less than current active beds ({activeBeds}).");
+            var duplicateExists = await _context.Rooms.AnyAsync(r => r.RoomNumber == roomNumber && r.Id != id);
+            if (duplicateExists)
+            {
+                throw new InvalidOperationException($"Room number '{roomNumber}' already exists in the hospital.");
+            }
         }
 
-        var roomNumber = request.RoomNumber.Trim();
-        var duplicateExists = await _context.Rooms.AnyAsync(r => r.WardId == room.WardId && r.RoomNumber == roomNumber && r.Id != id);
-        if (duplicateExists)
+        var activeBeds = room.Beds.Count(b => b.IsActive);
+        if (StandardRoomCapacity < activeBeds)
         {
-            throw new InvalidOperationException($"Room number '{roomNumber}' already exists in this ward.");
+            throw new InvalidOperationException($"Room capacity cannot be less than current active beds ({activeBeds}).");
         }
 
         if (!request.IsActive && room.Beds.Any(b => b.Status == BedStatus.Occupied))
@@ -158,7 +165,7 @@ public class RoomService : IRoomService
 
         room.RoomNumber = roomNumber;
         room.Type = request.Type;
-        room.Capacity = request.Capacity;
+        room.Capacity = StandardRoomCapacity;
         room.IsActive = request.IsActive;
         room.UpdatedAt = DateTime.UtcNow;
 
