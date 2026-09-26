@@ -33,4 +33,6 @@ public interface IMedicalRecordService
     Task<List<MedicalRecordVersionResponse>> GetVersionHistoryAsync(int medicalRecordId);
 
     Task<MedicalRecordVersionResponse?> GetVersionAsync(int medicalRecordId, int versionNumber);
+
+    Task<PagedMedicalRecordResult> SearchAsync(MedicalRecordQueryFilter filter);
 }

@@ -343,6 +343,17 @@ public class MedicalRecordsControllerTests
                 Diagnosis = "Common Cold"
             });
         }
+
+        public Task<PagedMedicalRecordResult> SearchAsync(MedicalRecordQueryFilter filter)
+        {
+            return Task.FromResult(new PagedMedicalRecordResult
+            {
+                Items = new List<MedicalRecordSummaryResponse>(),
+                TotalCount = 0,
+                Page = filter.Page,
+                PageSize = filter.PageSize
+            });
+        }
     }
 
     private ControllerContext CreateDoctorContext(string doctorId = "5")

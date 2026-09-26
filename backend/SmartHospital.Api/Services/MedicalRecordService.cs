@@ -1537,4 +1537,130 @@ public class MedicalRecordService : IMedicalRecordService
             PreviousFollowUpDate = version.PreviousFollowUpDate
         };
     }
+
+    public async Task<PagedMedicalRecordResult> SearchAsync(MedicalRecordQueryFilter filter)
+    {
+        if (filter == null)
+        {
+            throw new ArgumentNullException(nameof(filter));
+        }
+
+        if (filter.StartDate.HasValue && filter.EndDate.HasValue && filter.StartDate.Value > filter.EndDate.Value)
+        {
+            throw new ArgumentException("Start date cannot be after end date.", nameof(filter));
+        }
+
+        var query = _context.MedicalRecords
+            .AsNoTracking()
+            .AsQueryable();
+
+        // 1. Patient Filter
+        if (filter.PatientId.HasValue && filter.PatientId.Value > 0)
+        {
+            query = query.Where(r => r.PatientId == filter.PatientId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.PatientSearch))
+        {
+            var pTerm = filter.PatientSearch.Trim().ToLower();
+            query = query.Where(r => r.Patient != null &&
+                ((r.Patient.FirstName + " " + r.Patient.LastName).ToLower().Contains(pTerm) ||
+                 r.Patient.Email.ToLower().Contains(pTerm)));
+        }
+
+        // 2. Doctor Filter
+        if (filter.DoctorId.HasValue && filter.DoctorId.Value > 0)
+        {
+            query = query.Where(r => r.DoctorId == filter.DoctorId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.DoctorSearch))
+        {
+            var dTerm = filter.DoctorSearch.Trim().ToLower();
+            query = query.Where(r => r.Doctor != null &&
+                ((r.Doctor.FirstName + " " + r.Doctor.LastName).ToLower().Contains(dTerm) ||
+                 r.Doctor.Email.ToLower().Contains(dTerm)));
+        }
+
+        // 3. Record Number Filter
+        if (!string.IsNullOrWhiteSpace(filter.RecordNumber))
+        {
+            var rTerm = filter.RecordNumber.Trim().ToLower();
+            query = query.Where(r => r.RecordNumber.ToLower().Contains(rTerm));
+        }
+
+        // 4. Diagnosis Filter
+        if (!string.IsNullOrWhiteSpace(filter.Diagnosis))
+        {
+            var diagTerm = filter.Diagnosis.Trim().ToLower();
+            query = query.Where(r => r.Diagnosis.ToLower().Contains(diagTerm) ||
+                r.Diagnoses.Any(d => d.Description.ToLower().Contains(diagTerm) ||
+                                     (d.Code != null && d.Code.ToLower().Contains(diagTerm))));
+        }
+
+        // 5. Exact Visit Date Filter (calendar day match)
+        if (filter.VisitDate.HasValue)
+        {
+            var targetDate = filter.VisitDate.Value.Date;
+            var nextDate = targetDate.AddDays(1);
+            query = query.Where(r => r.VisitDate >= targetDate && r.VisitDate < nextDate);
+        }
+
+        // 6. Date Range Filter
+        if (filter.StartDate.HasValue)
+        {
+            query = query.Where(r => r.VisitDate >= filter.StartDate.Value);
+        }
+
+        if (filter.EndDate.HasValue)
+        {
+            query = query.Where(r => r.VisitDate <= filter.EndDate.Value);
+        }
+
+        // 7. General Search Term
+        if (!string.IsNullOrWhiteSpace(filter.SearchTerm))
+        {
+            var sTerm = filter.SearchTerm.Trim().ToLower();
+            query = query.Where(r =>
+                r.RecordNumber.ToLower().Contains(sTerm) ||
+                r.Diagnosis.ToLower().Contains(sTerm) ||
+                r.ChiefComplaint.ToLower().Contains(sTerm) ||
+                (r.Patient != null && (r.Patient.FirstName + " " + r.Patient.LastName).ToLower().Contains(sTerm)) ||
+                (r.Doctor != null && (r.Doctor.FirstName + " " + r.Doctor.LastName).ToLower().Contains(sTerm)));
+        }
+
+        // Efficient EF Core execution: Count first, then paginate
+        var totalCount = await query.CountAsync();
+
+        var page = filter.Page < 1 ? 1 : filter.Page;
+        var pageSize = filter.PageSize < 1 ? 10 : (filter.PageSize > 100 ? 100 : filter.PageSize);
+
+        var items = await query
+            .OrderByDescending(r => r.VisitDate)
+            .ThenByDescending(r => r.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(r => new MedicalRecordSummaryResponse
+            {
+                Id = r.Id,
+                RecordNumber = r.RecordNumber,
+                PatientId = r.PatientId,
+                PatientName = r.Patient != null ? $"{r.Patient.FirstName} {r.Patient.LastName}".Trim() : string.Empty,
+                DoctorId = r.DoctorId,
+                DoctorName = r.Doctor != null ? $"Dr. {r.Doctor.FirstName} {r.Doctor.LastName}".Trim() : string.Empty,
+                VisitDate = r.VisitDate,
+                ChiefComplaint = r.ChiefComplaint,
+                Diagnosis = r.Diagnosis,
+                FollowUpDate = r.FollowUpDate
+            })
+            .ToListAsync();
+
+        return new PagedMedicalRecordResult
+        {
+            Items = items,
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize
+        };
+    }
 }
