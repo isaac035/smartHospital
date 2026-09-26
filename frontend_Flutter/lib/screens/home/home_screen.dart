@@ -64,21 +64,25 @@ class HomeScreen extends StatelessWidget {
                           icon: Icons.calendar_today,
                           title: 'My Appointments',
                           color: Colors.blue,
+                          onTap: () {},
                         ),
                         _buildModuleCard(
                           icon: Icons.people,
                           title: 'Queue Status',
                           color: Colors.orange,
+                          onTap: () {},
                         ),
                         _buildModuleCard(
                           icon: Icons.medical_services,
                           title: 'Doctors',
                           color: Colors.green,
+                          onTap: () => context.push('/doctors'),
                         ),
                         _buildModuleCard(
                           icon: Icons.description,
                           title: 'Medical Records',
                           color: Colors.purple,
+                          onTap: () {},
                         ),
                       ],
                     )
@@ -93,12 +97,13 @@ class HomeScreen extends StatelessWidget {
     required IconData icon,
     required String title,
     required Color color,
+    required VoidCallback onTap,
   }) {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
-        onTap: () {}, // Placeholder
+        onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

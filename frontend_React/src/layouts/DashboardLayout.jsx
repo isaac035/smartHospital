@@ -1,12 +1,12 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 
 export default function DashboardLayout({ role, navigation, title, subtitle, children }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const { user, logout } = useAuth()
   const navigate = useNavigate()
-  const dashboardPath = `/${role.toLowerCase()}/dashboard`
+  const location = useLocation()
 
   const handleLogout = () => {
     logout()
@@ -18,10 +18,10 @@ export default function DashboardLayout({ role, navigation, title, subtitle, chi
       <div className="brand"><span className="brand-mark">+</span><span>Smart Hospital</span></div>
       <nav className="sidebar-nav" aria-label={`${role} navigation`}>
         {navigation.map((item) => <button
-          className={item === 'Dashboard' ? 'nav-item active' : 'nav-item'}
-          key={item}
-          onClick={() => { if (item === 'Dashboard') navigate(dashboardPath); setMenuOpen(false) }}
-        >{item}</button>)}
+          className={item.path && location.pathname === item.path ? 'nav-item active' : 'nav-item'}
+          key={item.label}
+          onClick={() => { if (item.path) navigate(item.path); setMenuOpen(false) }}
+        >{item.label}</button>)}
       </nav>
       <button className="nav-item logout-button" onClick={handleLogout}>Logout</button>
     </aside>

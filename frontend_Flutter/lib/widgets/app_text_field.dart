@@ -9,6 +9,8 @@ class AppTextField extends StatelessWidget {
   final bool obscureText;
   final Widget? suffixIcon;
   final bool readOnly;
+  final ValueChanged<String>? onChanged;
+  final bool enabled;
 
   const AppTextField({
     super.key,
@@ -20,6 +22,8 @@ class AppTextField extends StatelessWidget {
     this.obscureText = false,
     this.suffixIcon,
     this.readOnly = false,
+    this.onChanged,
+    this.enabled = true,
   });
 
   @override
@@ -43,6 +47,8 @@ class AppTextField extends StatelessWidget {
             validator: validator,
             obscureText: obscureText,
             readOnly: readOnly,
+            onChanged: onChanged,
+            enabled: enabled,
             decoration: InputDecoration(
               hintText: hint,
               suffixIcon: suffixIcon,

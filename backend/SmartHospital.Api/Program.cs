@@ -102,6 +102,13 @@ builder.Services.AddScoped<IMedicalResourceService, MedicalResourceService>();
 builder.Services.AddScoped<IResourceMaintenanceService, ResourceMaintenanceService>();
 builder.Services.AddScoped<IOccupancyService, OccupancyService>();
 
+// Doctor & Clinical Schedule Management Services
+builder.Services.AddScoped<IDepartmentService, DepartmentService>();
+builder.Services.AddScoped<IConsultationTypeService, ConsultationTypeService>();
+builder.Services.AddScoped<IDoctorService, DoctorService>();
+builder.Services.AddScoped<IScheduleService, ScheduleService>();
+builder.Services.AddScoped<ILeaveService, LeaveService>();
+
 
 // --------------------------------------------------
 // CORS
