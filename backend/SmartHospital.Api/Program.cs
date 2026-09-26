@@ -107,6 +107,13 @@ builder.Services.AddScoped<IMedicalResourceService, MedicalResourceService>();
 builder.Services.AddScoped<IResourceMaintenanceService, ResourceMaintenanceService>();
 builder.Services.AddScoped<IOccupancyService, OccupancyService>();
 
+// Doctor & Clinical Schedule Management Services
+builder.Services.AddScoped<IDepartmentService, DepartmentService>();
+builder.Services.AddScoped<IConsultationTypeService, ConsultationTypeService>();
+builder.Services.AddScoped<IDoctorService, DoctorService>();
+builder.Services.AddScoped<IScheduleService, ScheduleService>();
+builder.Services.AddScoped<ILeaveService, LeaveService>();
+
 // Smart Appointment & Queue Management Services
 builder.Services.AddScoped<IAvailabilityService, AvailabilityService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
@@ -213,6 +220,11 @@ using (var scope = app.Services.CreateScope())
             .GetRequiredService<AppDbContext>();
 
     await DbSeeder.SeedAsync(dbContext);
+
+    if (app.Environment.IsDevelopment())
+    {
+        await SampleDataSeeder.SeedAsync(dbContext);
+    }
 }
 
 app.Run();

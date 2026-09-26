@@ -2477,19 +2477,19 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\Windows\\.nuget\\packages\\": {}
+    "C:\\Users\\ekmin\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "c:\\Users\\Windows\\Downloads\\OneDrive - Sri Lanka Institute of Information Technology\\Attachments\\Desktop\\smartHospital\\tests\\SmartHospital.Tests\\SmartHospital.Tests.csproj",
+      "projectUniqueName": "c:\\Users\\ekmin\\OneDrive\\Pictures\\smartHospital-main\\smartHospital-main\\tests\\SmartHospital.Tests\\SmartHospital.Tests.csproj",
       "projectName": "SmartHospital.Tests",
-      "projectPath": "c:\\Users\\Windows\\Downloads\\OneDrive - Sri Lanka Institute of Information Technology\\Attachments\\Desktop\\smartHospital\\tests\\SmartHospital.Tests\\SmartHospital.Tests.csproj",
-      "packagesPath": "C:\\Users\\Windows\\.nuget\\packages\\",
-      "outputPath": "c:\\Users\\Windows\\Downloads\\OneDrive - Sri Lanka Institute of Information Technology\\Attachments\\Desktop\\smartHospital\\tests\\SmartHospital.Tests\\obj\\",
+      "projectPath": "c:\\Users\\ekmin\\OneDrive\\Pictures\\smartHospital-main\\smartHospital-main\\tests\\SmartHospital.Tests\\SmartHospital.Tests.csproj",
+      "packagesPath": "C:\\Users\\ekmin\\.nuget\\packages\\",
+      "outputPath": "c:\\Users\\ekmin\\OneDrive\\Pictures\\smartHospital-main\\smartHospital-main\\tests\\SmartHospital.Tests\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\Windows\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        "C:\\Users\\ekmin\\AppData\\Roaming\\NuGet\\NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net8.0"
@@ -2501,8 +2501,8 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "projectReferences": {
-            "C:\\Users\\Windows\\Downloads\\OneDrive - Sri Lanka Institute of Information Technology\\Attachments\\Desktop\\smartHospital\\backend\\SmartHospital.Api\\SmartHospital.Api.csproj": {
-              "projectPath": "C:\\Users\\Windows\\Downloads\\OneDrive - Sri Lanka Institute of Information Technology\\Attachments\\Desktop\\smartHospital\\backend\\SmartHospital.Api\\SmartHospital.Api.csproj"
+            "C:\\Users\\ekmin\\OneDrive\\Pictures\\smartHospital-main\\smartHospital-main\\backend\\SmartHospital.Api\\SmartHospital.Api.csproj": {
+              "projectPath": "C:\\Users\\ekmin\\OneDrive\\Pictures\\smartHospital-main\\smartHospital-main\\backend\\SmartHospital.Api\\SmartHospital.Api.csproj"
             }
           }
         }

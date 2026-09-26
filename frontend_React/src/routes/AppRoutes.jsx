@@ -1,7 +1,15 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import Login from '../pages/auth/Login'
 import AdminDashboard from '../pages/admin/AdminDashboard'
+import DoctorManagement from '../pages/admin/DoctorManagement'
+import DepartmentManagement from '../pages/admin/DepartmentManagement'
+import ConsultationTypeManagement from '../pages/admin/ConsultationTypeManagement'
+import AvailabilityCalendar from '../pages/admin/AvailabilityCalendar'
+import LeaveManagement from '../pages/admin/LeaveManagement'
 import DoctorDashboard from '../pages/doctor/DoctorDashboard'
+import MyProfile from '../pages/doctor/MyProfile'
+import MySchedule from '../pages/doctor/MySchedule'
+import MyLeave from '../pages/doctor/MyLeave'
 import DoctorMedicalRecordsPage from '../pages/doctor/emr/DoctorMedicalRecordsPage'
 import DoctorPrescriptionsPage from '../pages/doctor/emr/DoctorPrescriptionsPage'
 import DoctorLabReportsPage from '../pages/doctor/emr/DoctorLabReportsPage'
@@ -38,8 +46,24 @@ export default function AppRoutes() {
         <Route path="/admin/appointments/:id/reschedule" element={<RescheduleAppointment />} />
         <Route path="/admin/queue-management" element={<QueueDashboard />} />
       </Route>
+      <Route element={<RoleRoute allowedRoles={['Admin', 'Staff']} />}>
+        <Route path="/admin/doctors" element={<DoctorManagement />} />
+        <Route path="/admin/departments" element={<DepartmentManagement />} />
+        <Route path="/admin/consultation-types" element={<ConsultationTypeManagement />} />
+        <Route path="/admin/schedules" element={<AvailabilityCalendar />} />
+        <Route path="/admin/leaves" element={<LeaveManagement />} />
+        <Route path="/hospital-resources" element={<ResourceDashboard />} />
+        <Route path="/hospital-resources/wards" element={<WardManagement />} />
+        <Route path="/hospital-resources/beds" element={<BedManagement />} />
+        <Route path="/hospital-resources/admissions" element={<Admissions />} />
+        <Route path="/hospital-resources/medical-resources" element={<MedicalResources />} />
+        <Route path="/hospital-resources/maintenance" element={<Maintenance />} />
+      </Route>
       <Route element={<RoleRoute allowedRoles={['Doctor']} />}>
         <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
+        <Route path="/doctor/profile" element={<MyProfile />} />
+        <Route path="/doctor/schedule" element={<MySchedule />} />
+        <Route path="/doctor/leave" element={<MyLeave />} />
         <Route path="/doctor/my-appointments" element={<AppointmentsDashboard />} />
         <Route path="/doctor/appointments/calendar" element={<AppointmentCalendar />} />
         <Route path="/doctor/appointments/:id" element={<AppointmentDetails />} />
@@ -56,14 +80,6 @@ export default function AppRoutes() {
         <Route path="/staff/appointments/:id" element={<AppointmentDetails />} />
         <Route path="/staff/appointments/:id/reschedule" element={<RescheduleAppointment />} />
         <Route path="/staff/queue-management" element={<QueueDashboard />} />
-      </Route>
-      <Route element={<RoleRoute allowedRoles={['Admin', 'Staff']} />}>
-        <Route path="/hospital-resources" element={<ResourceDashboard />} />
-        <Route path="/hospital-resources/wards" element={<WardManagement />} />
-        <Route path="/hospital-resources/beds" element={<BedManagement />} />
-        <Route path="/hospital-resources/admissions" element={<Admissions />} />
-        <Route path="/hospital-resources/medical-resources" element={<MedicalResources />} />
-        <Route path="/hospital-resources/maintenance" element={<Maintenance />} />
       </Route>
       <Route path="/unauthorized" element={<Unauthorized />} />
     </Route>
