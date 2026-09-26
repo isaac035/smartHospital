@@ -41,4 +41,8 @@ public class MedicalRecordResponse
     public List<VitalSignResponse> VitalSigns { get; set; } = new();
 
     public List<LabOrderResponse> LabOrders { get; set; } = new();
+
+    public List<DiagnosisResponse> Diagnoses { get; set; } = new();
+
+    public List<TreatmentPlanResponse> TreatmentPlans { get; set; } = new();
 }

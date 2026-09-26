@@ -97,6 +97,7 @@ builder.Services.AddScoped<IMedicalRecordService, MedicalRecordService>();
 builder.Services.AddScoped<IVitalSignService, VitalSignService>();
 builder.Services.AddScoped<IPrescriptionService, PrescriptionService>();
 builder.Services.AddScoped<ILabOrderService, LabOrderService>();
+builder.Services.AddScoped<IMedicalHistoryService, MedicalHistoryService>();
 
 // Hospital Resource & Bed Management Services
 builder.Services.AddScoped<IWardService, WardService>();
