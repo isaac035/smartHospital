@@ -39,6 +39,11 @@ public class AppDbContext : DbContext
     public DbSet<MedicalResource> MedicalResources => Set<MedicalResource>();
     public DbSet<ResourceMaintenance> ResourceMaintenances => Set<ResourceMaintenance>();
 
+    // ── Doctor & Clinical Schedule Management ─────────────────────────────────
+    public DbSet<ConsultationType> ConsultationTypes => Set<ConsultationType>();
+    public DbSet<Doctor> Doctors => Set<Doctor>();
+    public DbSet<DoctorLeave> DoctorLeaves => Set<DoctorLeave>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -558,37 +563,8 @@ public class AppDbContext : DbContext
         });
 
         // ── Smart Appointment & Queue Management ──────────────────────────────
-        // TODO: Department owned by Doctor & Clinical Schedule Management module.
-        modelBuilder.Entity<Department>(entity =>
-        {
-            entity.HasKey(d => d.Id);
-
-            entity.Property(d => d.Name)
-                .IsRequired()
-                .HasMaxLength(100);
-
-            entity.Property(d => d.Description)
-                .HasMaxLength(500);
-
-            entity.HasIndex(d => d.Name)
-                .IsUnique();
-        });
-
-        // TODO: DoctorSchedule owned by Doctor & Clinical Schedule Management module.
-        modelBuilder.Entity<DoctorSchedule>(entity =>
-        {
-            entity.HasKey(s => s.Id);
-
-            entity.HasOne(s => s.Doctor)
-                .WithMany()
-                .HasForeignKey(s => s.DoctorId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            entity.HasOne(s => s.Department)
-                .WithMany()
-                .HasForeignKey(s => s.DepartmentId)
-                .OnDelete(DeleteBehavior.SetNull);
-        });
+        // Department and DoctorSchedule are configured below, under
+        // "Doctor & Clinical Schedule Management Configuration" — that module owns them.
 
         // Appointment
         modelBuilder.Entity<Appointment>(entity =>
@@ -1027,6 +1003,154 @@ public class AppDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(rm => rm.PerformedByStaffId)
                 .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // --------------------------------------------------
+        // Doctor & Clinical Schedule Management Configuration
+        // --------------------------------------------------
+        modelBuilder.Entity<Department>(entity =>
+        {
+            entity.HasKey(d => d.Id);
+
+            entity.Property(d => d.Name)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(d => d.Description)
+                .HasMaxLength(500);
+
+            entity.Property(d => d.Status)
+                .IsRequired();
+
+            entity.HasIndex(d => d.Name)
+                .IsUnique();
+        });
+
+        modelBuilder.Entity<ConsultationType>(entity =>
+        {
+            entity.HasKey(c => c.Id);
+
+            entity.Property(c => c.Name)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(c => c.DurationMinutes)
+                .IsRequired();
+
+            entity.Property(c => c.Description)
+                .HasMaxLength(500);
+
+            entity.Property(c => c.Status)
+                .IsRequired();
+
+            entity.HasIndex(c => c.Name)
+                .IsUnique();
+        });
+
+        modelBuilder.Entity<Doctor>(entity =>
+        {
+            entity.HasKey(d => d.Id);
+
+            entity.Property(d => d.FirstName)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(d => d.LastName)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(d => d.Email)
+                .IsRequired()
+                .HasMaxLength(255);
+
+            entity.Property(d => d.PhoneNumber)
+                .HasMaxLength(20);
+
+            entity.Property(d => d.Specialization)
+                .IsRequired()
+                .HasMaxLength(150);
+
+            entity.Property(d => d.LicenseNumber)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(d => d.Bio)
+                .HasMaxLength(2000);
+
+            entity.Property(d => d.Status)
+                .IsRequired();
+
+            entity.HasIndex(d => d.Email)
+                .IsUnique();
+
+            entity.HasOne(d => d.Department)
+                .WithMany()
+                .HasForeignKey(d => d.DepartmentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne<User>()
+                .WithMany()
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<DoctorSchedule>(entity =>
+        {
+            entity.HasKey(s => s.Id);
+
+            entity.Property(s => s.DayOfWeek)
+                .IsRequired();
+
+            entity.Property(s => s.StartTime)
+                .IsRequired();
+
+            entity.Property(s => s.EndTime)
+                .IsRequired();
+
+            entity.Property(s => s.SlotDurationMinutes)
+                .IsRequired()
+                .HasDefaultValue(30);
+
+            entity.Property(s => s.MaxPatientsPerDay)
+                .IsRequired()
+                .HasDefaultValue(20);
+
+            entity.Property(s => s.Status)
+                .IsRequired();
+
+            entity.HasIndex(s => new { s.DoctorId, s.DayOfWeek });
+
+            entity.HasOne(s => s.Doctor)
+                .WithMany()
+                .HasForeignKey(s => s.DoctorId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(s => s.ConsultationType)
+                .WithMany()
+                .HasForeignKey(s => s.ConsultationTypeId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<DoctorLeave>(entity =>
+        {
+            entity.HasKey(l => l.Id);
+
+            entity.Property(l => l.StartDate)
+                .IsRequired();
+
+            entity.Property(l => l.EndDate)
+                .IsRequired();
+
+            entity.Property(l => l.Reason)
+                .HasMaxLength(500);
+
+            entity.Property(l => l.Status)
+                .IsRequired();
+
+            entity.HasOne(l => l.Doctor)
+                .WithMany()
+                .HasForeignKey(l => l.DoctorId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

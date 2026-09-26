@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 
 export default function DashboardLayout({ role, navigation, title, subtitle, children }) {
@@ -7,51 +7,25 @@ export default function DashboardLayout({ role, navigation, title, subtitle, chi
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const dashboardPath = `/${role.toLowerCase()}/dashboard`
 
   const handleLogout = () => {
     logout()
     navigate('/login', { replace: true })
   }
 
-  const getItemPath = (item) => {
-    if (item === 'Dashboard') return dashboardPath
-    if (item === 'Resource Management') return '/hospital-resources'
-    const slug = item.toLowerCase().replace(/\s+/g, '-')
-    return `/${role.toLowerCase()}/${slug}`
-  }
-
-  const effectiveNavigation = [...navigation]
-  if (role === 'Admin' || role === 'Staff') {
-    if (!effectiveNavigation.includes('Resource Management')) {
-      const doctorMgmtIndex = effectiveNavigation.indexOf('Doctor Management')
-      if (doctorMgmtIndex !== -1) {
-        effectiveNavigation.splice(doctorMgmtIndex + 1, 0, 'Resource Management')
-      } else {
-        const resourcesIndex = effectiveNavigation.indexOf('Resources')
-        if (resourcesIndex !== -1) {
-          effectiveNavigation.splice(resourcesIndex, 1, 'Resource Management')
-        } else {
-          effectiveNavigation.push('Resource Management')
-        }
-      }
-    }
-  }
-
   return <div className="dashboard-shell">
     <aside className={`sidebar ${menuOpen ? 'sidebar-open' : ''}`}>
       <div className="brand"><span className="brand-mark">+</span><span>Smart Hospital</span></div>
       <nav className="sidebar-nav" aria-label={`${role} navigation`}>
-        {effectiveNavigation.map((item) => {
-          const itemPath = getItemPath(item)
-          const isActive = item === 'Resource Management'
+        {navigation.map((item) => {
+          const isActive = item.path === '/hospital-resources'
             ? location.pathname.startsWith('/hospital-resources')
-            : location.pathname === itemPath
+            : item.path && location.pathname === item.path
           return <button
             className={isActive ? 'nav-item active' : 'nav-item'}
-            key={item}
-            onClick={() => { navigate(itemPath); setMenuOpen(false) }}
-          >{item}</button>
+            key={item.label}
+            onClick={() => { if (item.path) navigate(item.path); setMenuOpen(false) }}
+          >{item.label}</button>
         })}
       </nav>
       <button className="nav-item logout-button" onClick={handleLogout}>Logout</button>

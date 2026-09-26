@@ -17,9 +17,9 @@ class ApiClient {
     _dio.interceptors.add(ApiInterceptor(storageService));
   }
 
-  Future<dynamic> get(String path) async {
+  Future<dynamic> get(String path, {Map<String, dynamic>? queryParameters}) async {
     try {
-      final response = await _dio.get(path);
+      final response = await _dio.get(path, queryParameters: queryParameters);
       return response.data;
     } on DioException catch (e) {
       throw _handleError(e);

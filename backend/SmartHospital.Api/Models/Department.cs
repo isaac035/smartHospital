@@ -1,15 +1,16 @@
 namespace SmartHospital.Api.Models;
 
-// TODO: owned by Doctor & Clinical Schedule Management module.
-// Minimal stub created by Appointment & Queue module for FK reference only.
-// Do NOT add clinical/scheduling logic here.
 public class Department
 {
     public int Id { get; set; }
 
     public string Name { get; set; } = string.Empty;
 
-    public string? Description { get; set; }
+    public string Description { get; set; } = string.Empty;
 
-    public bool IsActive { get; set; } = true;
+    public DepartmentStatus Status { get; set; }
+
+    public DateTime CreatedAt { get; set; }
+
+    public DateTime UpdatedAt { get; set; }
 }

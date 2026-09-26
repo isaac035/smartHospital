@@ -97,13 +97,13 @@ class HomeScreen extends StatelessWidget {
     required IconData icon,
     required String title,
     required Color color,
-    VoidCallback? onTap,
+    required VoidCallback onTap,
   }) {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
-        onTap: onTap ?? () {},
+        onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

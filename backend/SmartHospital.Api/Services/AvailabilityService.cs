@@ -22,17 +22,27 @@ public class AvailabilityService : IAvailabilityService
         int? departmentId,
         DateTime date)
     {
-        var dayOfWeek = date.DayOfWeek;
+        // Models.DayOfWeek uses Monday=1..Sunday=7, unlike System.DayOfWeek's Sunday=0..Saturday=6.
+        var systemDayOfWeek = (int)date.DayOfWeek;
+        var dayOfWeek = (Models.DayOfWeek)(systemDayOfWeek == 0 ? 7 : systemDayOfWeek);
         var dateOnly  = date.Date;
 
-        // Load active schedules matching the filters
+        // Load active schedules matching the filters.
+        // NOTE: DoctorSchedule.DoctorId references Doctors.Id (the Doctor & Clinical
+        // Schedule Management module's own profile table), whereas Appointment.DoctorId
+        // references Users.Id directly. Only doctors with a linked User account
+        // (Doctor.UserId) can be booked through the Appointment module, so we bridge
+        // through that link and exclude schedules for doctors without one.
         var schedulesQuery = _context.DoctorSchedules
             .Include(s => s.Doctor)
-            .Include(s => s.Department)
-            .Where(s => s.IsActive && s.DayOfWeek == dayOfWeek);
+                .ThenInclude(d => d!.Department)
+            .Where(s => s.Status == ScheduleStatus.Active
+                     && s.DayOfWeek == dayOfWeek
+                     && s.Doctor != null
+                     && s.Doctor.UserId != null);
 
-        if (doctorId.HasValue)     schedulesQuery = schedulesQuery.Where(s => s.DoctorId     == doctorId);
-        if (departmentId.HasValue) schedulesQuery = schedulesQuery.Where(s => s.DepartmentId == departmentId);
+        if (doctorId.HasValue)     schedulesQuery = schedulesQuery.Where(s => s.Doctor!.UserId     == doctorId);
+        if (departmentId.HasValue) schedulesQuery = schedulesQuery.Where(s => s.Doctor!.DepartmentId == departmentId);
 
         var schedules = await schedulesQuery.ToListAsync();
 
@@ -47,8 +57,8 @@ public class AvailabilityService : IAvailabilityService
 
         foreach (var schedule in schedules)
         {
-            var slotStart = dateOnly + schedule.StartTime;
-            var schedEnd  = dateOnly + schedule.EndTime;
+            var slotStart = dateOnly + schedule.StartTime.ToTimeSpan();
+            var schedEnd  = dateOnly + schedule.EndTime.ToTimeSpan();
             int duration  = schedule.SlotDurationMinutes;
 
             while (slotStart.AddMinutes(duration) <= schedEnd)
@@ -56,8 +66,9 @@ public class AvailabilityService : IAvailabilityService
                 var slotEnd = slotStart.AddMinutes(duration);
 
                 // Check overlap with any existing appointment for this doctor
+                var scheduleDoctorUserId = schedule.Doctor!.UserId!.Value;
                 bool overlaps = existingAppointments.Any(a =>
-                    a.DoctorId == schedule.DoctorId &&
+                    a.DoctorId == scheduleDoctorUserId &&
                     a.ScheduledStart < slotEnd &&
                     a.ScheduledStart.AddMinutes(a.EstimatedDurationMinutes) > slotStart);
 
@@ -65,12 +76,10 @@ public class AvailabilityService : IAvailabilityService
                 {
                     result.Add(new AvailableSlotResponse
                     {
-                        DoctorId       = schedule.DoctorId,
-                        DoctorName     = schedule.Doctor != null
-                            ? $"{schedule.Doctor.FirstName} {schedule.Doctor.LastName}"
-                            : string.Empty,
-                        DepartmentId   = schedule.DepartmentId,
-                        DepartmentName = schedule.Department?.Name,
+                        DoctorId       = scheduleDoctorUserId,
+                        DoctorName     = $"{schedule.Doctor.FirstName} {schedule.Doctor.LastName}",
+                        DepartmentId   = schedule.Doctor.DepartmentId,
+                        DepartmentName = schedule.Doctor.Department?.Name,
                         SlotStart      = slotStart,
                         SlotEnd        = slotEnd,
                         DurationMinutes = duration
@@ -151,11 +160,16 @@ public class AvailabilityService : IAvailabilityService
 
     public async Task<bool> IsDailyCapacityReachedAsync(int doctorId, DateTime date)
     {
-        // Get the schedule for this day to know MaxPatientsPerDay
+        // Get the schedule for this day to know MaxPatientsPerDay.
+        // doctorId here is a Users.Id (Appointment convention) — bridge via Doctor.UserId.
+        var systemDayOfWeek = (int)date.DayOfWeek;
+        var dayOfWeek = (Models.DayOfWeek)(systemDayOfWeek == 0 ? 7 : systemDayOfWeek);
         var schedule = await _context.DoctorSchedules
-            .Where(s => s.DoctorId == doctorId
-                     && s.DayOfWeek == date.DayOfWeek
-                     && s.IsActive)
+            .Include(s => s.Doctor)
+            .Where(s => s.Doctor != null
+                     && s.Doctor.UserId == doctorId
+                     && s.DayOfWeek == dayOfWeek
+                     && s.Status == ScheduleStatus.Active)
             .FirstOrDefaultAsync();
 
         if (schedule == null) return false; // No schedule = no capacity limit enforced here
