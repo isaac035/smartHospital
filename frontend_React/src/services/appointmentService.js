@@ -8,8 +8,10 @@ export const getAppointments = async (filters = {}) => {
   if (filters.priority) params.append('priority', filters.priority)
   if (filters.doctorId) params.append('doctorId', filters.doctorId)
   if (filters.departmentId) params.append('departmentId', filters.departmentId)
-  if (filters.fromDate) params.append('fromDate', filters.fromDate + 'T00:00:00Z')
-  if (filters.toDate) params.append('toDate', filters.toDate + 'T23:59:59Z')
+  // The date picker is a hospital-local calendar date (Asia/Colombo), while
+  // appointment timestamps are stored in UTC. Query the full local day.
+  if (filters.fromDate) params.append('fromDate', `${filters.fromDate}T00:00:00+05:30`)
+  if (filters.toDate) params.append('toDate', `${filters.toDate}T23:59:59.999+05:30`)
   if (filters.patientId) params.append('patientId', filters.patientId)
   
   const response = await api.get(`/appointments?${params.toString()}`)
@@ -53,18 +55,18 @@ export const confirmEmergency = async (id) => {
 
 // -- Queues --
 
-export const getQueue = async (doctorId) => {
-  const response = await api.get(`/queues/${doctorId}`)
-  return response.data
-}
-
-export const callQueueEntry = async (id) => {
-  const response = await api.post(`/queues/${id}/call`)
+export const getQueue = async (doctorId, date) => {
+  const response = await api.get(`/queues/${doctorId}`, { params: date ? { date } : {} })
   return response.data
 }
 
 export const checkIn = async (appointmentId) => {
   const response = await api.post(`/queues/check-in/${appointmentId}`)
+  return response.data
+}
+
+export const callQueueEntry = async (id) => {
+  const response = await api.post(`/queues/${id}/call`)
   return response.data
 }
 
@@ -85,10 +87,11 @@ export const getQueueEntryStatus = async (id) => {
 
 // -- Availability --
 
-export const getAvailableSlots = async (date, doctorId, departmentId) => {
+export const getAvailableSlots = async (date, doctorId, departmentId, doctorProfileId) => {
   const params = new URLSearchParams()
   params.append('date', date)
   if (doctorId) params.append('doctorId', doctorId)
+  if (doctorProfileId) params.append('doctorProfileId', doctorProfileId)
   if (departmentId) params.append('departmentId', departmentId)
   
   const response = await api.get(`/availability/slots?${params.toString()}`)

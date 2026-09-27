@@ -50,7 +50,7 @@ public class AppointmentController : ControllerBase { private readonly IAppointm
             if (appointment == null) return NotFound(new { message = "Appointment not found." });
             return Ok(appointment);
         }
-        catch (UnauthorizedAccessException ex)
+        catch (UnauthorizedAccessException)
         {
             return Forbid();
         }
@@ -70,15 +70,15 @@ public class AppointmentController : ControllerBase { private readonly IAppointm
         var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized(new { message = "User is not authenticated." });
 
-        // Patients may only book for themselves
         var role = GetCurrentUserRole();
-        if (role == "Patient" && request.PatientId != userId.Value)
-            return Forbid();
+        // The JWT is authoritative for patient bookings; never trust a body ID.
+        if (role == "Patient") request.PatientId = userId.Value;
 
         try
         {
             var result = await _appointmentService.BookAppointmentAsync(userId.Value, request);
-            await _hub.Clients.All.SendAsync("AppointmentCreated", result);
+            await BroadcastAppointmentEventAsync("AppointmentCreated", result);
+            await BroadcastAppointmentEventAsync("SlotBooked", result);
             return Created($"/api/appointments/{result.Id}", result);
         }
         catch (InvalidOperationException ex)
@@ -135,7 +135,8 @@ public class AppointmentController : ControllerBase { private readonly IAppointm
         {
             var role   = GetCurrentUserRole();
             var result = await _appointmentService.CancelAppointmentAsync(id, request, userId.Value, role);
-            await _hub.Clients.All.SendAsync("AppointmentCancelled", result);
+            await BroadcastAppointmentEventAsync("AppointmentCancelled", result);
+            await BroadcastAppointmentEventAsync("SlotReleased", result);
             return Ok(result);
         }
         catch (UnauthorizedAccessException)
@@ -170,7 +171,7 @@ public class AppointmentController : ControllerBase { private readonly IAppointm
         {
             var role   = GetCurrentUserRole();
             var result = await _appointmentService.RescheduleAppointmentAsync(id, request, userId.Value, role);
-            await _hub.Clients.All.SendAsync("AppointmentUpdated", result);
+            await BroadcastAppointmentEventAsync("AppointmentUpdated", result);
             return Ok(result);
         }
         catch (UnauthorizedAccessException)
@@ -195,6 +196,17 @@ public class AppointmentController : ControllerBase { private readonly IAppointm
     [ProducesResponseType(typeof(List<AppointmentStatusHistoryResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetStatusHistory(int id)
     {
+        var userId = GetCurrentUserId();
+        if (!userId.HasValue) return Unauthorized(new { message = "User is not authenticated." });
+        try
+        {
+            var appointment = await _appointmentService.GetAppointmentByIdAsync(id, userId.Value, GetCurrentUserRole());
+            if (appointment == null) return NotFound(new { message = "Appointment not found." });
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
         var history = await _appointmentService.GetStatusHistoryAsync(id);
         return Ok(history);
     }
@@ -239,5 +251,9 @@ public class AppointmentController : ControllerBase { private readonly IAppointm
 
     private string GetCurrentUserRole() =>
         User.FindFirst(ClaimTypes.Role)?.Value ?? string.Empty;
+
+    private Task BroadcastAppointmentEventAsync(string eventName, AppointmentResponse appointment) =>
+        _hub.Clients.Groups(new[] { $"user:{appointment.PatientId}", $"user:{appointment.DoctorId}", $"doctor:{appointment.DoctorId}", "staff", "admin" })
+            .SendAsync(eventName, appointment);
 }
 

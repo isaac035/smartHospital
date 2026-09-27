@@ -7,8 +7,15 @@ import 'priority_badge.dart';
 
 class AppointmentCard extends StatelessWidget {
   final AppointmentModel appointment;
+  final VoidCallback? onCheckIn;
+  final bool checkingIn;
 
-  const AppointmentCard({super.key, required this.appointment});
+  const AppointmentCard({
+    super.key,
+    required this.appointment,
+    this.onCheckIn,
+    this.checkingIn = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -85,6 +92,23 @@ class AppointmentCard extends StatelessWidget {
                 Text(
                   'Ref: ${apt.referenceNumber}',
                   style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                ),
+              ],
+              if (onCheckIn != null) ...[
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: FilledButton.icon(
+                    onPressed: checkingIn ? null : onCheckIn,
+                    icon: checkingIn
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.how_to_reg),
+                    label: Text(checkingIn ? 'Checking in...' : 'Check In'),
+                  ),
                 ),
               ],
             ],

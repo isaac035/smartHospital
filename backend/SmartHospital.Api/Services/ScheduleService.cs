@@ -39,6 +39,20 @@ public class ScheduleService : IScheduleService
             query = query.Where(s => s.DayOfWeek == dayOfWeek);
         }
 
+        if (filter.SpecificDate.HasValue)
+        {
+            var date = filter.SpecificDate.Value;
+            var systemDayOfWeek = (int)date.DayOfWeek;
+            var dateDayOfWeek = (Models.DayOfWeek)(systemDayOfWeek == 0 ? 7 : systemDayOfWeek);
+            query = query.Where(s => s.SpecificDate == date ||
+                (s.SpecificDate == null && s.DayOfWeek == dateDayOfWeek));
+        }
+        else
+        {
+            // The weekly availability calendar lists recurring sessions only.
+            query = query.Where(s => s.SpecificDate == null);
+        }
+
         return await query
             .Where(s => s.Status == ScheduleStatus.Active)
             .OrderBy(s => s.DayOfWeek)
@@ -51,6 +65,7 @@ public class ScheduleService : IScheduleService
                 ConsultationTypeId = s.ConsultationTypeId,
                 ConsultationTypeName = s.ConsultationType!.Name,
                 DayOfWeek = s.DayOfWeek.ToString(),
+                SpecificDate = s.SpecificDate,
                 StartTime = s.StartTime,
                 EndTime = s.EndTime,
                 Status = s.Status.ToString()
@@ -71,6 +86,7 @@ public class ScheduleService : IScheduleService
                 ConsultationTypeId = s.ConsultationTypeId,
                 ConsultationTypeName = s.ConsultationType!.Name,
                 DayOfWeek = s.DayOfWeek.ToString(),
+                SpecificDate = s.SpecificDate,
                 StartTime = s.StartTime,
                 EndTime = s.EndTime,
                 Status = s.Status.ToString()
@@ -90,6 +106,14 @@ public class ScheduleService : IScheduleService
             throw new InvalidOperationException("End time must be after start time.");
         }
 
+        if (request.SpecificDate.HasValue)
+        {
+            var systemDayOfWeek = (int)request.SpecificDate.Value.DayOfWeek;
+            var dateDayOfWeek = (Models.DayOfWeek)(systemDayOfWeek == 0 ? 7 : systemDayOfWeek);
+            if (dateDayOfWeek != dayOfWeek)
+                throw new InvalidOperationException("The selected day does not match the specific date.");
+        }
+
         var doctorExists = await _context.Doctors.AnyAsync(d => d.Id == request.DoctorId);
 
         if (!doctorExists)
@@ -97,19 +121,28 @@ public class ScheduleService : IScheduleService
             throw new InvalidOperationException("The specified doctor does not exist.");
         }
 
-        var consultationTypeExists = await _context.ConsultationTypes
-            .AnyAsync(c => c.Id == request.ConsultationTypeId);
+        if (request.SpecificDate.HasValue)
+        {
+            var specificDate = request.SpecificDate.Value;
+            if (await _context.DoctorLeaves.AnyAsync(l => l.DoctorId == request.DoctorId
+                    && l.Status == LeaveStatus.Approved
+                    && l.StartDate <= specificDate && l.EndDate >= specificDate))
+                throw new InvalidOperationException("The doctor is on approved leave for this date.");
+        }
 
-        if (!consultationTypeExists)
+        var consultationType = await _context.ConsultationTypes
+            .FirstOrDefaultAsync(c => c.Id == request.ConsultationTypeId);
+
+        if (consultationType == null)
         {
             throw new InvalidOperationException("The specified consultation type does not exist.");
         }
 
         var hasOverlap = await _context.DoctorSchedules
-            .Where(s =>
-                s.DoctorId == request.DoctorId &&
-                s.DayOfWeek == dayOfWeek &&
-                s.Status == ScheduleStatus.Active)
+            .Where(s => s.DoctorId == request.DoctorId && s.Status == ScheduleStatus.Active)
+            .Where(s => request.SpecificDate.HasValue
+                ? s.SpecificDate == request.SpecificDate.Value
+                : s.SpecificDate == null && s.DayOfWeek == dayOfWeek)
             .AnyAsync(s => request.StartTime < s.EndTime && request.EndTime > s.StartTime);
 
         if (hasOverlap)
@@ -124,8 +157,10 @@ public class ScheduleService : IScheduleService
             DoctorId = request.DoctorId,
             ConsultationTypeId = request.ConsultationTypeId,
             DayOfWeek = dayOfWeek,
+            SpecificDate = request.SpecificDate,
             StartTime = request.StartTime,
             EndTime = request.EndTime,
+            SlotDurationMinutes = consultationType.DurationMinutes,
             Status = ScheduleStatus.Active,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
@@ -161,20 +196,27 @@ public class ScheduleService : IScheduleService
             throw new InvalidOperationException("End time must be after start time.");
         }
 
-        var consultationTypeExists = await _context.ConsultationTypes
-            .AnyAsync(c => c.Id == request.ConsultationTypeId);
+        if (schedule.SpecificDate.HasValue)
+        {
+            var systemDayOfWeek = (int)schedule.SpecificDate.Value.DayOfWeek;
+            var dateDayOfWeek = (Models.DayOfWeek)(systemDayOfWeek == 0 ? 7 : systemDayOfWeek);
+            if (dateDayOfWeek != dayOfWeek)
+                throw new InvalidOperationException("The selected day does not match the specific date.");
+        }
 
-        if (!consultationTypeExists)
+        var consultationType = await _context.ConsultationTypes
+            .FirstOrDefaultAsync(c => c.Id == request.ConsultationTypeId);
+
+        if (consultationType == null)
         {
             throw new InvalidOperationException("The specified consultation type does not exist.");
         }
 
         var hasOverlap = await _context.DoctorSchedules
-            .Where(s =>
-                s.Id != id &&
-                s.DoctorId == schedule.DoctorId &&
-                s.DayOfWeek == dayOfWeek &&
-                s.Status == ScheduleStatus.Active)
+            .Where(s => s.Id != id && s.DoctorId == schedule.DoctorId && s.Status == ScheduleStatus.Active)
+            .Where(s => schedule.SpecificDate.HasValue
+                ? s.SpecificDate == schedule.SpecificDate.Value
+                : s.SpecificDate == null && s.DayOfWeek == dayOfWeek)
             .AnyAsync(s => request.StartTime < s.EndTime && request.EndTime > s.StartTime);
 
         if (hasOverlap)
@@ -185,6 +227,7 @@ public class ScheduleService : IScheduleService
         }
 
         schedule.ConsultationTypeId = request.ConsultationTypeId;
+        schedule.SlotDurationMinutes = consultationType.DurationMinutes;
         schedule.DayOfWeek = dayOfWeek;
         schedule.StartTime = request.StartTime;
         schedule.EndTime = request.EndTime;

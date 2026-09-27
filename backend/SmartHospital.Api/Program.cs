@@ -61,6 +61,16 @@ builder.Services.AddAuthentication(
 )
 .AddJwtBearer(options =>
 {
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var token = context.Request.Query["access_token"];
+            if (!string.IsNullOrEmpty(token) && context.HttpContext.Request.Path.StartsWithSegments("/hubs/hospital"))
+                context.Token = token;
+            return Task.CompletedTask;
+        }
+    };
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,

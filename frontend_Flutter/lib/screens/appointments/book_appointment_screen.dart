@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/api_datetime.dart';
 import '../../widgets/error_message.dart';
 import '../../providers/appointment_provider.dart';
 import '../../providers/auth_provider.dart';
@@ -9,11 +10,13 @@ import '../../providers/auth_provider.dart';
 class BookAppointmentScreen extends StatefulWidget {
   final int doctorId;
   final String slotStart;
+  final int durationMinutes;
 
   const BookAppointmentScreen({
     super.key,
     required this.doctorId,
     required this.slotStart,
+    required this.durationMinutes,
   });
 
   @override
@@ -25,14 +28,6 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
   final _notesController = TextEditingController();
 
   int _appointmentType = 1;
-  int _duration = 30;
-
-  static const _types = [
-    {'label': 'General Consultation', 'value': 1},
-    {'label': 'Follow-Up', 'value': 2},
-    {'label': 'Specialist Consultation', 'value': 3},
-    {'label': 'Routine Checkup', 'value': 4},
-  ];
 
   @override
   void dispose() {
@@ -51,8 +46,10 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
           patientId: user.id,
           doctorId: widget.doctorId,
           appointmentType: _appointmentType,
-          scheduledStart: widget.slotStart,
-          estimatedDurationMinutes: _duration,
+          scheduledStart: ApiDateTime.toUtcIso8601(
+            ApiDateTime.parseUtcToLocal(widget.slotStart),
+          ),
+          estimatedDurationMinutes: widget.durationMinutes,
           priority: 1, // Patient always Normal; triage done at check-in by staff
           notes: _notesController.text.trim(),
         );
@@ -68,7 +65,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final slotDt = DateTime.parse(widget.slotStart).toLocal();
+    final slotDt = ApiDateTime.parseUtcToLocal(widget.slotStart);
     final months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     final h = slotDt.hour > 12 ? slotDt.hour - 12 : (slotDt.hour == 0 ? 12 : slotDt.hour);
     final period = slotDt.hour >= 12 ? 'PM' : 'AM';
@@ -125,49 +122,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
               const Text('Appointment Details', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
 
-              // Appointment Type
-              const Text('Reason for Visit', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.black87)),
-              const SizedBox(height: 8),
-              DropdownButtonFormField<int>(
-                initialValue: _appointmentType,
-                decoration: InputDecoration(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
-                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
-                  filled: true,
-                  fillColor: Colors.grey.shade50,
-                ),
-                items: _types
-                    .map((t) => DropdownMenuItem<int>(
-                          value: t['value'] as int,
-                          child: Text(t['label'] as String),
-                        ))
-                    .toList(),
-                onChanged: (v) => setState(() => _appointmentType = v!),
-              ),
-
-              const SizedBox(height: 20),
-
-              // Duration
-              const Text('Expected Duration', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.black87)),
-              const SizedBox(height: 8),
-              DropdownButtonFormField<int>(
-                initialValue: _duration,
-                decoration: InputDecoration(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
-                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
-                  filled: true,
-                  fillColor: Colors.grey.shade50,
-                ),
-                items: const [
-                  DropdownMenuItem(value: 15, child: Text('15 minutes - Quick checkup')),
-                  DropdownMenuItem(value: 30, child: Text('30 minutes - Standard')),
-                  DropdownMenuItem(value: 45, child: Text('45 minutes - Extended')),
-                  DropdownMenuItem(value: 60, child: Text('60 minutes - Full consultation')),
-                ],
-                onChanged: (v) => setState(() => _duration = v!),
-              ),
+              Text('Consultation length: ${widget.durationMinutes} minutes', style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black87)),
 
               const SizedBox(height: 20),
 

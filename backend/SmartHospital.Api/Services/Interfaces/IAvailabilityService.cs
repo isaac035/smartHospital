@@ -11,7 +11,8 @@ public interface IAvailabilityService
     Task<List<AvailableSlotResponse>> GetAvailableSlotsAsync(
         int? doctorId,
         int? departmentId,
-        DateTime date);
+        DateTime date,
+        int? doctorProfileId = null);
 
     /// <summary>
     /// Determines whether a specific slot is free for a doctor.

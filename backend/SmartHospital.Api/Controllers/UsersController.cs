@@ -25,16 +25,6 @@ public class UsersController : ControllerBase
         return Ok(users);
     }
 
-    [HttpGet("patch-doctors")]
-    [AllowAnonymous]
-    public async Task<IActionResult> PatchDoctors([FromServices] SmartHospital.Api.Data.AppDbContext context)
-    {
-        var doctors = context.Doctors.Where(d => d.UserId == null).ToList();
-        foreach(var d in doctors) d.UserId = 5;
-        await context.SaveChangesAsync();
-        return Ok($"Patched {doctors.Count} doctors.");
-    }
-
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)
     {

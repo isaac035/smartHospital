@@ -148,14 +148,24 @@ class AppRouter {
             return BookAppointmentScreen(
               doctorId: extra['doctorId'] as int,
               slotStart: extra['slotStart'] as String,
+              durationMinutes: extra['durationMinutes'] as int,
             );
           },
         ),
         GoRoute(
-          path: '/appointments/doctor/:doctorId',
-          builder: (context, state) => DoctorSlotsScreen(
-            doctorId: int.parse(state.pathParameters['doctorId']!),
-          ),
+          path: '/appointments/doctor/:doctorProfileId',
+          builder: (context, state) {
+            final doctorProfileId =
+                int.parse(state.pathParameters['doctorProfileId']!);
+            final bookingDoctorId = int.tryParse(
+                  state.uri.queryParameters['userId'] ?? '',
+                ) ??
+                doctorProfileId;
+            return DoctorSlotsScreen(
+              doctorProfileId: doctorProfileId,
+              bookingDoctorId: bookingDoctorId,
+            );
+          },
         ),
         GoRoute(
           path: '/appointments/:id',

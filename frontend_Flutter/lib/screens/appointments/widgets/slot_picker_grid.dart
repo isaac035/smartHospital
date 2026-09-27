@@ -54,25 +54,33 @@ class SlotPickerGrid extends StatelessWidget {
       itemBuilder: (context, index) {
         final slot = slots[index];
         final isSelected = selectedSlot?.slotStart == slot.slotStart;
+        final isAvailable = slot.isAvailable;
         return GestureDetector(
-          onTap: () => onSlotSelected(slot),
+          onTap: isAvailable ? () => onSlotSelected(slot) : null,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 150),
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: isSelected ? AppTheme.primaryColor : Colors.white,
+              color: isSelected ? AppTheme.primaryColor : (isAvailable ? Colors.white : Colors.grey.shade100),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: isSelected ? AppTheme.primaryColor : Colors.grey.shade300,
+                color: isSelected ? AppTheme.primaryColor : (isAvailable ? Colors.grey.shade300 : Colors.orange.shade300),
               ),
             ),
-            child: Text(
-              slot.formattedTime,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: isSelected ? Colors.white : AppTheme.primaryColor,
-              ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  slot.formattedTime,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: isSelected ? Colors.white : (isAvailable ? AppTheme.primaryColor : Colors.grey.shade500),
+                  ),
+                ),
+                if (!isAvailable)
+                  Text(slot.status, style: TextStyle(fontSize: 10, color: Colors.grey.shade600)),
+              ],
             ),
           ),
         );

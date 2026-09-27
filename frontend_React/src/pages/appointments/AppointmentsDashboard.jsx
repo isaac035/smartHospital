@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import DashboardLayout from '../../layouts/DashboardLayout'
-import { getAppointments } from '../../services/appointmentService'
+import { checkIn, getAppointments } from '../../services/appointmentService'
 import { useSignalR } from '../../hooks/useSignalR'
 import AppointmentStatusBadge from '../../components/appointments/AppointmentStatusBadge'
 import PriorityBadge from '../../components/appointments/PriorityBadge'
@@ -12,6 +12,13 @@ import { staffNavigation as staffNav } from '../staff/staffNavigation'
 import { useAuth } from '../../hooks/useAuth'
 import DoctorServingList from '../../components/appointments/DoctorServingList'
 
+function hospitalDateKey(value = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Colombo', year: 'numeric', month: '2-digit', day: '2-digit'
+  }).formatToParts(value)
+  const part = type => parts.find(item => item.type === type)?.value || ''
+  return `${part('year')}-${part('month')}-${part('day')}`
+}
 
 
 export default function AppointmentsDashboard() {
@@ -23,15 +30,13 @@ export default function AppointmentsDashboard() {
   const [appointments, setAppointments] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [checkInLoadingId, setCheckInLoadingId] = useState(null)
+  const [checkInNotice, setCheckInNotice] = useState(null)
   
   const [filters, setFilters] = useState(role === 'Doctor' ? { doctorId: user.id } : {})
   
 
-  useEffect(() => {
-    fetchAppointments()
-  }, [filters])
-
-  const fetchAppointments = async () => {
+  const fetchAppointments = useCallback(async () => {
     try {
       setLoading(true)
       const data = await getAppointments(filters)
@@ -42,13 +47,40 @@ export default function AppointmentsDashboard() {
     } finally {
       setLoading(false)
     }
+  }, [filters])
+
+  useEffect(() => {
+    fetchAppointments()
+  }, [fetchAppointments])
+
+  const handleCheckIn = async appointment => {
+    setCheckInLoadingId(appointment.id)
+    setCheckInNotice(null)
+    try {
+      const entry = await checkIn(appointment.id)
+      const position = entry.queuePosition > 0 ? ` · Position ${entry.queuePosition}` : ''
+      setCheckInNotice({
+        type: 'success',
+        text: `${appointment.patientName} checked in · ${entry.queueCode}${position}`
+      })
+      await fetchAppointments()
+    } catch (err) {
+      setCheckInNotice({
+        type: 'error',
+        text: err.response?.data?.message || 'Check-in failed. Please try again.'
+      })
+    } finally {
+      setCheckInLoadingId(null)
+    }
   }
 
   useSignalR({
     AppointmentCreated: fetchAppointments,
     AppointmentUpdated: fetchAppointments,
     AppointmentCancelled: fetchAppointments,
-    ConsultationCompleted: fetchAppointments
+    ConsultationCompleted: fetchAppointments,
+    PatientCheckedIn: fetchAppointments,
+    QueueUpdated: fetchAppointments
   })
 
   return (
@@ -80,6 +112,11 @@ export default function AppointmentsDashboard() {
 
 
       {error && <div className="form-error">{error}</div>}
+      {checkInNotice && (
+        <div className={`mb-4 p-3 rounded-lg border ${checkInNotice.type === 'success' ? 'bg-green-50 text-green-800 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
+          {checkInNotice.text}
+        </div>
+      )}
 
       <div className="stat-card" style={{ padding: 0, overflow: 'hidden' }}>
         <div className="overflow-x-auto">
@@ -133,13 +170,27 @@ export default function AppointmentsDashboard() {
                       <AppointmentStatusBadge status={apt.status} />
                     </td>
                     <td className="p-4 text-right">
-                      <Link 
-                        to={`/${role.toLowerCase()}/appointments/${apt.id}`}
-                        className="text-sm font-semibold hover:underline"
-                        style={{ color: 'var(--color-accent)' }}
-                      >
-                        View Details
-                      </Link>
+                      <div className="flex justify-end items-center gap-3">
+                        {['Staff', 'Admin'].includes(role) &&
+                          ['Scheduled', 'Confirmed'].includes(apt.status) &&
+                          hospitalDateKey(new Date(apt.scheduledStart)) === hospitalDateKey() && (
+                            <button
+                              className="primary-button text-sm"
+                              style={{ marginTop: 0 }}
+                              disabled={checkInLoadingId === apt.id}
+                              onClick={() => handleCheckIn(apt)}
+                            >
+                              {checkInLoadingId === apt.id ? 'Checking in...' : 'Check In'}
+                            </button>
+                          )}
+                        <Link
+                          to={`/${role.toLowerCase()}/appointments/${apt.id}`}
+                          className="text-sm font-semibold hover:underline"
+                          style={{ color: 'var(--color-accent)' }}
+                        >
+                          View Details
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))

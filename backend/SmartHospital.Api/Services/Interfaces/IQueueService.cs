@@ -15,7 +15,9 @@ public interface IQueueService
     /// who is currently being served, how many are waiting, full ordered list.
     /// Designed to be polled by a frontend or to back a SignalR hub.
     /// </summary>
-    Task<QueueStatusResponse> GetQueueStatusForDoctorAsync(int doctorId);
+    Task<QueueStatusResponse> GetQueueStatusForDoctorAsync(int doctorId, DateOnly? queueDate = null);
+
+    Task<QueueEntryResponse?> GetMyQueueEntryAsync(int patientId, int doctorId);
 
     /// <summary>Returns the status of a specific queue entry (by queue entry ID).</summary>
     Task<QueueEntryResponse?> GetQueueEntryStatusAsync(int queueEntryId);

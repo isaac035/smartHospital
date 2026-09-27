@@ -102,7 +102,8 @@ public static class SampleDataSeeder
         var consultationTypes = await context.ConsultationTypes
             .ToDictionaryAsync(c => c.Name, c => c.Id);
 
-        // Doctor profiles (no login accounts)
+        // Doctor profiles. Development demo profiles also need distinct doctor
+        // user accounts because appointments are stored against Users.Id.
         var doctorSeeds = new[]
         {
             ("Ashan", "Wijesekara", "ashan.wijesekara@smarthospital.local", "0773000001", "Cardiology", "Interventional Cardiology", "SLMC-10231", 15, "Consultant cardiologist specialising in angioplasty and heart failure.", DoctorStatus.Active),
@@ -254,11 +255,70 @@ public static class SampleDataSeeder
                 });
             }
         }
-        // FIX: Assign a dummy User ID to all doctors that don't have one,
-        // so that they can be booked via the Appointment API!
-        var doctorsMissingUser = await context.Doctors.Where(d => d.UserId == null).ToListAsync();
-        foreach(var d in doctorsMissingUser) {
-            d.UserId = nadia?.UserId ?? 5;
+        // Older versions assigned one doctor UserId (or a hard-coded fallback)
+        // to multiple sample profiles, combining their slots. Clear those bad
+        // links while preserving a correctly linked profile.
+        var seededDoctorEmails = doctorSeeds.Select(seed => seed.Item3).ToArray();
+        var linkedSeedProfiles = await context.Doctors
+            .Where(d => seededDoctorEmails.Contains(d.Email) && d.UserId != null)
+            .ToListAsync();
+        var linkedUserIds = linkedSeedProfiles
+            .Select(d => d.UserId!.Value)
+            .Distinct()
+            .ToArray();
+        var linkedUsers = await context.Users
+            .Where(u => linkedUserIds.Contains(u.Id))
+            .ToDictionaryAsync(u => u.Id);
+
+        foreach (var doctor in linkedSeedProfiles)
+        {
+            if (linkedUsers.TryGetValue(doctor.UserId!.Value, out var user) &&
+                user.Role == UserRole.Doctor &&
+                doctor.FirstName == user.FirstName &&
+                doctor.LastName == user.LastName)
+            {
+                continue;
+            }
+
+            doctor.UserId = null;
+            doctor.UpdatedAt = now;
+        }
+
+        // Every seeded doctor gets a distinct active Doctor user so patient
+        // booking can use the user ID expected by the Appointment table. Match
+        // by the profile's unique email; never share a fallback user ID.
+        foreach (var doctor in await context.Doctors
+                     .Where(d => seededDoctorEmails.Contains(d.Email))
+                     .ToListAsync())
+        {
+            if (doctor.UserId.HasValue)
+                continue;
+
+            var doctorUser = await context.Users
+                .FirstOrDefaultAsync(u => u.Email == doctor.Email && u.Role == UserRole.Doctor);
+
+            if (doctorUser == null)
+            {
+                // This seeder runs only in Development. These demo credentials
+                // let the seeded doctor accounts be used locally as well.
+                doctorUser = new User
+                {
+                    FirstName = doctor.FirstName,
+                    LastName = doctor.LastName,
+                    Email = doctor.Email,
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("Doctor123!"),
+                    PhoneNumber = doctor.PhoneNumber,
+                    Role = UserRole.Doctor,
+                    Status = UserStatus.Active,
+                    CreatedAt = now,
+                    UpdatedAt = now
+                };
+                context.Users.Add(doctorUser);
+                await context.SaveChangesAsync();
+            }
+
+            doctor.UserId = doctorUser.Id;
+            doctor.UpdatedAt = now;
         }
 
         await context.SaveChangesAsync();

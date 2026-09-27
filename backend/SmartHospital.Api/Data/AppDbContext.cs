@@ -661,6 +661,9 @@ public class AppDbContext : DbContext
         {
             entity.HasKey(q => q.Id);
 
+            entity.Property(q => q.QueueCode).HasMaxLength(20).IsRequired();
+            entity.HasIndex(q => new { q.DoctorId, q.QueueDate, q.QueueNumber }).IsUnique();
+
             entity.HasOne(q => q.Doctor)
                 .WithMany()
                 .HasForeignKey(q => q.DoctorId)
@@ -1137,6 +1140,8 @@ public class AppDbContext : DbContext
             entity.Property(s => s.DayOfWeek)
                 .IsRequired();
 
+            entity.Property(s => s.SpecificDate);
+
             entity.Property(s => s.StartTime)
                 .IsRequired();
 
@@ -1155,6 +1160,7 @@ public class AppDbContext : DbContext
                 .IsRequired();
 
             entity.HasIndex(s => new { s.DoctorId, s.DayOfWeek });
+            entity.HasIndex(s => new { s.DoctorId, s.SpecificDate });
 
             entity.HasOne(s => s.Doctor)
                 .WithMany()

@@ -4,6 +4,7 @@ import { listConsultationTypes } from '../../services/consultationTypeService'
 import { createSchedule } from '../../services/scheduleService'
 import { getAppointments, getAvailableSlots } from '../../services/appointmentService'
 import { listDoctors } from '../../services/doctorService'
+import { useSignalR } from '../../hooks/useSignalR'
 import { adminNavigation as adminNav } from '../admin/adminNavigation'
 import { doctorNavigation as doctorNav } from '../doctor/doctorNavigation'
 import { staffNavigation as staffNav } from '../staff/staffNavigation'
@@ -11,12 +12,19 @@ import AppointmentStatusBadge from '../../components/appointments/AppointmentSta
 import PriorityBadge from '../../components/appointments/PriorityBadge'
 import { useAuth } from '../../hooks/useAuth'
 
+function getLocalDateString(date = new Date()) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 export default function AppointmentCalendar() {
   const { user } = useAuth()
   const role = user?.role || 'Staff'
   const navigation = role === 'Admin' ? adminNav : role === 'Doctor' ? doctorNav : staffNav
 
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0])
+  const [date, setDate] = useState(getLocalDateString)
   const [doctorId, setDoctorId] = useState(role === 'Doctor' ? user?.id : '')
   
   const [appointments, setAppointments] = useState([])
@@ -29,6 +37,12 @@ export default function AppointmentCalendar() {
   const [genEndTime, setGenEndTime] = useState('12:00')
   const [genConsultationTypeId, setGenConsultationTypeId] = useState('')
   const [genLoading, setGenLoading] = useState(false)
+  const [scheduleVersion, setScheduleVersion] = useState(0)
+  useSignalR({
+    SlotUpdated: () => setScheduleVersion(version => version + 1),
+    SlotBooked: () => setScheduleVersion(version => version + 1),
+    SlotReleased: () => setScheduleVersion(version => version + 1),
+  })
 
   useEffect(() => {
     if (showGenerate && consultationTypes.length === 0) {
@@ -47,10 +61,12 @@ export default function AppointmentCalendar() {
         doctorId: parseInt(doctorId),
         consultationTypeId: parseInt(genConsultationTypeId),
         dayOfWeek: dayOfWeek,
+        specificDate: date,
         startTime: genStartTime + ':00',
         endTime: genEndTime + ':00'
       });
       setShowGenerate(false);
+      setScheduleVersion(version => version + 1)
       alert('Slots generated successfully!');
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to generate slots');
@@ -78,16 +94,27 @@ export default function AppointmentCalendar() {
       return
     }
 
-        const fetchSchedule = async () => {
+    const selectedDoctor = role === 'Doctor'
+      ? null
+      : doctorOptions.find(doctor => String(doctor.id) === String(doctorId))
+    const bookingDoctorId = role === 'Doctor' ? doctorId : selectedDoctor?.userId
+    if (!bookingDoctorId) {
+      setAppointments([])
+      setError(selectedDoctor ? 'This doctor has no linked booking account.' : null)
+      setLoading(false)
+      return
+    }
+
+    const fetchSchedule = async () => {
       try {
         setLoading(true)
         const [appts, freeSlots] = await Promise.all([
-          getAppointments({ doctorId, fromDate: date, toDate: date }),
-          getAvailableSlots(date, doctorId)
+          getAppointments({ doctorId: bookingDoctorId, fromDate: date, toDate: date }),
+          getAvailableSlots(date, bookingDoctorId, undefined, role === 'Doctor' ? undefined : doctorId)
         ])
         
         const combined = [
-          ...freeSlots.map(s => ({
+          ...freeSlots.filter(s => s.status === 'Available').map(s => ({
             id: 'free_' + s.slotStart,
             start: new Date(s.slotStart),
             end: new Date(s.slotEnd),
@@ -120,7 +147,7 @@ export default function AppointmentCalendar() {
       }
     }
     fetchSchedule()
-  }, [date, doctorId])
+  }, [date, doctorId, doctorOptions, role, scheduleVersion])
 
   // Helper to generate time slots from 8 AM to 5 PM
   

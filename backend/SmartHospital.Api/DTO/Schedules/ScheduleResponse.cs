@@ -14,6 +14,8 @@ public class ScheduleResponse
 
     public string DayOfWeek { get; set; } = string.Empty;
 
+    public DateOnly? SpecificDate { get; set; }
+
     public TimeOnly StartTime { get; set; }
 
     public TimeOnly EndTime { get; set; }

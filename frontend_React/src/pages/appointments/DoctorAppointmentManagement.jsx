@@ -5,6 +5,7 @@ import { listDoctors } from '../../services/doctorService'
 import { useSignalR } from '../../hooks/useSignalR'
 import { adminNavigation as adminNav } from '../admin/adminNavigation'
 import { staffNavigation as staffNav } from '../staff/staffNavigation'
+import { doctorNavigation as doctorNav } from '../doctor/doctorNavigation'
 import AppointmentStatusBadge from '../../components/appointments/AppointmentStatusBadge'
 import PriorityBadge from '../../components/appointments/PriorityBadge'
 import { useAuth } from '../../hooks/useAuth'
@@ -12,9 +13,10 @@ import { useAuth } from '../../hooks/useAuth'
 export default function DoctorAppointmentManagement() {
   const { user } = useAuth()
   const role = user?.role || 'Admin'
-  const navigation = role === 'Admin' ? adminNav : staffNav
+  const navigation = role === 'Admin' ? adminNav : role === 'Doctor' ? doctorNav : staffNav
 
-  const today = new Date().toISOString().split('T')[0]
+  const now = new Date()
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
   const [date, setDate] = useState(today)
   const [doctorId, setDoctorId] = useState('')
   const [doctorOptions, setDoctorOptions] = useState([])
@@ -25,15 +27,20 @@ export default function DoctorAppointmentManagement() {
   const [error, setError] = useState(null)
   const [actionError, setActionError] = useState(null)
 
-  // Load doctor list once
+  // Doctors are always scoped to their JWT identity. Admin/staff select a real doctor user ID.
   useEffect(() => {
+    if (role === 'Doctor') {
+      setDoctorId(String(user?.id || ''))
+      return
+    }
     listDoctors()
       .then(docs => {
-        setDoctorOptions(docs)
-        if (docs.length > 0) setDoctorId(String(docs[0].id))
+        const bookable = docs.filter(d => d.userId != null)
+        setDoctorOptions(bookable)
+        if (bookable.length > 0) setDoctorId(String(bookable[0].userId))
       })
-      .catch(err => setError('Failed to load doctors'))
-  }, [])
+      .catch(() => setError('Failed to load doctors'))
+  }, [role, user?.id])
 
   const fetchData = useCallback(async () => {
     if (!doctorId) return
@@ -42,7 +49,7 @@ export default function DoctorAppointmentManagement() {
     try {
       const [appts, qData] = await Promise.all([
         getAppointments({ doctorId, fromDate: date, toDate: date }),
-        getQueue(doctorId)
+        getQueue(doctorId, date)
       ])
       setAppointments(Array.isArray(appts) ? appts : [])
       setQueue(qData?.queue || [])
@@ -90,17 +97,11 @@ export default function DoctorAppointmentManagement() {
 
   // Merge appointment list with live queue state
   const list = appointments
-    .filter(a => !['Cancelled', 'NoShow', 'Rescheduled'].includes(a.status))
     .map(apt => {
       const qEntry = queue.find(q => q.appointmentId === apt.id)
       return { ...apt, queueEntry: qEntry }
     })
-    .sort((a, b) => {
-      const aqp = a.queueEntry?.queuePosition ?? 999
-      const bqp = b.queueEntry?.queuePosition ?? 999
-      if (aqp !== bqp) return aqp - bqp
-      return new Date(a.scheduledStart) - new Date(b.scheduledStart)
-    })
+    .sort((a, b) => new Date(a.scheduledStart) - new Date(b.scheduledStart))
 
   const currentEntry = queue.find(q => q.status === 'InProgress' || q.status === 'Called')
 
@@ -114,7 +115,7 @@ export default function DoctorAppointmentManagement() {
       {/* Filter bar */}
       <div className="mb-6 p-4 rounded-xl border flex flex-wrap items-center gap-6"
         style={{ borderColor: 'color-mix(in srgb, var(--color-secondary) 15%, var(--color-primary))', background: 'var(--color-primary)' }}>
-        <div className="flex flex-col gap-1">
+        {role !== 'Doctor' && <div className="flex flex-col gap-1">
           <label className="text-xs uppercase tracking-wider font-bold" style={{ color: 'var(--color-accent)' }}>Doctor</label>
           <select
             value={doctorId}
@@ -124,10 +125,10 @@ export default function DoctorAppointmentManagement() {
           >
             <option value="">-- Select Doctor --</option>
             {doctorOptions.map(d => (
-              <option key={d.id} value={d.id}>Dr. {d.firstName} {d.lastName}</option>
+              <option key={d.userId} value={d.userId}>Dr. {d.firstName} {d.lastName}</option>
             ))}
           </select>
-        </div>
+        </div>}
         <div className="flex flex-col gap-1">
           <label className="text-xs uppercase tracking-wider font-bold" style={{ color: 'var(--color-accent)' }}>Date</label>
           <input
@@ -141,7 +142,7 @@ export default function DoctorAppointmentManagement() {
         {currentEntry && (
           <div className="ml-auto flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm"
             style={{ background: 'color-mix(in srgb, var(--color-accent) 10%, white)', color: 'var(--color-accent)', border: '1.5px solid var(--color-accent)' }}>
-            🟢 Now Serving: #{currentEntry.queueNumber} — {currentEntry.patientName}
+            🟢 Now Serving: {currentEntry.queueCode || `#${currentEntry.queueNumber}`} — {currentEntry.patientName}
           </div>
         )}
       </div>
@@ -164,7 +165,7 @@ export default function DoctorAppointmentManagement() {
             const isCurrent = currentEntry && q?.id === currentEntry.id
             const isWaiting = q?.status === 'Waiting'
             const canStart = isWaiting && !currentEntry  // can only start if nothing in-progress
-            const canComplete = isCurrent
+            const canComplete = q?.status === 'InProgress'
 
             return (
               <div
@@ -182,7 +183,7 @@ export default function DoctorAppointmentManagement() {
                     background: isCurrent ? 'var(--color-accent)' : 'color-mix(in srgb, var(--color-accent) 8%, var(--color-primary))',
                     color: isCurrent ? 'white' : 'var(--color-accent)'
                   }}>
-                  {q?.queueNumber ?? '—'}
+                  {q?.queueCode || (q?.queueNumber != null ? `#${q.queueNumber}` : '—')}
                 </div>
 
                 {/* Main info */}
@@ -212,7 +213,7 @@ export default function DoctorAppointmentManagement() {
                       onClick={() => handleStart(q.id)}
                       title="Start this consultation (calls the patient)"
                     >
-                      Start
+                      Start Consultation
                     </button>
                   )}
                   {canComplete && (
@@ -222,7 +223,7 @@ export default function DoctorAppointmentManagement() {
                       onClick={() => handleComplete(q.id)}
                       title="Mark consultation completed. Queue Management will auto-update."
                     >
-                      ✓ Complete
+                      ✓ Complete Consultation
                     </button>
                   )}
                 </div>

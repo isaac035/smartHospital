@@ -23,7 +23,9 @@ export default function QueueDashboard() {
     if (role !== 'Doctor') {
       listDoctors().then(docs => {
         setDoctorOptions(docs)
-        if (docs.length > 0 && !doctorId) setDoctorId(docs[0].id)
+        const bookable = docs.filter(d => d.userId != null)
+        setDoctorOptions(bookable)
+        if (bookable.length > 0 && !doctorId) setDoctorId(bookable[0].userId)
       }).catch(console.error)
     }
   }, [role, doctorId])
@@ -95,7 +97,7 @@ export default function QueueDashboard() {
             style={{ borderColor: 'color-mix(in srgb, var(--color-secondary) 25%, var(--color-primary))' }}
           >
             <option value="">-- Select --</option>
-            {doctorOptions.map(d => <option key={d.id} value={d.id}>Dr. {d.firstName} {d.lastName}</option>)}
+            {doctorOptions.map(d => <option key={d.userId} value={d.userId}>Dr. {d.firstName} {d.lastName}</option>)}
           </select>
         </div>
       )}
@@ -116,7 +118,7 @@ export default function QueueDashboard() {
                 <div>
                   <div className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-2">Queue No</div>
                   <div className="text-6xl font-black mb-4" style={{ color: 'var(--color-accent)' }}>
-                    {currentServing.queueNumber}
+                    {currentServing.queueCode || `#${currentServing.queueNumber}`}
                   </div>
                   <div className="text-lg font-bold mb-2">{currentServing.patientName}</div>
                   <PriorityBadge priority={currentServing.priority} />
@@ -161,7 +163,7 @@ export default function QueueDashboard() {
                       <div key={entry.id} className="p-4 rounded-lg border flex items-center justify-between" style={{ borderColor: 'color-mix(in srgb, var(--color-secondary) 15%, var(--color-primary))' }}>
                         <div className="flex items-center gap-4">
                           <div className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg" style={{ background: 'color-mix(in srgb, var(--color-accent) 10%, var(--color-primary))', color: 'var(--color-accent)' }}>
-                            {entry.queueNumber}
+                            {entry.queueCode || `#${entry.queueNumber}`}
                           </div>
                           <div>
                             <div className="font-bold">{entry.patientName}</div>
