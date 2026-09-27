@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { getRoomsByWard, deactivateRoom } from '../../../services/hospitalResourceService'
 import RoomFormModal from './RoomFormModal'
+import EditIconButton from './EditIconButton'
 
 export default function RoomManagementModal({ isOpen, onClose, ward, role, wards = [] }) {
   const [rooms, setRooms] = useState([])
@@ -255,14 +256,11 @@ export default function RoomManagementModal({ isOpen, onClose, ward, role, wards
                         <td className="p-3 text-xs text-right whitespace-nowrap">
                           <div className="inline-flex items-center gap-1.5 justify-end">
                             {(role === 'Admin' || role === 'Staff') && (
-                              <button
-                                type="button"
+                              <EditIconButton
                                 onClick={() => handleOpenEdit(room)}
-                                className="secondary-button text-xs px-2.5 py-1"
-                                title="Edit room"
-                              >
-                                Edit
-                              </button>
+                                title="Edit"
+                                aria-label="Edit Room"
+                              />
                             )}
 
                             {role === 'Admin' && room.isActive && (

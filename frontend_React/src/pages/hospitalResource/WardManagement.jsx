@@ -7,6 +7,7 @@ import WardFormModal from './components/WardFormModal'
 import WardOccupancyModal from './components/WardOccupancyModal'
 import DeactivateWardModal from './components/DeactivateWardModal'
 import RoomManagementModal from './components/RoomManagementModal'
+import EditIconButton from './components/EditIconButton'
 import { adminNavigation } from '../admin/adminNavigation'
 
 const staffNav = ['Dashboard', 'Patients', 'Appointments', 'Queue Management', 'Resources']
@@ -395,14 +396,11 @@ export default function WardManagement() {
                         </button>
 
                         {(role === 'Admin' || role === 'Staff') && (
-                          <button
-                            type="button"
+                          <EditIconButton
                             onClick={() => setEditWardTarget(ward)}
-                            className="secondary-button text-xs px-2.5 py-1"
-                            title="Edit ward configuration"
-                          >
-                            Edit
-                          </button>
+                            title="Edit"
+                            aria-label="Edit Ward"
+                          />
                         )}
 
                         {role === 'Admin' && ward.isActive && (

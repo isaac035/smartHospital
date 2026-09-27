@@ -13,6 +13,7 @@ import MedicalResourceFormModal, {
 } from './components/MedicalResourceFormModal'
 import AssignResourceModal from './components/AssignResourceModal'
 import DeactivateResourceModal from './components/DeactivateResourceModal'
+import EditIconButton from './components/EditIconButton'
 
 const staffNav = ['Dashboard', 'Patients', 'Appointments', 'Queue Management', 'Resources']
 
@@ -490,14 +491,11 @@ export default function MedicalResources() {
                               >
                                 Assign
                               </button>
-                              <button
-                                type="button"
+                              <EditIconButton
                                 onClick={() => setEditTarget(res)}
-                                className="secondary-button text-xs px-2.5 py-1"
-                                title="Edit resource specifications"
-                              >
-                                Edit
-                              </button>
+                                title="Edit"
+                                aria-label="Edit Medical Resource"
+                              />
                             </>
                           )}
 

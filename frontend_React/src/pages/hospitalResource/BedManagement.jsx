@@ -7,6 +7,7 @@ import { getBeds, getAllWards, getRoomsByWard } from '../../services/hospitalRes
 import BedFormModal from './components/BedFormModal'
 import ChangeBedStatusModal from './components/ChangeBedStatusModal'
 import DeactivateBedModal from './components/DeactivateBedModal'
+import EditIconButton from './components/EditIconButton'
 
 const staffNav = ['Dashboard', 'Patients', 'Appointments', 'Queue Management', 'Resources']
 
@@ -456,14 +457,11 @@ export default function BedManagement() {
 
                       <td className="p-3 text-xs text-right whitespace-nowrap">
                         <div className="inline-flex items-center gap-1.5 justify-end">
-                          <button
-                            type="button"
+                          <EditIconButton
                             onClick={() => setEditBedTarget(bed)}
-                            className="secondary-button text-xs px-2.5 py-1"
-                            title="Edit bed details"
-                          >
-                            Edit
-                          </button>
+                            title="Edit"
+                            aria-label="Edit Bed"
+                          />
 
                           <button
                             type="button"
