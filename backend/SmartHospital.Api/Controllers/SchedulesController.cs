@@ -1,5 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using SmartHospital.Api.Data;
 using SmartHospital.Api.DTOs.Schedules;
 using SmartHospital.Api.Services.Interfaces;
 
@@ -11,10 +14,14 @@ namespace SmartHospital.Api.Controllers;
 public class SchedulesController : ControllerBase
 {
     private readonly IScheduleService _scheduleService;
+    private readonly AppDbContext _context;
+    private readonly IHubContext<Hubs.HospitalHub> _hub;
 
-    public SchedulesController(IScheduleService scheduleService)
+    public SchedulesController(IScheduleService scheduleService, AppDbContext context, IHubContext<Hubs.HospitalHub> hub)
     {
         _scheduleService = scheduleService;
+        _context = context;
+        _hub = hub;
     }
 
     [HttpGet]
@@ -48,6 +55,7 @@ public class SchedulesController : ControllerBase
         try
         {
             var result = await _scheduleService.CreateAsync(request);
+            await BroadcastSlotUpdateAsync(result.DoctorId, result);
 
             return Created($"/api/schedules/{result.Id}", result);
         }
@@ -76,6 +84,7 @@ public class SchedulesController : ControllerBase
                 });
             }
 
+            await BroadcastSlotUpdateAsync(schedule.DoctorId, schedule);
             return Ok(schedule);
         }
         catch (InvalidOperationException ex)
@@ -91,6 +100,7 @@ public class SchedulesController : ControllerBase
     [Authorize(Roles = "Admin,Staff")]
     public async Task<IActionResult> Remove(int id)
     {
+        var existing = await _scheduleService.GetByIdAsync(id);
         var success = await _scheduleService.RemoveAsync(id);
 
         if (!success)
@@ -101,9 +111,23 @@ public class SchedulesController : ControllerBase
             });
         }
 
+        if (existing != null) await BroadcastSlotUpdateAsync(existing.DoctorId, existing);
         return Ok(new
         {
             message = "Schedule removed successfully."
         });
+    }
+
+    private async Task BroadcastSlotUpdateAsync(int doctorProfileId, object payload)
+    {
+        var userId = await _context.Doctors.Where(d => d.Id == doctorProfileId)
+            .Select(d => d.UserId).FirstOrDefaultAsync();
+        var groups = new List<string> { "staff", "admin" };
+        if (userId.HasValue)
+        {
+            groups.Add($"doctor:{userId.Value}");
+            groups.Add($"user:{userId.Value}");
+        }
+        await _hub.Clients.Groups(groups).SendAsync("SlotUpdated", payload);
     }
 }

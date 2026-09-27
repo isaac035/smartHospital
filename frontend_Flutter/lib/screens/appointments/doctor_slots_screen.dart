@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../../core/utils/api_datetime.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/appointments/appointment_slot_model.dart';
 import '../../providers/appointment_provider.dart';
@@ -9,9 +10,14 @@ import '../../widgets/error_message.dart';
 import 'widgets/slot_picker_grid.dart';
 
 class DoctorSlotsScreen extends StatefulWidget {
-  final int doctorId;
+  final int doctorProfileId;
+  final int bookingDoctorId;
 
-  const DoctorSlotsScreen({super.key, required this.doctorId});
+  const DoctorSlotsScreen({
+    super.key,
+    required this.doctorProfileId,
+    required this.bookingDoctorId,
+  });
 
   @override
   State<DoctorSlotsScreen> createState() => _DoctorSlotsScreenState();
@@ -35,7 +41,11 @@ class _DoctorSlotsScreenState extends State<DoctorSlotsScreen> {
   void _loadSlots() {
     context
         .read<AppointmentProvider>()
-        .loadSlots(doctorId: widget.doctorId, date: _dateString);
+        .loadSlots(
+          doctorId: widget.bookingDoctorId,
+          doctorProfileId: widget.doctorProfileId,
+          date: _dateString,
+        );
   }
 
   Future<void> _pickDate() async {
@@ -116,6 +126,15 @@ class _DoctorSlotsScreenState extends State<DoctorSlotsScreen> {
 
                 if (provider.slotsError != null)
                   ErrorMessage(message: provider.slotsError),
+                if (provider.slotsError != null)
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton.icon(
+                      onPressed: provider.slotsLoading ? null : _loadSlots,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Retry'),
+                    ),
+                  ),
 
                 SlotPickerGrid(
                   slots: provider.slots,
@@ -124,7 +143,7 @@ class _DoctorSlotsScreenState extends State<DoctorSlotsScreen> {
                   isLoading: provider.slotsLoading,
                 ),
 
-                if (_selectedSlot != null) ...[
+                  if (_selectedSlot != null && _selectedSlot!.isAvailable) ...[
                   const SizedBox(height: 32),
                   Container(
                     padding: const EdgeInsets.all(16),
@@ -146,7 +165,7 @@ class _DoctorSlotsScreenState extends State<DoctorSlotsScreen> {
                                 style: TextStyle(color: AppTheme.primaryColor, fontSize: 12),
                               ),
                               Text(
-                                '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year} at ${_selectedSlot!.formattedTime}',
+                                '${_selectedSlot!.slotStart.day}/${_selectedSlot!.slotStart.month}/${_selectedSlot!.slotStart.year} at ${_selectedSlot!.formattedTime}',
                                 style: const TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold, fontSize: 15),
                               ),
                             ],
@@ -168,8 +187,9 @@ class _DoctorSlotsScreenState extends State<DoctorSlotsScreen> {
                       onPressed: () => context.push(
                         '/appointments/book',
                         extra: {
-                          'doctorId': widget.doctorId,
-                          'slotStart': _selectedSlot!.slotStart.toIso8601String(),
+                          'doctorId': widget.bookingDoctorId,
+                          'slotStart': ApiDateTime.toUtcIso8601(_selectedSlot!.slotStart),
+                          'durationMinutes': _selectedSlot!.durationMinutes,
                         },
                       ),
                       child: const Text('Continue to Book', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),

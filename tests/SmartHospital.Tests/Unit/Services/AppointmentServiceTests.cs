@@ -63,7 +63,7 @@ public class AppointmentServiceTests
     // ── Happy path: booking ───────────────────────────────────────────────────
 
     [Fact]
-    public async Task BookAppointment_ValidSlot_CreatesAppointmentWithReferenceAndQueueNumber()
+    public async Task BookAppointment_ValidRequest_CreatesAppointmentWithoutQueueUntilCheckIn()
     {
         // Arrange
         using var ctx = CreateContext();
@@ -86,7 +86,8 @@ public class AppointmentServiceTests
         // Assert
         Assert.NotNull(result);
         Assert.StartsWith("APT-", result.ReferenceNumber);
-        Assert.Equal(1, result.QueueNumber);
+        Assert.Null(result.QueueNumber);
+        Assert.Empty(ctx.QueueEntries);
         Assert.Equal("Scheduled", result.Status);
     }
 
@@ -175,8 +176,8 @@ public class AppointmentServiceTests
 
         Assert.NotNull(r1);
         Assert.NotNull(r2);
-        Assert.Equal(1, r1.QueueNumber);
-        Assert.Equal(2, r2.QueueNumber);
+        Assert.Null(r1.QueueNumber);
+        Assert.Null(r2.QueueNumber);
     }
 
     // ── Invalid patient ───────────────────────────────────────────────────────

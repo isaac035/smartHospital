@@ -140,7 +140,9 @@ class _DoctorTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
           onTap: () {
             if (doctor.userId != null) {
-              context.push('/appointments/doctor/${doctor.userId}');
+              context.push(
+                '/appointments/doctor/${doctor.id}?userId=${doctor.userId}',
+              );
             } else {
               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Not available for online booking.')));
             }

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/utils/hospital_date.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/appointments/queue_entry_model.dart';
 import '../../providers/appointment_provider.dart';
@@ -28,8 +29,7 @@ class _QueueStatusScreenState extends State<QueueStatusScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // Load upcoming appointments to determine which doctors the patient has
-      context.read<AppointmentProvider>().loadMyAppointments(
-          statusFilter: 'Confirmed');
+      context.read<AppointmentProvider>().loadMyAppointments();
     });
   }
 
@@ -49,7 +49,7 @@ class _QueueStatusScreenState extends State<QueueStatusScreen> {
   void _startPolling(int doctorId) {
     _refreshTimer?.cancel();
     context.read<AppointmentProvider>().loadQueue(doctorId);
-    _refreshTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+    _refreshTimer = Timer.periodic(const Duration(seconds: 5), (_) {
       if (mounted) {
         context.read<AppointmentProvider>().loadQueue(doctorId);
       }
@@ -59,21 +59,14 @@ class _QueueStatusScreenState extends State<QueueStatusScreen> {
   QueueEntryModel? _findMyEntry(
       List<QueueEntryModel> queue, int patientId) {
     try {
-      return queue.firstWhere(
-          (e) => e.patientId == patientId && e.isActive);
+      return queue.firstWhere((e) => e.patientId == patientId);
     } catch (_) {
       return null;
     }
   }
 
   int? _nowServing(List<QueueEntryModel> queue) {
-    try {
-      return queue
-          .firstWhere((e) => e.status == 2 || e.status == 3)
-          .queueNumber;
-    } catch (_) {
-      return null;
-    }
+    return queue.isEmpty ? null : queue.first.currentQueueNumber;
   }
 
   @override
@@ -191,6 +184,27 @@ class _QueueStatusScreenState extends State<QueueStatusScreen> {
                     nowServingNumber: _nowServing(provider.queue),
                     totalWaiting: provider.queue.where((e) => e.status == 1).length,
                   ),
+                  if (provider.queue.isEmpty) ...[
+                    const SizedBox(height: 12),
+                    Builder(builder: (context) {
+                      final candidates = provider.appointments.where((a) =>
+                        a.doctorId == _selectedDoctorId &&
+                        (a.status == 1 || a.status == 2) &&
+                        HospitalDate.isToday(a.scheduledStart)).toList();
+                      final appointment = candidates.isEmpty ? null : candidates.first;
+                      if (appointment == null) return const SizedBox.shrink();
+                      return FilledButton.icon(
+                        onPressed: provider.queueLoading ? null : () async {
+                          final entry = await provider.checkIn(appointment.id, _selectedDoctorId!);
+                          if (entry != null && context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Check-in complete · ${entry.queueCode} · Position ${entry.position}')));
+                          }
+                        },
+                        icon: const Icon(Icons.how_to_reg),
+                        label: const Text('Check in for today’s appointment'),
+                      );
+                    }),
+                  ],
                   
                   const SizedBox(height: 12),
                   Row(
@@ -198,37 +212,12 @@ class _QueueStatusScreenState extends State<QueueStatusScreen> {
                     children: [
                       Icon(Icons.sync, size: 14, color: Colors.grey.shade500),
                       const SizedBox(width: 6),
-                      Text('Auto-refreshes every 15 seconds', style: TextStyle(fontSize: 12, color: Colors.grey.shade500, fontWeight: FontWeight.w500)),
+                      Text('Auto-refreshes every 5 seconds', style: TextStyle(fontSize: 12, color: Colors.grey.shade500, fontWeight: FontWeight.w500)),
                     ],
                   ),
                   
                   const SizedBox(height: 32),
 
-                  // Waiting list preview
-                  if (provider.queue.isNotEmpty) ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Waiting List Preview', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(12)),
-                          child: Text(
-                            '${provider.queue.where((e) => e.status == 1).length} waiting',
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey.shade700),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    ...provider.queue
-                        .where((e) => e.status == 1)
-                        .take(10)
-                        .map((entry) => _WaitingTile(
-                              entry: entry,
-                              isMe: entry.patientId == patientId,
-                            )),
-                  ],
                 ],
                 const SizedBox(height: 40),
               ],

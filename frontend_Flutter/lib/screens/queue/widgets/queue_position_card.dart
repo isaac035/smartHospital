@@ -48,7 +48,7 @@ class QueuePositionCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            '#${entry.queueNumber}',
+            entry.queueCode.isEmpty ? '#${entry.queueNumber}' : entry.queueCode,
             style: const TextStyle(
               color: Colors.white,
               fontSize: 56,
@@ -57,7 +57,7 @@ class QueuePositionCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Position ${entry.position} in line',
+            entry.isYourTurn ? 'Your turn' : '${entry.patientsAhead} patients ahead',
             style: const TextStyle(color: Colors.white70, fontSize: 14),
           ),
           const Divider(color: Colors.white24, height: 28),
@@ -66,7 +66,7 @@ class QueuePositionCard extends StatelessWidget {
             children: [
               _stat(
                 label: 'Now Serving',
-                value: nowServingNumber != null ? '#$nowServingNumber' : '—',
+                value: entry.currentQueueCode ?? (nowServingNumber != null ? '#$nowServingNumber' : '—'),
               ),
               _stat(
                 label: 'Est. Wait',

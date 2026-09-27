@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import * as signalR from '@microsoft/signalr';
 import { useAuth } from './useAuth';
+import { getStoredAuth } from '../utils/auth';
 
 export const useSignalR = (events = {}) => {
   const [connection, setConnection] = useState(null);
@@ -17,7 +18,9 @@ export const useSignalR = (events = {}) => {
     if (!user) return;
 
     const newConnection = new signalR.HubConnectionBuilder()
-      .withUrl('http://localhost:5100/hubs/hospital')
+      .withUrl('http://localhost:5100/hubs/hospital', {
+        accessTokenFactory: () => getStoredAuth()?.token || '',
+      })
       .withAutomaticReconnect()
       .build();
 
@@ -26,24 +29,33 @@ export const useSignalR = (events = {}) => {
 
   useEffect(() => {
     if (connection) {
-      connection.start()
-        .then(() => {
-          setStatus('Connected');
-          Object.keys(eventsRef.current).forEach((eventName) => {
-            connection.on(eventName, (...args) => {
-              if (eventsRef.current[eventName]) {
-                eventsRef.current[eventName](...args);
-              }
-            });
-          });
+      let disposed = false
+      let retryTimer
+      Object.keys(eventsRef.current).forEach((eventName) => {
+        connection.on(eventName, (...args) => {
+          if (eventsRef.current[eventName]) eventsRef.current[eventName](...args)
         })
-        .catch(e => console.log('Connection failed: ', e));
+      })
+      const start = async () => {
+        try {
+          await connection.start()
+          if (!disposed) setStatus('Connected')
+        } catch {
+          if (!disposed) {
+            setStatus('Disconnected')
+            retryTimer = setTimeout(start, 3000)
+          }
+        }
+      }
+      start()
 
       connection.onreconnecting(() => setStatus('Reconnecting'));
       connection.onreconnected(() => setStatus('Connected'));
       connection.onclose(() => setStatus('Disconnected'));
 
       return () => {
+        disposed = true
+        clearTimeout(retryTimer)
         Object.keys(eventsRef.current).forEach((eventName) => {
           connection.off(eventName);
         });

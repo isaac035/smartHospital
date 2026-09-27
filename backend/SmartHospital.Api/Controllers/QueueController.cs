@@ -25,6 +25,16 @@ public class QueueController : ControllerBase
         _hub = hub;
     }
 
+    [HttpGet("mine")]
+    [Authorize(Roles = "Patient")]
+    public async Task<IActionResult> GetMyQueue([FromQuery] int doctorId)
+    {
+        var patientId = GetCurrentUserId();
+        if (!patientId.HasValue) return Unauthorized(new { message = "User is not authenticated." });
+        var status = await _queueService.GetMyQueueEntryAsync(patientId.Value, doctorId);
+        return status == null ? NotFound(new { message = "You have not checked in for this doctor." }) : Ok(status);
+    }
+
     // ── GET /api/queues/{doctorId} ────────────────────────────────────────────
 
     /// <summary>
@@ -34,16 +44,22 @@ public class QueueController : ControllerBase
     [HttpGet("{doctorId:int}")]
     [Authorize(Roles = "Staff,Admin,Doctor")]
     [ProducesResponseType(typeof(QueueStatusResponse), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetQueue(int doctorId)
+    public async Task<IActionResult> GetQueue(int doctorId, [FromQuery] DateOnly? date)
     {
+        var currentUserId = GetCurrentUserId();
+        if (User.IsInRole("Doctor") && currentUserId != doctorId) return Forbid();
         try
         {
-            var status = await _queueService.GetQueueStatusForDoctorAsync(doctorId);
+            var status = await _queueService.GetQueueStatusForDoctorAsync(doctorId, date);
             return Ok(status);
         }
         catch (KeyNotFoundException ex)
         {
             return NotFound(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
         }
     }
 
@@ -62,7 +78,9 @@ public class QueueController : ControllerBase
         try
         {
             var result = await _queueService.CallQueueEntryAsync(id, userId.Value);
-            await _hub.Clients.All.SendAsync("QueueUpdated", result);
+            await BroadcastQueueEventAsync("PatientCalled", result);
+            await BroadcastQueueEventAsync("ConsultationStarted", result);
+            await BroadcastQueueEventAsync("QueueUpdated", result);
             return Ok(result);
         }
         catch (InvalidOperationException ex)
@@ -73,6 +91,10 @@ public class QueueController : ControllerBase
         {
             return NotFound(new { message = ex.Message });
         }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
     }
 
     // ── GET /api/queues/{id}/status ───────────────────────────────────────────
@@ -82,6 +104,7 @@ public class QueueController : ControllerBase
     /// the patient's position and estimated wait time.
     /// </summary>
     [HttpGet("{id:int}/status")]
+    [Authorize(Roles = "Staff,Admin,Doctor")]
     [ProducesResponseType(typeof(QueueEntryResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetQueueEntryStatus(int id)
@@ -95,7 +118,7 @@ public class QueueController : ControllerBase
 
     /// <summary>Checks in a patient for their appointment, placing them into the active queue.</summary>
     [HttpPost("check-in/{appointmentId:int}")]
-    [Authorize(Roles = "Staff,Admin")]
+    [Authorize(Roles = "Staff,Admin,Patient")]
     [ProducesResponseType(typeof(QueueEntryResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CheckIn(int appointmentId)
@@ -106,7 +129,8 @@ public class QueueController : ControllerBase
         try
         {
             var result = await _queueService.CheckInAsync(appointmentId, userId.Value);
-            await _hub.Clients.All.SendAsync("QueueUpdated", result);
+            await BroadcastQueueEventAsync("PatientCheckedIn", result);
+            await BroadcastQueueEventAsync("QueueUpdated", result);
             return Ok(result);
         }
         catch (InvalidOperationException ex)
@@ -116,6 +140,10 @@ public class QueueController : ControllerBase
         catch (KeyNotFoundException ex)
         {
             return NotFound(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
         }
     }
 
@@ -134,7 +162,7 @@ public class QueueController : ControllerBase
         try
         {
             var result = await _queueService.MarkNoShowAsync(id, userId.Value);
-            await _hub.Clients.All.SendAsync("QueueUpdated", result);
+            await BroadcastQueueEventAsync("QueueUpdated", result);
             return Ok(result);
         }
         catch (InvalidOperationException ex)
@@ -144,6 +172,10 @@ public class QueueController : ControllerBase
         catch (KeyNotFoundException ex)
         {
             return NotFound(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
         }
     }
 
@@ -162,8 +194,8 @@ public class QueueController : ControllerBase
         try
         {
             var result = await _queueService.MarkCompletedAsync(id, userId.Value);
-            await _hub.Clients.All.SendAsync("ConsultationCompleted", result);
-            await _hub.Clients.All.SendAsync("QueueUpdated", result);
+            await BroadcastQueueEventAsync("ConsultationCompleted", result);
+            await BroadcastQueueEventAsync("QueueUpdated", result);
             return Ok(result);
         }
         catch (InvalidOperationException ex)
@@ -174,6 +206,10 @@ public class QueueController : ControllerBase
         {
             return NotFound(new { message = ex.Message });
         }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────
@@ -183,4 +219,8 @@ public class QueueController : ControllerBase
         var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         return int.TryParse(claim, out var id) ? id : null;
     }
+
+    private Task BroadcastQueueEventAsync(string eventName, QueueEntryResponse entry) =>
+        _hub.Clients.Groups(new[] { $"doctor:{entry.DoctorId}", $"user:{entry.PatientId}", "staff", "admin" })
+            .SendAsync(eventName, entry);
 }

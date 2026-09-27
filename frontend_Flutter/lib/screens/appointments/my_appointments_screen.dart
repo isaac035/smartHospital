@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../../core/utils/hospital_date.dart';
+import '../../models/appointments/appointment_model.dart';
 import '../../providers/appointment_provider.dart';
 import '../../widgets/error_message.dart';
 import 'widgets/appointment_card.dart';
@@ -14,6 +16,7 @@ class MyAppointmentsScreen extends StatefulWidget {
 
 class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
   String? _selectedStatus; // null = all
+  int? _checkingAppointmentId;
 
   static const _filters = [
     {'label': 'All', 'value': null},
@@ -35,6 +38,34 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
     await context
         .read<AppointmentProvider>()
         .loadMyAppointments(statusFilter: _selectedStatus);
+  }
+
+  Future<void> _checkIn(AppointmentModel appointment) async {
+    final doctorId = appointment.doctorId;
+    if (doctorId == null) return;
+
+    setState(() => _checkingAppointmentId = appointment.id);
+    final provider = context.read<AppointmentProvider>();
+    final entry = await provider.checkIn(appointment.id, doctorId);
+    if (!mounted) return;
+    setState(() => _checkingAppointmentId = null);
+
+    if (entry == null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(provider.queueError ?? 'Check-in failed. Please try again.'),
+      ));
+      return;
+    }
+
+    final position = entry.position > 0 ? ' · Position ${entry.position}' : '';
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text('Check-in complete · ${entry.queueCode}$position'),
+      action: SnackBarAction(
+        label: 'VIEW QUEUE',
+        onPressed: () => context.push('/queue'),
+      ),
+    ));
+    await _refresh();
   }
 
   @override
@@ -164,8 +195,16 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     itemCount: provider.appointments.length,
                     itemBuilder: (context, index) {
+                      final appointment = provider.appointments[index];
+                      final canCheckIn =
+                          (appointment.status == 1 || appointment.status == 2) &&
+                              HospitalDate.isToday(appointment.scheduledStart) &&
+                              appointment.doctorId != null;
                       return AppointmentCard(
-                          appointment: provider.appointments[index]);
+                        appointment: appointment,
+                        onCheckIn: canCheckIn ? () => _checkIn(appointment) : null,
+                        checkingIn: _checkingAppointmentId == appointment.id,
+                      );
                     },
                   ),
                 );

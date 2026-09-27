@@ -30,17 +30,19 @@ public class AvailabilityController : ControllerBase
     public async Task<IActionResult> GetAvailableSlots(
         [FromQuery] int? doctorId,
         [FromQuery] int? departmentId,
-        [FromQuery] DateTime date)
+        [FromQuery] DateTime date,
+        [FromQuery] int? doctorProfileId)
     {
-        if (date == default)
-            return BadRequest(new { message = "A valid date is required." });
+        if (date == default || (!doctorId.HasValue && !doctorProfileId.HasValue))
+            return BadRequest(new { message = "A doctor and a valid date are required." });
 
         // PostgreSQL requires DateTime to be UTC when querying timestamp with time zone columns
         var utcDate = DateTime.SpecifyKind(date, DateTimeKind.Utc);
 
         try
         {
-            var slots = await _availabilityService.GetAvailableSlotsAsync(doctorId, departmentId, utcDate);
+            var slots = await _availabilityService.GetAvailableSlotsAsync(
+                doctorId, departmentId, utcDate, doctorProfileId);
             return Ok(slots);
         }
         catch (KeyNotFoundException ex)

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../../core/utils/api_datetime.dart';
 import '../../models/appointments/appointment_slot_model.dart';
 import '../../providers/appointment_provider.dart';
 import '../../widgets/error_message.dart';
@@ -75,7 +76,7 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
 
     final ok = await context.read<AppointmentProvider>().rescheduleAppointment(
           widget.appointmentId,
-          newScheduledStart: _selectedSlot!.slotStart.toIso8601String(),
+          newScheduledStart: ApiDateTime.toUtcIso8601(_selectedSlot!.slotStart),
           newEstimatedDurationMinutes: durationMinutes,
           reason: _reasonController.text.trim(),
         );
