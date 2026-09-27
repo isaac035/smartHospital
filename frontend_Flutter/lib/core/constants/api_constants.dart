@@ -8,9 +8,9 @@ class ApiConstants {
     }
     try {
       if (Platform.isAndroid) {
-        // Since you are running on a PHYSICAL device (Samsung SM M215F), 
-        // 10.0.2.2 (Emulator IP) will NOT work. We must use your PC's local Wi-Fi IP.
-        return 'http://192.168.1.3:5100/api'; 
+        // Since you are running on a PHYSICAL device, 10.0.2.2 (Emulator IP)
+        // will NOT work. We must use your PC's local Wi-Fi IP.
+        return 'http://192.168.8.180:5100/api';
       }
     } catch (_) {}
     return 'http://localhost:5100/api'; // Windows, iOS Simulator, Web
@@ -22,6 +22,22 @@ class ApiConstants {
 
   // User Endpoints
   static const String users = '/Users';
+
+  // Doctor Endpoints
+  static const String doctors = '/doctors';
+  static const String doctorsAvailable = '/doctors/available';
+
+  // Department Endpoints
+  static const String departments = '/departments';
+
+  // Consultation Type Endpoints
+  static const String consultationTypes = '/consultation-types';
+
+  // Schedule Endpoints
+  static const String schedules = '/schedules';
+
+  // Leave Endpoints
+  static const String leaves = '/leaves';
 
   // EMR Endpoints
   static const String medicalRecords = '/MedicalRecords';

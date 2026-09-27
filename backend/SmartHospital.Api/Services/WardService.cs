@@ -221,7 +221,7 @@ public class WardService : IWardService
         var maintenanceBeds = beds.Count(b => b.Status == BedStatus.Maintenance);
         var blockedBeds = beds.Count(b => b.Status == BedStatus.Blocked);
         var rate = totalBeds > 0 ? Math.Round((double)occupiedBeds / totalBeds * 100, 2) : 0;
-        var isLow = availableBeds <= 2 || (totalBeds > 0 && ((double)availableBeds / totalBeds) <= 0.10);
+        var isLow = totalBeds > 0 && ((double)availableBeds / totalBeds) <= 0.20;
 
         return new WardOccupancyResponse
         {

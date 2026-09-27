@@ -6,7 +6,13 @@ import 'core/storage/secure_storage_service.dart';
 import 'core/network/api_client.dart';
 import 'services/auth_service.dart';
 import 'services/user_service.dart';
+import 'services/doctor_service.dart';
+import 'services/schedule_service.dart';
+import 'services/leave_service.dart';
+import 'services/department_service.dart';
+import 'services/consultation_type_service.dart';
 import 'providers/auth_provider.dart';
+import 'providers/doctor_provider.dart';
 import 'routes/app_router.dart';
 import 'services/appointment_service.dart';
 import 'providers/appointment_provider.dart';
@@ -37,12 +43,40 @@ class MyApp extends StatelessWidget {
         ),
         ChangeNotifierProxyProvider3<AuthService, UserService, SecureStorageService, AuthProvider>(
           create: (_) => AuthProvider(
-            AuthService(ApiClient(SecureStorageService())), 
-            UserService(ApiClient(SecureStorageService())), 
+            AuthService(ApiClient(SecureStorageService())),
+            UserService(ApiClient(SecureStorageService())),
             SecureStorageService(),
           ),
           update: (_, authService, userService, storageService, previous) =>
               previous ?? AuthProvider(authService, userService, storageService),
+        ),
+        ProxyProvider<ApiClient, DoctorService>(
+          update: (_, apiClient, previous) => DoctorService(apiClient),
+        ),
+        ProxyProvider<ApiClient, ScheduleService>(
+          update: (_, apiClient, previous) => ScheduleService(apiClient),
+        ),
+        ProxyProvider<ApiClient, LeaveService>(
+          update: (_, apiClient, previous) => LeaveService(apiClient),
+        ),
+        ProxyProvider<ApiClient, DepartmentService>(
+          update: (_, apiClient, previous) => DepartmentService(apiClient),
+        ),
+        ProxyProvider<ApiClient, ConsultationTypeService>(
+          update: (_, apiClient, previous) => ConsultationTypeService(apiClient),
+        ),
+        ChangeNotifierProxyProvider5<DoctorService, ScheduleService, LeaveService, DepartmentService,
+            ConsultationTypeService, DoctorProvider>(
+          create: (_) => DoctorProvider(
+            DoctorService(ApiClient(SecureStorageService())),
+            ScheduleService(ApiClient(SecureStorageService())),
+            LeaveService(ApiClient(SecureStorageService())),
+            DepartmentService(ApiClient(SecureStorageService())),
+            ConsultationTypeService(ApiClient(SecureStorageService())),
+          ),
+          update: (_, doctorService, scheduleService, leaveService, departmentService, consultationTypeService, previous) =>
+              previous ??
+              DoctorProvider(doctorService, scheduleService, leaveService, departmentService, consultationTypeService),
         ),
         ProxyProvider<ApiClient, AppointmentService>(
           update: (_, apiClient, __) => AppointmentService(apiClient),

@@ -10,6 +10,10 @@ import '../screens/home/home_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../screens/profile/edit_profile_screen.dart';
 import '../screens/profile/change_password_screen.dart';
+import '../screens/doctors/doctor_directory_screen.dart';
+import '../screens/doctors/doctor_details_screen.dart';
+import '../screens/doctors/doctor_schedule_screen.dart';
+import '../screens/doctors/doctor_availability_screen.dart';
 import '../screens/emr/patient_medical_records_screen.dart';
 import '../screens/emr/patient_vitals_screen.dart';
 import '../screens/emr/patient_prescriptions_screen.dart';
@@ -80,6 +84,32 @@ class AppRouter {
             GoRoute(
               path: 'change-password',
               builder: (context, state) => const ChangePasswordScreen(),
+            ),
+          ],
+        ),
+        GoRoute(
+          path: '/doctors',
+          builder: (context, state) => const DoctorDirectoryScreen(),
+          routes: [
+            GoRoute(
+              path: ':doctorId',
+              builder: (context, state) => DoctorDetailsScreen(
+                doctorId: int.parse(state.pathParameters['doctorId']!),
+              ),
+              routes: [
+                GoRoute(
+                  path: 'schedule',
+                  builder: (context, state) => DoctorScheduleScreen(
+                    doctorId: int.parse(state.pathParameters['doctorId']!),
+                  ),
+                ),
+                GoRoute(
+                  path: 'availability',
+                  builder: (context, state) => DoctorAvailabilityScreen(
+                    doctorId: int.parse(state.pathParameters['doctorId']!),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

@@ -25,6 +25,15 @@ public class AdmissionService : IAdmissionService
             throw new InvalidOperationException("Patient user not found.");
         }
 
+        var hasActiveAdmission = await _context.Admissions
+            .AnyAsync(a => a.PatientId == request.PatientId && a.Status == AdmissionStatus.Admitted);
+
+        if (hasActiveAdmission)
+        {
+            throw new InvalidOperationException("This patient already has an active inpatient admission.");
+        }
+
+
         User? doctor = null;
         if (request.AdmittingDoctorId.HasValue)
         {

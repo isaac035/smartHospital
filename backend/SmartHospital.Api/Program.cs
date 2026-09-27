@@ -97,6 +97,8 @@ builder.Services.AddScoped<IMedicalRecordService, MedicalRecordService>();
 builder.Services.AddScoped<IVitalSignService, VitalSignService>();
 builder.Services.AddScoped<IPrescriptionService, PrescriptionService>();
 builder.Services.AddScoped<ILabOrderService, LabOrderService>();
+builder.Services.AddScoped<IMedicalHistoryService, MedicalHistoryService>();
+builder.Services.AddScoped<IEmrAuditService, EmrAuditService>();
 
 // Hospital Resource & Bed Management Services
 builder.Services.AddScoped<IWardService, WardService>();
@@ -106,6 +108,13 @@ builder.Services.AddScoped<IAdmissionService, AdmissionService>();
 builder.Services.AddScoped<IMedicalResourceService, MedicalResourceService>();
 builder.Services.AddScoped<IResourceMaintenanceService, ResourceMaintenanceService>();
 builder.Services.AddScoped<IOccupancyService, OccupancyService>();
+
+// Doctor & Clinical Schedule Management Services
+builder.Services.AddScoped<IDepartmentService, DepartmentService>();
+builder.Services.AddScoped<IConsultationTypeService, ConsultationTypeService>();
+builder.Services.AddScoped<IDoctorService, DoctorService>();
+builder.Services.AddScoped<IScheduleService, ScheduleService>();
+builder.Services.AddScoped<ILeaveService, LeaveService>();
 
 // Smart Appointment & Queue Management Services
 builder.Services.AddScoped<IAvailabilityService, AvailabilityService>();
@@ -213,6 +222,11 @@ using (var scope = app.Services.CreateScope())
             .GetRequiredService<AppDbContext>();
 
     await DbSeeder.SeedAsync(dbContext);
+
+    if (app.Environment.IsDevelopment())
+    {
+        await SampleDataSeeder.SeedAsync(dbContext);
+    }
 }
 
 app.Run();

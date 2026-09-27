@@ -58,7 +58,7 @@ public class AppointmentService : IAppointmentService
         // 3. Validate department (if provided)
         if (request.DepartmentId.HasValue)
         {
-            var deptExists = await _context.Departments.AnyAsync(d => d.Id == request.DepartmentId && d.IsActive);
+            var deptExists = await _context.Departments.AnyAsync(d => d.Id == request.DepartmentId && d.Status == DepartmentStatus.Active);
             if (!deptExists)
                 throw new InvalidOperationException("Department not found or inactive.");
         }

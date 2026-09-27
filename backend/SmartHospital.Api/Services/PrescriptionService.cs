@@ -17,6 +17,19 @@ public class PrescriptionService : IPrescriptionService
 
     public async Task<List<PrescriptionResponse>> GetByPatientIdAsync(int patientId)
     {
+        if (patientId <= 0)
+        {
+            throw new ArgumentException("Patient ID must be a positive integer.", nameof(patientId));
+        }
+
+        var patientExists = await _context.Users
+            .AnyAsync(u => u.Id == patientId && u.Role == UserRole.Patient);
+
+        if (!patientExists)
+        {
+            throw new InvalidOperationException($"Patient with ID {patientId} was not found.");
+        }
+
         return await _context.Prescriptions
             .AsNoTracking()
             .Where(p => p.PatientId == patientId)
@@ -51,6 +64,11 @@ public class PrescriptionService : IPrescriptionService
 
     public async Task<PrescriptionResponse?> GetByIdAsync(int id)
     {
+        if (id <= 0)
+        {
+            return null;
+        }
+
         var prescription = await _context.Prescriptions
             .AsNoTracking()
             .Include(p => p.Patient)
@@ -92,6 +110,132 @@ public class PrescriptionService : IPrescriptionService
 
     public async Task<PrescriptionResponse> CreateAsync(int doctorId, CreatePrescriptionRequest request)
     {
+        if (request == null)
+        {
+            throw new ArgumentNullException(nameof(request));
+        }
+
+        if (doctorId <= 0)
+        {
+            throw new ArgumentException("Doctor ID must be a positive integer.", nameof(doctorId));
+        }
+
+        if (request.PatientId <= 0)
+        {
+            throw new ArgumentException("Patient ID must be a positive integer.", nameof(request.PatientId));
+        }
+
+        if (request.Items == null || request.Items.Count == 0)
+        {
+            throw new ArgumentException("At least one prescription item is required.", nameof(request.Items));
+        }
+
+        if (request.ExpiryDate.HasValue)
+        {
+            if (request.ExpiryDate.Value <= DateTime.UtcNow)
+            {
+                throw new ArgumentException("Expiry date must be in the future.", nameof(request.ExpiryDate));
+            }
+
+            if (request.ExpiryDate.Value > DateTime.UtcNow.AddYears(1))
+            {
+                throw new ArgumentException("Expiry date cannot be more than 1 year in the future.", nameof(request.ExpiryDate));
+            }
+        }
+
+        if (!string.IsNullOrEmpty(request.GeneralInstructions) && request.GeneralInstructions.Length > 1000)
+        {
+            throw new ArgumentException("General instructions cannot exceed 1000 characters.", nameof(request.GeneralInstructions));
+        }
+
+        var doctor = await _context.Users
+            .FirstOrDefaultAsync(u => u.Id == doctorId && u.Role == UserRole.Doctor && u.Status == UserStatus.Active);
+        if (doctor == null)
+        {
+            throw new InvalidOperationException("Active doctor not found.");
+        }
+
+        var patient = await _context.Users
+            .FirstOrDefaultAsync(u => u.Id == request.PatientId && u.Role == UserRole.Patient && u.Status == UserStatus.Active);
+        if (patient == null)
+        {
+            throw new InvalidOperationException("Active patient not found.");
+        }
+
+        if (request.MedicalRecordId.HasValue)
+        {
+            if (request.MedicalRecordId.Value <= 0)
+            {
+                throw new ArgumentException("Medical record ID must be a positive integer.", nameof(request.MedicalRecordId));
+            }
+
+            var medicalRecord = await _context.MedicalRecords
+                .FirstOrDefaultAsync(m => m.Id == request.MedicalRecordId.Value);
+
+            if (medicalRecord == null)
+            {
+                throw new InvalidOperationException("Medical record not found.");
+            }
+
+            if (medicalRecord.PatientId != request.PatientId)
+            {
+                throw new InvalidOperationException("Medical record does not belong to the specified patient.");
+            }
+        }
+
+        foreach (var item in request.Items)
+        {
+            if (item == null)
+            {
+                throw new ArgumentException("Prescription item cannot be null.");
+            }
+
+            if (string.IsNullOrWhiteSpace(item.MedicineName))
+            {
+                throw new ArgumentException("Medicine name is required.");
+            }
+
+            if (item.MedicineName.Length > 150)
+            {
+                throw new ArgumentException("Medicine name cannot exceed 150 characters.");
+            }
+
+            if (string.IsNullOrWhiteSpace(item.Dosage))
+            {
+                throw new ArgumentException("Dosage is required.");
+            }
+
+            if (item.Dosage.Length > 50)
+            {
+                throw new ArgumentException("Dosage cannot exceed 50 characters.");
+            }
+
+            if (!string.IsNullOrEmpty(item.Route) && item.Route.Length > 50)
+            {
+                throw new ArgumentException("Route cannot exceed 50 characters.");
+            }
+
+            if (string.IsNullOrWhiteSpace(item.Frequency))
+            {
+                throw new ArgumentException("Frequency is required.");
+            }
+
+            if (item.Frequency.Length > 50)
+            {
+                throw new ArgumentException("Frequency cannot exceed 50 characters.");
+            }
+
+            if (item.DurationDays < 1 || item.DurationDays > 365)
+            {
+                throw new ArgumentException("Duration must be between 1 and 365 days.");
+            }
+
+            if (!string.IsNullOrEmpty(item.SpecialInstructions) && item.SpecialInstructions.Length > 500)
+            {
+                throw new ArgumentException("Special instructions cannot exceed 500 characters.");
+            }
+        }
+
         var now = DateTime.UtcNow;
         var prescription = new Prescription
         {
@@ -102,17 +246,17 @@ public class PrescriptionService : IPrescriptionService
             IssueDate = now,
             ExpiryDate = request.ExpiryDate ?? now.AddDays(30),
             Status = PrescriptionStatus.Active,
-            GeneralInstructions = request.GeneralInstructions.Trim(),
+            GeneralInstructions = (request.GeneralInstructions ?? string.Empty).Trim(),
             CreatedAt = now,
             UpdatedAt = now,
             Items = request.Items.Select(i => new PrescriptionItem
             {
                 MedicineName = i.MedicineName.Trim(),
                 Dosage = i.Dosage.Trim(),
-                Route = i.Route.Trim(),
+                Route = (string.IsNullOrWhiteSpace(i.Route) ? "Oral" : i.Route).Trim(),
                 Frequency = i.Frequency.Trim(),
                 DurationDays = i.DurationDays,
-                SpecialInstructions = i.SpecialInstructions.Trim()
+                SpecialInstructions = (i.SpecialInstructions ?? string.Empty).Trim()
             }).ToList()
         };
 
