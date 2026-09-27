@@ -3,11 +3,12 @@ import { Link } from 'react-router-dom'
 import DashboardLayout from '../../layouts/DashboardLayout'
 import { getQueue, callQueueEntry, markNoShow, markCompleted } from '../../services/appointmentService'
 import PriorityBadge from '../../components/appointments/PriorityBadge'
+import { adminNavigation as adminNav } from '../admin/adminNavigation'
+import { doctorNavigation as doctorNav } from '../doctor/doctorNavigation'
+import { staffNavigation as staffNav } from '../staff/staffNavigation'
 import { useAuth } from '../../hooks/useAuth'
-
-const adminNav = ['Dashboard', 'User Management', 'Doctor Management', 'Department Management', 'Appointments', 'Reports', 'Settings']
-const staffNav = ['Dashboard', 'Patients', 'Appointments', 'Queue Management', 'Resources']
-const doctorNav = ['Dashboard', 'My Appointments', 'My Patients', 'Medical Records', 'Prescriptions', 'Lab Reports']
+import { useSignalR } from '../../hooks/useSignalR'
+import { listDoctors } from '../../services/doctorService'
 
 export default function QueueDashboard() {
   const { user } = useAuth()
@@ -18,30 +19,31 @@ export default function QueueDashboard() {
   const [queue, setQueue] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  useEffect(() => {
+    if (role !== 'Doctor') {
+      listDoctors().then(docs => {
+        setDoctorOptions(docs)
+        if (docs.length > 0 && !doctorId) setDoctorId(docs[0].id)
+      }).catch(console.error)
+    }
+  }, [role, doctorId])
   
-  // Dummy list of doctors for Staff/Admin to select from
-  const doctorOptions = [
-    { id: 2, name: 'Dr. Bob' },
-    { id: 10, name: 'Dr. Smith' }
-  ]
+  const [doctorOptions, setDoctorOptions] = useState([])
+  const { connection, status: signalRStatus } = useSignalR({
+    QueueUpdated: () => { if(doctorId) fetchQueue() },
+    PatientCheckedIn: () => { if(doctorId) fetchQueue() },
+    ConsultationCompleted: () => { if(doctorId) fetchQueue() }
+  })
 
   useEffect(() => {
-    let intervalId
-    if (doctorId) {
-      fetchQueue()
-      // Auto-refresh every 10 seconds to simulate real-time
-      intervalId = setInterval(fetchQueue, 10000)
-    } else {
-      setQueue([])
-    }
-    return () => clearInterval(intervalId)
+    if (doctorId) { fetchQueue() } else { setQueue([]) }
   }, [doctorId])
 
   const fetchQueue = async () => {
     try {
       setLoading(true)
       const data = await getQueue(doctorId)
-      setQueue(data)
+      setQueue(data?.queue || [])
       setError(null)
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to fetch queue')
@@ -77,8 +79,8 @@ export default function QueueDashboard() {
     }
   }
 
-  const currentServing = queue.find(q => q.status === 'InProgress' || q.status === 'Called')
-  const waitingList = queue.filter(q => q.status === 'Waiting')
+  const currentServing = (queue || []).find(q => q.status === 'InProgress' || q.status === 'Called')
+  const waitingList = (queue || []).filter(q => q.status === 'Waiting')
 
   return (
     <DashboardLayout role={role} navigation={navigation} title="Queue Management" subtitle="Live view of doctor queues.">
@@ -93,7 +95,7 @@ export default function QueueDashboard() {
             style={{ borderColor: 'color-mix(in srgb, var(--color-secondary) 25%, var(--color-primary))' }}
           >
             <option value="">-- Select --</option>
-            {doctorOptions.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+            {doctorOptions.map(d => <option key={d.id} value={d.id}>Dr. {d.firstName} {d.lastName}</option>)}
           </select>
         </div>
       )}

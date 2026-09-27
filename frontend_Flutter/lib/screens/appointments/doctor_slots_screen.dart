@@ -27,7 +27,9 @@ class _DoctorSlotsScreenState extends State<DoctorSlotsScreen> {
   @override
   void initState() {
     super.initState();
-    _loadSlots();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadSlots();
+    });
   }
 
   void _loadSlots() {
@@ -55,7 +57,12 @@ class _DoctorSlotsScreenState extends State<DoctorSlotsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Available Slots')),
+      appBar: AppBar(
+        title: const Text('Select Appointment Time'),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.black87,
+      ),
       body: Consumer<AppointmentProvider>(
         builder: (context, provider, _) {
           return SingleChildScrollView(
@@ -64,38 +71,46 @@ class _DoctorSlotsScreenState extends State<DoctorSlotsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Date picker
+                const Text(
+                  '1. Select Date',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                const SizedBox(height: 12),
                 GestureDetector(
                   onTap: _pickDate,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 14),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
-                      border:
-                          Border.all(color: Colors.grey.shade300),
+                      border: Border.all(color: Colors.grey.shade300),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.02),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        )
+                      ]
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.calendar_today,
-                            color: AppTheme.primaryColor),
+                        const Icon(Icons.calendar_month, color: AppTheme.primaryColor),
                         const SizedBox(width: 12),
                         Text(
                           '${_selectedDate.day} / ${_selectedDate.month} / ${_selectedDate.year}',
-                          style: const TextStyle(fontSize: 15),
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                         ),
                         const Spacer(),
-                        const Icon(Icons.arrow_drop_down),
+                        const Text('Change', style: TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold)),
                       ],
                     ),
                   ),
                 ),
 
-                const SizedBox(height: 20),
-                Text(
-                  'Select a Time Slot',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 15),
+                const SizedBox(height: 24),
+                const Text(
+                  '2. Available Slots',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
                 const SizedBox(height: 12),
 
@@ -105,46 +120,59 @@ class _DoctorSlotsScreenState extends State<DoctorSlotsScreen> {
                 SlotPickerGrid(
                   slots: provider.slots,
                   selectedSlot: _selectedSlot,
-                  onSlotSelected: (slot) =>
-                      setState(() => _selectedSlot = slot),
+                  onSlotSelected: (slot) => setState(() => _selectedSlot = slot),
                   isLoading: provider.slotsLoading,
                 ),
 
                 if (_selectedSlot != null) ...[
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 32),
                   Container(
-                    padding: const EdgeInsets.all(14),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: AppTheme.primaryColor.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                          color:
-                              AppTheme.primaryColor.withValues(alpha: 0.3)),
+                      border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.3)),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.check_circle,
-                            color: AppTheme.primaryColor),
-                        const SizedBox(width: 10),
-                        Text(
-                          'Selected: ${_selectedSlot!.formattedTime}',
-                          style: const TextStyle(
-                              color: AppTheme.primaryColor,
-                              fontWeight: FontWeight.bold),
+                        const Icon(Icons.check_circle, color: AppTheme.primaryColor, size: 28),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Selected Time',
+                                style: TextStyle(color: AppTheme.primaryColor, fontSize: 12),
+                              ),
+                              Text(
+                                '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year} at ${_selectedSlot!.formattedTime}',
+                                style: const TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold, fontSize: 15),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  AppButton(
-                    text: 'Continue to Book',
-                    onPressed: () => context.push(
-                      '/appointments/book',
-                      extra: {
-                        'doctorId': widget.doctorId,
-                        'slotStart':
-                            _selectedSlot!.slotStart.toIso8601String(),
-                      },
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primaryColor,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: () => context.push(
+                        '/appointments/book',
+                        extra: {
+                          'doctorId': widget.doctorId,
+                          'slotStart': _selectedSlot!.slotStart.toIso8601String(),
+                        },
+                      ),
+                      child: const Text('Continue to Book', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                     ),
                   ),
                 ],

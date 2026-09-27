@@ -159,6 +159,7 @@ class AppointmentProvider extends ChangeNotifier {
 
   /// Returns the new appointment on success, null on failure.
   Future<AppointmentModel?> bookAppointment({
+    required int patientId,
     required int doctorId,
     required int appointmentType,
     required String scheduledStart,
@@ -171,6 +172,7 @@ class AppointmentProvider extends ChangeNotifier {
     notifyListeners();
     try {
       final result = await _service.bookAppointment(
+        patientId: patientId,
         doctorId: doctorId,
         appointmentType: appointmentType,
         scheduledStart: scheduledStart,

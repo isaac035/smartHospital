@@ -17,10 +17,10 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
 
   static const _filters = [
     {'label': 'All', 'value': null},
-    {'label': 'Upcoming', 'value': 'Scheduled'},
-    {'label': 'Confirmed', 'value': 'Confirmed'},
-    {'label': 'Completed', 'value': 'Completed'},
-    {'label': 'Cancelled', 'value': 'Cancelled'},
+    {'label': 'Upcoming', 'value': '1'},
+    {'label': 'Confirmed', 'value': '2'},
+    {'label': 'Completed', 'value': '5'},
+    {'label': 'Cancelled', 'value': '6'},
   ];
 
   @override
@@ -40,41 +40,66 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
         title: const Text('My Appointments'),
+        elevation: 0,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
         actions: [
           IconButton(
-            icon: const Icon(Icons.add),
+            icon: const Icon(Icons.add_circle_outline, size: 26, color: Colors.blue),
             tooltip: 'Book Appointment',
             onPressed: () => context.push('/appointments/search'),
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Filter chips
-          SizedBox(
-            height: 52,
+          Container(
+            color: Colors.white,
+            height: 60,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               separatorBuilder: (_, __) => const SizedBox(width: 8),
               itemCount: _filters.length,
               itemBuilder: (context, index) {
                 final f = _filters[index];
                 final selected = _selectedStatus == f['value'];
-                return FilterChip(
+                return ChoiceChip(
                   label: Text(f['label'] as String),
                   selected: selected,
-                  onSelected: (_) {
-                    setState(() => _selectedStatus = f['value'] as String?);
+                  selectedColor: Colors.blue.shade100,
+                  labelStyle: TextStyle(
+                    color: selected ? Colors.blue.shade800 : Colors.grey.shade700,
+                    fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                  ),
+                  backgroundColor: Colors.grey.shade100,
+                  side: BorderSide.none,
+                  onSelected: (bool isSelected) {
+                    setState(() => _selectedStatus = isSelected ? f['value'] as String? : null);
                     context.read<AppointmentProvider>().loadMyAppointments(
-                        statusFilter: f['value'] as String?);
+                        statusFilter: _selectedStatus);
                   },
                 );
               },
             ),
           ),
+          
+          // Shadow under filters
+          Container(
+            height: 1,
+            decoration: BoxDecoration(
+              boxShadow: [
+                BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2)),
+              ],
+            ),
+          ),
+
           // Content
           Expanded(
             child: Consumer<AppointmentProvider>(
@@ -84,15 +109,18 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
                 }
                 if (provider.appointmentsError != null) {
                   return Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(24),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
+                        const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
+                        const SizedBox(height: 16),
                         ErrorMessage(message: provider.appointmentsError),
-                        const SizedBox(height: 12),
-                        ElevatedButton(
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(
                           onPressed: _refresh,
-                          child: const Text('Retry'),
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Retry'),
                         ),
                       ],
                     ),
@@ -103,17 +131,27 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.calendar_today,
-                            size: 64, color: Colors.grey.shade400),
+                        Icon(Icons.event_note, size: 80, color: Colors.grey.shade300),
                         const SizedBox(height: 16),
                         Text(
                           'No appointments found.',
-                          style: TextStyle(color: Colors.grey.shade600),
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey.shade700),
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 8),
+                        Text(
+                          'You have no ${_selectedStatus == '1' ? 'upcoming ' : _selectedStatus == '5' ? 'completed ' : ''}appointments.',
+                          style: TextStyle(color: Colors.grey.shade500),
+                        ),
+                        const SizedBox(height: 24),
                         ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
                           icon: const Icon(Icons.add),
-                          label: const Text('Book Appointment'),
+                          label: const Text('Book a New Appointment', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                           onPressed: () => context.push('/appointments/search'),
                         ),
                       ],
@@ -123,7 +161,7 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
                 return RefreshIndicator(
                   onRefresh: _refresh,
                   child: ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     itemCount: provider.appointments.length,
                     itemBuilder: (context, index) {
                       return AppointmentCard(

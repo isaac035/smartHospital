@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.SignalR;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -10,14 +11,7 @@ namespace SmartHospital.Api.Controllers;
 [ApiController]
 [Route("api/appointments")]
 [Authorize]
-public class AppointmentController : ControllerBase
-{
-    private readonly IAppointmentService _appointmentService;
-
-    public AppointmentController(IAppointmentService appointmentService)
-    {
-        _appointmentService = appointmentService;
-    }
+public class AppointmentController : ControllerBase { private readonly IAppointmentService _appointmentService; private readonly Microsoft.AspNetCore.SignalR.IHubContext<Hubs.HospitalHub> _hub; public AppointmentController(IAppointmentService appointmentService, Microsoft.AspNetCore.SignalR.IHubContext<Hubs.HospitalHub> hub) { _appointmentService = appointmentService; _hub = hub; }
 
     // ── GET /api/appointments ─────────────────────────────────────────────────
 
@@ -84,6 +78,7 @@ public class AppointmentController : ControllerBase
         try
         {
             var result = await _appointmentService.BookAppointmentAsync(userId.Value, request);
+            await _hub.Clients.All.SendAsync("AppointmentCreated", result);
             return Created($"/api/appointments/{result.Id}", result);
         }
         catch (InvalidOperationException ex)
@@ -140,6 +135,7 @@ public class AppointmentController : ControllerBase
         {
             var role   = GetCurrentUserRole();
             var result = await _appointmentService.CancelAppointmentAsync(id, request, userId.Value, role);
+            await _hub.Clients.All.SendAsync("AppointmentCancelled", result);
             return Ok(result);
         }
         catch (UnauthorizedAccessException)
@@ -174,6 +170,7 @@ public class AppointmentController : ControllerBase
         {
             var role   = GetCurrentUserRole();
             var result = await _appointmentService.RescheduleAppointmentAsync(id, request, userId.Value, role);
+            await _hub.Clients.All.SendAsync("AppointmentUpdated", result);
             return Ok(result);
         }
         catch (UnauthorizedAccessException)
@@ -243,3 +240,4 @@ public class AppointmentController : ControllerBase
     private string GetCurrentUserRole() =>
         User.FindFirst(ClaimTypes.Role)?.Value ?? string.Empty;
 }
+

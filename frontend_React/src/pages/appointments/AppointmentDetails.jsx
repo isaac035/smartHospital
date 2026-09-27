@@ -70,6 +70,23 @@ export default function AppointmentDetails() {
     }
   }
 
+
+  const handleDoctorComplete = async () => {
+    try {
+      const qStatus = await getQueue(appointment.doctorId);
+      const queueEntries = qStatus.queue || [];
+      const entry = queueEntries.find(q => q.appointmentId === appointment.id);
+      if (!entry) {
+        alert('Could not find active queue entry for this appointment.');
+        return;
+      }
+      await markCompleted(entry.id);
+      fetchData();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to complete appointment');
+    }
+  }
+
   const handleCheckIn = async () => {
     try {
       await checkIn(id)
@@ -105,7 +122,14 @@ export default function AppointmentDetails() {
           &larr; Back to List
         </button>
         <div className="flex gap-2">
-          {canCheckIn && (
+          
+          {role === 'Doctor' && appointment.status === 'InProgress' && (
+            <button className="primary-button" style={{ marginTop: 0 }} onClick={handleDoctorComplete}>
+              Mark Completed
+            </button>
+          )}
+
+            {canCheckIn && (
             <button className="primary-button" style={{ marginTop: 0 }} onClick={handleCheckIn}>
               Check In Patient
             </button>

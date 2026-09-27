@@ -77,7 +77,13 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Appointment Details')),
+      backgroundColor: Colors.grey.shade50,
+      appBar: AppBar(
+        title: const Text('Appointment Details'),
+        elevation: 0,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
+      ),
       body: Consumer<AppointmentProvider>(
         builder: (context, provider, _) {
           if (provider.detailLoading) {
@@ -85,17 +91,18 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
           }
           if (provider.detailError != null || provider.selectedAppointment == null) {
             return Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(24),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  ErrorMessage(
-                      message: provider.detailError ?? 'Not found.'),
-                  const SizedBox(height: 12),
-                  ElevatedButton(
-                    onPressed: () => provider
-                        .loadAppointmentDetail(widget.appointmentId),
-                    child: const Text('Retry'),
+                  const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
+                  const SizedBox(height: 16),
+                  ErrorMessage(message: provider.detailError ?? 'Not found.'),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: () => provider.loadAppointmentDetail(widget.appointmentId),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Retry'),
                   ),
                 ],
               ),
@@ -108,113 +115,143 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // Check-in Reference Card
+                if (apt.referenceNumber.isNotEmpty && (apt.status == 1 || apt.status == 2))
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 20),
+                    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [AppTheme.primaryColor, Colors.blue.shade700],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(color: AppTheme.primaryColor.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 4)),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        const Text(
+                          'CHECK-IN REFERENCE',
+                          style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.5),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          apt.referenceNumber,
+                          style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: 2),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Show this at the reception kiosk to check in.',
+                          style: TextStyle(color: Colors.white, fontSize: 13),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+
                 // Header card
-                _InfoCard(children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                _InfoCard(
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(color: AppTheme.primaryColor.withValues(alpha: 0.1), shape: BoxShape.circle),
+                          child: const Icon(Icons.person, color: AppTheme.primaryColor),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(apt.doctorName ?? 'Unassigned', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                              if (apt.departmentName != null)
+                                Text(apt.departmentName!, style: TextStyle(color: Colors.grey.shade600, fontSize: 14)),
+                            ],
+                          ),
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            Text(apt.doctorName ?? 'Unassigned',
-                                style: const TextStyle(
-                                    fontSize: 18, fontWeight: FontWeight.bold)),
-                            if (apt.departmentName != null)
-                              Text(apt.departmentName!,
-                                  style: TextStyle(
-                                      color: Colors.grey.shade600,
-                                      fontSize: 13)),
+                            AppointmentStatusBadge(status: apt.status),
+                            const SizedBox(height: 6),
+                            PriorityBadge(priority: apt.priority),
                           ],
                         ),
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          AppointmentStatusBadge(status: apt.status),
-                          const SizedBox(height: 4),
-                          PriorityBadge(priority: apt.priority),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const Divider(height: 20),
-                  _DetailRow(
-                      icon: Icons.calendar_today,
-                      label: 'Date & Time',
-                      value: _fmt(apt.scheduledStart)),
-                  _DetailRow(
-                      icon: Icons.schedule,
-                      label: 'Duration',
-                      value: '${apt.estimatedDurationMinutes} minutes'),
-                  _DetailRow(
-                      icon: Icons.medical_services,
-                      label: 'Type',
-                      value: apt.typeLabel),
-                  if (apt.referenceNumber.isNotEmpty)
-                    _DetailRow(
-                        icon: Icons.tag,
-                        label: 'Reference',
-                        value: apt.referenceNumber),
-                  if (apt.notes != null && apt.notes!.isNotEmpty)
-                    _DetailRow(
-                        icon: Icons.notes, label: 'Notes', value: apt.notes!),
-                  if (apt.cancelledReason != null)
-                    _DetailRow(
+                      ],
+                    ),
+                    const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(height: 1)),
+                    _DetailRow(icon: Icons.calendar_month, label: 'Date & Time', value: _fmt(apt.scheduledStart)),
+                    _DetailRow(icon: Icons.schedule, label: 'Duration', value: '${apt.estimatedDurationMinutes} minutes'),
+                    _DetailRow(icon: Icons.medical_services, label: 'Visit Type', value: apt.typeLabel),
+                    if (apt.notes != null && apt.notes!.isNotEmpty)
+                      _DetailRow(icon: Icons.notes, label: 'Patient Notes', value: apt.notes!),
+                    if (apt.cancelledReason != null)
+                      _DetailRow(
                         icon: Icons.cancel,
                         label: 'Cancellation Reason',
                         value: apt.cancelledReason!,
-                        valueColor: AppTheme.errorColor),
-                ]),
+                        valueColor: AppTheme.errorColor,
+                      ),
+                  ],
+                ),
 
-                // History
+                // History Timeline
                 if (history.isNotEmpty) ...[
-                  const SizedBox(height: 20),
-                  const Text('Status History',
-                      style: TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 10),
-                  ...history.map((h) => _HistoryTile(h: h)),
+                  const SizedBox(height: 24),
+                  const Text('Appointment History', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 12),
+                  _InfoCard(
+                    children: history.map((h) => _HistoryTile(h: h)).toList(),
+                  ),
                 ],
 
                 // Actions
                 if (apt.isReschedulable || apt.isCancellable) ...[
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 32),
                   if (apt.isReschedulable)
                     SizedBox(
-                      width: double.infinity,
+                      height: 50,
                       child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: Colors.blue.shade600),
+                          foregroundColor: Colors.blue.shade700,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
                         icon: const Icon(Icons.edit_calendar),
-                        label: const Text('Reschedule'),
-                        onPressed: () => context.push(
-                            '/appointments/${apt.id}/reschedule'),
+                        label: const Text('Reschedule Appointment', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                        onPressed: () => context.push('/appointments/${apt.id}/reschedule'),
                       ),
                     ),
                   if (apt.isCancellable) ...[
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 12),
                     SizedBox(
-                      width: double.infinity,
+                      height: 50,
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.errorColor),
+                          backgroundColor: Colors.white,
+                          foregroundColor: AppTheme.errorColor,
+                          elevation: 0,
+                          side: BorderSide(color: AppTheme.errorColor.withValues(alpha: 0.3)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
                         icon: const Icon(Icons.cancel_outlined),
                         label: provider.actionLoading
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                    strokeWidth: 2, color: Colors.white))
-                            : const Text('Cancel Appointment'),
-                        onPressed: provider.actionLoading
-                            ? null
-                            : _showCancelDialog,
+                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                            : const Text('Cancel Appointment', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                        onPressed: provider.actionLoading ? null : _showCancelDialog,
                       ),
                     ),
                   ],
                 ],
-                const SizedBox(height: 32),
+                const SizedBox(height: 40),
               ],
             ),
           );

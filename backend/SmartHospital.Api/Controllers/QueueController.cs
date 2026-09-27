@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.SignalR;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -16,10 +17,12 @@ namespace SmartHospital.Api.Controllers;
 public class QueueController : ControllerBase
 {
     private readonly IQueueService _queueService;
+    private readonly Microsoft.AspNetCore.SignalR.IHubContext<Hubs.HospitalHub> _hub;
 
-    public QueueController(IQueueService queueService)
+    public QueueController(IQueueService queueService, Microsoft.AspNetCore.SignalR.IHubContext<Hubs.HospitalHub> hub)
     {
         _queueService = queueService;
+        _hub = hub;
     }
 
     // ── GET /api/queues/{doctorId} ────────────────────────────────────────────
@@ -59,6 +62,7 @@ public class QueueController : ControllerBase
         try
         {
             var result = await _queueService.CallQueueEntryAsync(id, userId.Value);
+            await _hub.Clients.All.SendAsync("QueueUpdated", result);
             return Ok(result);
         }
         catch (InvalidOperationException ex)
@@ -102,6 +106,7 @@ public class QueueController : ControllerBase
         try
         {
             var result = await _queueService.CheckInAsync(appointmentId, userId.Value);
+            await _hub.Clients.All.SendAsync("QueueUpdated", result);
             return Ok(result);
         }
         catch (InvalidOperationException ex)
@@ -129,6 +134,7 @@ public class QueueController : ControllerBase
         try
         {
             var result = await _queueService.MarkNoShowAsync(id, userId.Value);
+            await _hub.Clients.All.SendAsync("QueueUpdated", result);
             return Ok(result);
         }
         catch (InvalidOperationException ex)
@@ -156,6 +162,8 @@ public class QueueController : ControllerBase
         try
         {
             var result = await _queueService.MarkCompletedAsync(id, userId.Value);
+            await _hub.Clients.All.SendAsync("ConsultationCompleted", result);
+            await _hub.Clients.All.SendAsync("QueueUpdated", result);
             return Ok(result);
         }
         catch (InvalidOperationException ex)
