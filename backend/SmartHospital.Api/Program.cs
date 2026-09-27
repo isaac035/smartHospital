@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using SmartHospital.Api.BackgroundServices;
 using SmartHospital.Api.Configuration;
 using SmartHospital.Api.Data;
 using SmartHospital.Api.Services;
@@ -109,6 +110,7 @@ builder.Services.AddScoped<IAdmissionService, AdmissionService>();
 builder.Services.AddScoped<IMedicalResourceService, MedicalResourceService>();
 builder.Services.AddScoped<IResourceMaintenanceService, ResourceMaintenanceService>();
 builder.Services.AddScoped<IOccupancyService, OccupancyService>();
+builder.Services.AddHostedService<MaintenanceAutoStartBackgroundService>();
 
 // Doctor & Clinical Schedule Management Services
 builder.Services.AddScoped<IDepartmentService, DepartmentService>();
