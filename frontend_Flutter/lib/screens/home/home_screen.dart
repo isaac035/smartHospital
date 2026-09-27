@@ -84,6 +84,12 @@ class HomeScreen extends StatelessWidget {
                           color: Colors.purple,
                           onTap: () => context.push('/medical-records'),
                         ),
+                        _buildModuleCard(
+                          icon: Icons.hotel_rounded,
+                          title: 'My Admission',
+                          color: Colors.teal,
+                          onTap: () => context.push('/my-admission'),
+                        ),
                       ],
                     )
                   ],

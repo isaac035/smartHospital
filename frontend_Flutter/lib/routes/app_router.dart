@@ -25,6 +25,7 @@ import '../screens/appointments/doctor_slots_screen.dart';
 import '../screens/appointments/book_appointment_screen.dart';
 import '../screens/appointments/reschedule_screen.dart';
 import '../screens/queue/queue_status_screen.dart';
+import '../screens/admissions/my_admission_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -173,6 +174,10 @@ class AppRouter {
         GoRoute(
           path: '/queue',
           builder: (context, state) => const QueueStatusScreen(),
+        ),
+        GoRoute(
+          path: '/my-admission',
+          builder: (context, state) => const MyAdmissionScreen(),
         ),
       ],
     );

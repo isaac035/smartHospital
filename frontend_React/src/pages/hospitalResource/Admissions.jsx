@@ -8,6 +8,8 @@ import AllocateBedModal from './components/AllocateBedModal'
 import TransferPatientModal from './components/TransferPatientModal'
 import DischargePatientModal from './components/DischargePatientModal'
 import AdmissionDetailsModal from './components/AdmissionDetailsModal'
+import EditAdmissionModal from './components/EditAdmissionModal'
+import EditIconButton from './components/EditIconButton'
 import { adminNavigation } from '../admin/adminNavigation'
 
 const staffNav = ['Dashboard', 'Patients', 'Appointments', 'Queue Management', 'Resources']
@@ -36,6 +38,7 @@ export default function Admissions() {
   const [transferTarget, setTransferTarget] = useState(null)
   const [dischargeTarget, setDischargeTarget] = useState(null)
   const [detailsTarget, setDetailsTarget] = useState(null)
+  const [editTarget, setEditTarget] = useState(null)
 
   const fetchAdmissionsData = useCallback(async () => {
     try {
@@ -460,6 +463,14 @@ export default function Admissions() {
                             Details
                           </button>
 
+                          {isActive && (
+                            <EditIconButton
+                              onClick={() => setEditTarget(admission)}
+                              title="Edit"
+                              aria-label="Edit Admission"
+                            />
+                          )}
+
                           {isActive && !hasBed && (role === 'Admin' || role === 'Staff') && (
                             <button
                               type="button"
@@ -538,6 +549,13 @@ export default function Admissions() {
         isOpen={Boolean(detailsTarget)}
         onClose={() => setDetailsTarget(null)}
         admission={detailsTarget}
+      />
+
+      <EditAdmissionModal
+        isOpen={Boolean(editTarget)}
+        onClose={() => setEditTarget(null)}
+        admission={editTarget}
+        onSuccess={handleSuccessFeedback}
       />
     </DashboardLayout>
   )
