@@ -2,15 +2,17 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import DashboardLayout from '../../layouts/DashboardLayout'
 import { getAppointments } from '../../services/appointmentService'
+import { useSignalR } from '../../hooks/useSignalR'
 import AppointmentStatusBadge from '../../components/appointments/AppointmentStatusBadge'
 import PriorityBadge from '../../components/appointments/PriorityBadge'
 import FilterBar from '../../components/appointments/FilterBar'
+import { adminNavigation as adminNav } from '../admin/adminNavigation'
+import { doctorNavigation as doctorNav } from '../doctor/doctorNavigation'
+import { staffNavigation as staffNav } from '../staff/staffNavigation'
 import { useAuth } from '../../hooks/useAuth'
+import DoctorServingList from '../../components/appointments/DoctorServingList'
 
-// Navigation lists for different roles
-const adminNav = ['Dashboard', 'User Management', 'Doctor Management', 'Department Management', 'Appointments', 'Reports', 'Settings']
-const staffNav = ['Dashboard', 'Patients', 'Appointments', 'Queue Management', 'Resources']
-const doctorNav = ['Dashboard', 'My Appointments', 'My Patients', 'Medical Records', 'Prescriptions', 'Lab Reports']
+
 
 export default function AppointmentsDashboard() {
   const { user } = useAuth()
@@ -21,7 +23,9 @@ export default function AppointmentsDashboard() {
   const [appointments, setAppointments] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [filters, setFilters] = useState({})
+  
+  const [filters, setFilters] = useState(role === 'Doctor' ? { doctorId: user.id } : {})
+  
 
   useEffect(() => {
     fetchAppointments()
@@ -39,6 +43,13 @@ export default function AppointmentsDashboard() {
       setLoading(false)
     }
   }
+
+  useSignalR({
+    AppointmentCreated: fetchAppointments,
+    AppointmentUpdated: fetchAppointments,
+    AppointmentCancelled: fetchAppointments,
+    ConsultationCompleted: fetchAppointments
+  })
 
   return (
     <DashboardLayout 
@@ -60,7 +71,13 @@ export default function AppointmentsDashboard() {
         )}
       </div>
 
-      <FilterBar filters={filters} onFilterChange={setFilters} />
+      
+      {role === 'Doctor' ? (
+        <DoctorServingList user={user} />
+      ) : (
+        <>
+          <FilterBar filters={filters} onFilterChange={setFilters} />
+
 
       {error && <div className="form-error">{error}</div>}
 
@@ -131,6 +148,9 @@ export default function AppointmentsDashboard() {
           </table>
         </div>
       </div>
+            </>
+      )}
     </DashboardLayout>
   )
 }
+

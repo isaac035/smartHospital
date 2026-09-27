@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import '../../widgets/app_button.dart';
+import '../../core/theme/app_theme.dart';
 import '../../widgets/error_message.dart';
 import '../../providers/appointment_provider.dart';
+import '../../providers/auth_provider.dart';
 
 class BookAppointmentScreen extends StatefulWidget {
   final int doctorId;
@@ -27,12 +28,10 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
   int _duration = 30;
 
   static const _types = [
-    {'label': 'General', 'value': 1},
+    {'label': 'General Consultation', 'value': 1},
     {'label': 'Follow-Up', 'value': 2},
-    {'label': 'Consultation', 'value': 3},
-    {'label': 'Checkup', 'value': 4},
-    {'label': 'Vaccination', 'value': 5},
-    {'label': 'Procedure', 'value': 6},
+    {'label': 'Specialist Consultation', 'value': 3},
+    {'label': 'Routine Checkup', 'value': 4},
   ];
 
   @override
@@ -45,7 +44,11 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
     if (!_formKey.currentState!.validate()) return;
     context.read<AppointmentProvider>().clearActionError();
 
+    final user = context.read<AuthProvider>().currentUser;
+    if (user == null) return;
+
     final result = await context.read<AppointmentProvider>().bookAppointment(
+          patientId: user.id,
           doctorId: widget.doctorId,
           appointmentType: _appointmentType,
           scheduledStart: widget.slotStart,
@@ -57,7 +60,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
     if (!mounted) return;
     if (result != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Appointment booked successfully!')),
+        const SnackBar(content: Text('Appointment booked successfully!'), backgroundColor: Colors.green),
       );
       context.go('/appointments/${result.id}');
     }
@@ -69,11 +72,15 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
     final months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     final h = slotDt.hour > 12 ? slotDt.hour - 12 : (slotDt.hour == 0 ? 12 : slotDt.hour);
     final period = slotDt.hour >= 12 ? 'PM' : 'AM';
-    final fmtSlot =
-        '${slotDt.day} ${months[slotDt.month - 1]} ${slotDt.year}  $h:${slotDt.minute.toString().padLeft(2, '0')} $period';
+    final fmtSlot = '${slotDt.day} ${months[slotDt.month - 1]} ${slotDt.year}  $h:${slotDt.minute.toString().padLeft(2, '0')} $period';
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Book Appointment')),
+      appBar: AppBar(
+        title: const Text('Confirm Booking'),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.black87,
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -81,44 +88,55 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Slot summary
+              // Slot summary card
               Container(
-                padding: const EdgeInsets.all(14),
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.blue.shade200),
+                  color: AppTheme.primaryColor,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(color: AppTheme.primaryColor.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 4)),
+                  ],
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.event, color: Colors.blue),
-                    const SizedBox(width: 10),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Selected Slot',
-                            style: TextStyle(
-                                color: Colors.blue,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600)),
-                        Text(fmtSlot,
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold)),
-                      ],
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle),
+                      child: const Icon(Icons.event_available, color: Colors.white, size: 28),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Selected Date & Time', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500)),
+                          const SizedBox(height: 4),
+                          Text(fmtSlot, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 32),
+              
+              const Text('Appointment Details', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
 
               // Appointment Type
-              const Text('Appointment Type',
-                  style: TextStyle(fontWeight: FontWeight.w600)),
+              const Text('Reason for Visit', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.black87)),
               const SizedBox(height: 8),
               DropdownButtonFormField<int>(
                 initialValue: _appointmentType,
-                decoration: const InputDecoration(),
+                decoration: InputDecoration(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
+                  filled: true,
+                  fillColor: Colors.grey.shade50,
+                ),
                 items: _types
                     .map((t) => DropdownMenuItem<int>(
                           value: t['value'] as int,
@@ -128,57 +146,78 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                 onChanged: (v) => setState(() => _appointmentType = v!),
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
 
               // Duration
-              const Text('Duration',
-                  style: TextStyle(fontWeight: FontWeight.w600)),
+              const Text('Expected Duration', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.black87)),
               const SizedBox(height: 8),
               DropdownButtonFormField<int>(
                 initialValue: _duration,
-                decoration: const InputDecoration(),
+                decoration: InputDecoration(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
+                  filled: true,
+                  fillColor: Colors.grey.shade50,
+                ),
                 items: const [
-                  DropdownMenuItem(value: 15, child: Text('15 minutes')),
-                  DropdownMenuItem(value: 30, child: Text('30 minutes')),
-                  DropdownMenuItem(value: 45, child: Text('45 minutes')),
-                  DropdownMenuItem(value: 60, child: Text('60 minutes')),
+                  DropdownMenuItem(value: 15, child: Text('15 minutes - Quick checkup')),
+                  DropdownMenuItem(value: 30, child: Text('30 minutes - Standard')),
+                  DropdownMenuItem(value: 45, child: Text('45 minutes - Extended')),
+                  DropdownMenuItem(value: 60, child: Text('60 minutes - Full consultation')),
                 ],
                 onChanged: (v) => setState(() => _duration = v!),
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
 
               // Notes
-              const Text('Notes (optional)',
-                  style: TextStyle(fontWeight: FontWeight.w600)),
+              const Text('Additional Notes (Optional)', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.black87)),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _notesController,
-                maxLines: 3,
-                decoration: const InputDecoration(
-                  hintText: 'Any details for the doctor...',
+                maxLines: 4,
+                decoration: InputDecoration(
+                  hintText: 'Briefly describe your symptoms or reason for visit...',
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
+                  filled: true,
+                  fillColor: Colors.grey.shade50,
                 ),
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 32),
 
               Consumer<AppointmentProvider>(
                 builder: (context, provider, _) {
                   return Column(
                     children: [
-                      if (provider.actionError != null)
+                      if (provider.actionError != null) ...[
                         ErrorMessage(message: provider.actionError),
-                      AppButton(
-                        text: 'Confirm Booking',
-                        isLoading: provider.actionLoading,
-                        onPressed: _submit,
+                        const SizedBox(height: 16),
+                      ],
+                      SizedBox(
+                        width: double.infinity,
+                        height: 54,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.primaryColor,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            elevation: 2,
+                          ),
+                          onPressed: provider.actionLoading ? null : _submit,
+                          child: provider.actionLoading 
+                              ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                              : const Text('Confirm Booking', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        ),
                       ),
                     ],
                   );
                 },
               ),
-
-              const SizedBox(height: 32),
+              const SizedBox(height: 40),
             ],
           ),
         ),

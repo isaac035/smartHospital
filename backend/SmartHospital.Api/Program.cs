@@ -15,6 +15,7 @@ var builder = WebApplication.CreateBuilder(args);
 // --------------------------------------------------
 
 builder.Services.AddControllers();
+builder.Services.AddSignalR();
 
 
 // --------------------------------------------------
@@ -214,6 +215,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<SmartHospital.Api.Hubs.HospitalHub>("/hubs/hospital");
 
 using (var scope = app.Services.CreateScope())
 {

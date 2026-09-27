@@ -52,6 +52,7 @@ class AppointmentService {
   }
 
   Future<AppointmentModel> bookAppointment({
+    required int patientId,
     required int doctorId,
     required int appointmentType,
     required String scheduledStart,
@@ -60,6 +61,7 @@ class AppointmentService {
     String? notes,
   }) async {
     final response = await _apiClient.post('/appointments', data: {
+      'patientId': patientId,
       'doctorId': doctorId,
       'appointmentType': appointmentType,
       'scheduledStart': scheduledStart,
@@ -125,12 +127,16 @@ class AppointmentService {
   // TODO: Replace with shared Doctor module endpoint once available.
 
   Future<List<DoctorSummaryModel>> searchDoctors({String? query}) async {
-    final q = query != null && query.isNotEmpty ? '?search=$query&role=Doctor' : '?role=Doctor';
-    final response = await _apiClient.get('/Users$q');
+    final q = query != null && query.isNotEmpty ? '?searchTerm=$query' : '';
+    final response = await _apiClient.get('/doctors$q');
     if (response is List) {
-      return response
-          .map((e) => DoctorSummaryModel.fromJson(e as Map<String, dynamic>))
-          .toList();
+      return response.map((e) {
+        final map = e as Map<String, dynamic>;
+        if (map.containsKey('departmentName') && !map.containsKey('department')) {
+          map['department'] = map['departmentName'];
+        }
+        return DoctorSummaryModel.fromJson(map);
+      }).toList();
     }
     return [];
   }

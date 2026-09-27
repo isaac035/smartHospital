@@ -3,6 +3,7 @@
 /// TODO: Replace with shared DoctorModel once available from that module.
 class DoctorSummaryModel {
   final int id;
+  final int? userId;
   final String firstName;
   final String lastName;
   final String? specialization;
@@ -11,6 +12,7 @@ class DoctorSummaryModel {
 
   const DoctorSummaryModel({
     required this.id,
+    this.userId,
     required this.firstName,
     required this.lastName,
     this.specialization,
@@ -23,6 +25,7 @@ class DoctorSummaryModel {
   factory DoctorSummaryModel.fromJson(Map<String, dynamic> json) {
     return DoctorSummaryModel(
       id: json['id'] as int,
+      userId: json['userId'] as int?,
       firstName: json['firstName'] as String? ?? '',
       lastName: json['lastName'] as String? ?? '',
       specialization: json['specialization'] as String?,

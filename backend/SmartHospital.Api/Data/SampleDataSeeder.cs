@@ -254,6 +254,12 @@ public static class SampleDataSeeder
                 });
             }
         }
+        // FIX: Assign a dummy User ID to all doctors that don't have one,
+        // so that they can be booked via the Appointment API!
+        var doctorsMissingUser = await context.Doctors.Where(d => d.UserId == null).ToListAsync();
+        foreach(var d in doctorsMissingUser) {
+            d.UserId = nadia?.UserId ?? 5;
+        }
 
         await context.SaveChangesAsync();
     }

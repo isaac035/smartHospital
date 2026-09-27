@@ -78,18 +78,20 @@ class _QueueStatusScreenState extends State<QueueStatusScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final patientId =
-        context.read<AuthProvider>().currentUser?.id ?? 0;
+    final patientId = context.read<AuthProvider>().currentUser?.id ?? 0;
 
     return Scaffold(
+      backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text('Queue Status'),
+        title: const Text('Live Queue Status'),
+        elevation: 0,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
         actions: [
           if (_selectedDoctorId != null)
             IconButton(
-              icon: const Icon(Icons.refresh),
-              onPressed: () =>
-                  _startPolling(_selectedDoctorId!),
+              icon: const Icon(Icons.refresh, color: AppTheme.primaryColor),
+              onPressed: () => _startPolling(_selectedDoctorId!),
               tooltip: 'Refresh',
             ),
         ],
@@ -98,113 +100,127 @@ class _QueueStatusScreenState extends State<QueueStatusScreen> {
         builder: (context, provider, _) {
           // Build doctor picker from confirmed appointments
           final doctorOptions = provider.appointments
-              .where((a) =>
-                  a.doctorId != null && a.doctorName != null)
+              .where((a) => a.doctorId != null && a.doctorName != null && (a.status == 1 || a.status == 2 || a.status == 3))
               .map((a) => {'id': a.doctorId!, 'name': a.doctorName!})
               .toList();
           // Deduplicate
           final seen = <int>{};
-          final uniqueDoctors = doctorOptions
-              .where((d) => seen.add(d['id'] as int))
-              .toList();
+          final uniqueDoctors = doctorOptions.where((d) => seen.add(d['id'] as int)).toList();
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // Doctor picker
-                const Text('Select Your Doctor',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15)),
-                const SizedBox(height: 8),
+                const Text('Select Your Doctor', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                const SizedBox(height: 12),
                 if (provider.appointmentsLoading)
-                  const Center(child: CircularProgressIndicator())
+                  const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()))
                 else if (uniqueDoctors.isEmpty)
                   Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      'You have no confirmed appointments. Queue tracking is only available for confirmed appointments.',
-                      style:
-                          TextStyle(color: Colors.grey.shade600),
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)),
+                    child: Column(
+                      children: [
+                        Icon(Icons.event_busy, size: 48, color: Colors.grey.shade300),
+                        const SizedBox(height: 12),
+                        Text(
+                          'No active appointments today. Queue tracking is only available for confirmed appointments.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.grey.shade600),
+                        ),
+                      ],
                     ),
                   )
                 else
                   Wrap(
                     spacing: 8,
+                    runSpacing: 8,
                     children: uniqueDoctors.map((d) {
-                      final selected =
-                          _selectedDoctorId == d['id'] as int;
+                      final selected = _selectedDoctorId == d['id'] as int;
                       return ChoiceChip(
                         label: Text('Dr. ${d['name']}'),
                         selected: selected,
+                        selectedColor: Colors.blue.shade100,
+                        backgroundColor: Colors.white,
+                        side: BorderSide(color: selected ? Colors.blue.shade300 : Colors.grey.shade300),
+                        labelStyle: TextStyle(
+                          color: selected ? Colors.blue.shade800 : Colors.grey.shade800,
+                          fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                        ),
                         onSelected: (_) => _selectDoctor(d['id'] as int),
                       );
                     }).toList(),
                   ),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: 32),
 
                 // Queue status
                 if (_selectedDoctorId == null)
                   Container(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(32),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.grey.shade200),
                     ),
-                    child: const Center(
-                      child: Text(
-                          'Select a doctor above to see your queue position.'),
+                    child: Column(
+                      children: [
+                        Icon(Icons.people_outline, size: 56, color: Colors.grey.shade300),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Select a doctor above to see your real-time queue position and estimated wait.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                        ),
+                      ],
                     ),
                   )
-                else if (provider.queueLoading)
-                  const Center(
-                      child: Padding(
-                    padding: EdgeInsets.all(32),
-                    child: CircularProgressIndicator(),
-                  ))
+                else if (provider.queueLoading && provider.queue.isEmpty)
+                  const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
                 else ...[
                   if (provider.queueError != null)
-                    ErrorMessage(message: provider.queueError),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: ErrorMessage(message: provider.queueError),
+                    ),
+                    
                   QueuePositionCard(
                     myEntry: _findMyEntry(provider.queue, patientId),
                     nowServingNumber: _nowServing(provider.queue),
-                    totalWaiting: provider.queue
-                        .where((e) => e.status == 1)
-                        .length,
+                    totalWaiting: provider.queue.where((e) => e.status == 1).length,
                   ),
-                  const SizedBox(height: 16),
+                  
+                  const SizedBox(height: 12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.refresh,
-                          size: 14, color: Colors.grey.shade500),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Auto-refreshes every 15 seconds',
-                        style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade500),
-                      ),
+                      Icon(Icons.sync, size: 14, color: Colors.grey.shade500),
+                      const SizedBox(width: 6),
+                      Text('Auto-refreshes every 15 seconds', style: TextStyle(fontSize: 12, color: Colors.grey.shade500, fontWeight: FontWeight.w500)),
                     ],
                   ),
-                  const SizedBox(height: 24),
+                  
+                  const SizedBox(height: 32),
 
                   // Waiting list preview
                   if (provider.queue.isNotEmpty) ...[
-                    Text(
-                      'Waiting List (${provider.queue.where((e) => e.status == 1).length})',
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Waiting List Preview', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(12)),
+                          child: Text(
+                            '${provider.queue.where((e) => e.status == 1).length} waiting',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey.shade700),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 12),
                     ...provider.queue
                         .where((e) => e.status == 1)
                         .take(10)
@@ -214,7 +230,7 @@ class _QueueStatusScreenState extends State<QueueStatusScreen> {
                             )),
                   ],
                 ],
-                const SizedBox(height: 32),
+                const SizedBox(height: 40),
               ],
             ),
           );

@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -20,6 +19,7 @@ class DoctorDirectoryScreen extends StatefulWidget {
 
 class _DoctorDirectoryScreenState extends State<DoctorDirectoryScreen> {
   Timer? _debounce;
+  bool _filtersExpanded = false;
 
   @override
   void initState() {
@@ -48,12 +48,6 @@ class _DoctorDirectoryScreenState extends State<DoctorDirectoryScreen> {
     _scheduleReload();
   }
 
-  // Placeholder for a future feature: stores the value but doesn't filter or reload
-  void _onReasonOfIllnessChanged(String value) {
-    context.read<DoctorProvider>().reasonOfIllness = value.trim();
-  }
-
-  // Debounced so typing doesn't fire a request per keystroke
   void _scheduleReload() {
     final provider = context.read<DoctorProvider>();
     _debounce?.cancel();
@@ -81,125 +75,193 @@ class _DoctorDirectoryScreenState extends State<DoctorDirectoryScreen> {
     final availabilityOn = provider.availabilityFilterOn;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Find a Doctor')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            AppTextField(
-              label: 'Search',
-              hint: 'Doctor name or ID',
-              enabled: !availabilityOn,
-              onChanged: _onSearchChanged,
-            ),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Available on...'),
-              value: availabilityOn,
-              onChanged: (value) => provider.setAvailabilityFilterOn(value),
-            ),
-            if (availabilityOn)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton.icon(
-                    onPressed: _pickAvailabilityDate,
-                    icon: const Icon(Icons.calendar_today, size: 18),
-                    label: Text(DateFormat('MMM d, yyyy').format(provider.availabilityFilterDate)),
-                  ),
-                ),
-              ),
-            Row(
-              children: [
-                Expanded(
-                  child: FilterDropdown<int>(
-                    label: 'Department',
-                    value: provider.filterDepartmentId,
-                    items: [
-                      const DropdownMenuItem(value: null, child: Text('All')),
-                      ...provider.departments.map((d) => DropdownMenuItem(value: d.id, child: Text(d.name))),
-                    ],
-                    onChanged: (value) {
-                      provider.filterDepartmentId = value;
-                      provider.loadDirectory();
-                    },
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: FilterDropdown<int>(
-                    label: 'Consultation Type',
-                    value: provider.filterConsultationTypeId,
-                    items: [
-                      const DropdownMenuItem(value: null, child: Text('All')),
-                      ...provider.consultationTypes.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))),
-                    ],
-                    onChanged: (value) {
-                      provider.filterConsultationTypeId = value;
-                      provider.loadDirectory();
-                    },
-                  ),
-                ),
+      appBar: AppBar(
+        title: const Text('Find a Doctor'),
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: Icon(_filtersExpanded ? Icons.filter_list_off : Icons.filter_list),
+            onPressed: () => setState(() => _filtersExpanded = !_filtersExpanded),
+            tooltip: 'Toggle Filters',
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          // Search & Filters Header
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                )
               ],
             ),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Column(
               children: [
-                Expanded(
-                  child: AppTextField(
-                    label: 'Specialization',
-                    hint: 'e.g. Cardiology',
-                    enabled: !availabilityOn,
-                    onChanged: _onSpecializationChanged,
-                  ),
+                AppTextField(
+                  label: '',
+                  hint: 'Search doctor by name...',
+                  enabled: !availabilityOn,
+                  onChanged: _onSearchChanged,
+                  prefixIcon: const Icon(Icons.search),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: AppTextField(
-                    label: 'Reason for Illness',
-                    hint: 'e.g. Fever, chest pain',
-                    onChanged: _onReasonOfIllnessChanged,
-                  ),
-                ),
-              ],
-            ),
-            if (availabilityOn)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Text(
-                  'Specialization and search aren\'t available when filtering by availability date.',
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                ),
-              )
-            else
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () => provider.loadDirectory(),
-                  child: const Text('Apply filters'),
-                ),
-              ),
-            ErrorMessage(message: provider.directoryError),
-            Expanded(
-              child: provider.isLoadingDirectory
-                  ? const Center(child: CircularProgressIndicator())
-                  : provider.directoryDoctors.isEmpty
-                      ? const Center(child: Text('No doctors found.'))
-                      : ListView.builder(
-                          itemCount: provider.directoryDoctors.length,
-                          itemBuilder: (context, index) {
-                            final doctor = provider.directoryDoctors[index];
-                            return DoctorListTile(
-                              doctor: doctor,
-                              onTap: () => context.push('/doctors/${doctor.id}'),
-                            );
-                          },
+                AnimatedCrossFade(
+                  firstChild: const SizedBox(height: 0, width: double.infinity),
+                  secondChild: Padding(
+                    padding: const EdgeInsets.only(top: 12.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Availability Toggle
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.blue.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: SwitchListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                            title: const Text('Filter by specific date', style: TextStyle(fontWeight: FontWeight.w500)),
+                            value: availabilityOn,
+                            onChanged: (value) => provider.setAvailabilityFilterOn(value),
+                          ),
                         ),
+                        if (availabilityOn)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8.0),
+                            child: OutlinedButton.icon(
+                              onPressed: _pickAvailabilityDate,
+                              icon: const Icon(Icons.calendar_today, size: 18),
+                              label: Text(
+                                'Checking: ${DateFormat('MMM d, yyyy').format(provider.availabilityFilterDate)}',
+                                style: const TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ),
+                        
+                        if (!availabilityOn) ...[
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: FilterDropdown<int>(
+                                  label: 'Department',
+                                  value: provider.filterDepartmentId,
+                                  items: [
+                                    const DropdownMenuItem(value: null, child: Text('All Depts')),
+                                    ...provider.departments.map((d) => DropdownMenuItem(value: d.id, child: Text(d.name))),
+                                  ],
+                                  onChanged: (value) {
+                                    provider.filterDepartmentId = value;
+                                    provider.loadDirectory();
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: FilterDropdown<int>(
+                                  label: 'Consultation',
+                                  value: provider.filterConsultationTypeId,
+                                  items: [
+                                    const DropdownMenuItem(value: null, child: Text('All Types')),
+                                    ...provider.consultationTypes.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))),
+                                  ],
+                                  onChanged: (value) {
+                                    provider.filterConsultationTypeId = value;
+                                    provider.loadDirectory();
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          AppTextField(
+                            label: '',
+                            hint: 'Specialization (e.g. Cardiology)',
+                            onChanged: _onSpecializationChanged,
+                            prefixIcon: const Icon(Icons.medical_services_outlined),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  crossFadeState: _filtersExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+                  duration: const Duration(milliseconds: 250),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+
+          // Main List View
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: provider.loadDirectory,
+              child: _buildListContent(provider),
+            ),
+          ),
+        ],
       ),
     );
   }
+
+  Widget _buildListContent(DoctorProvider provider) {
+    if (provider.isLoadingDirectory && provider.directoryDoctors.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    
+    if (provider.directoryError != null && provider.directoryError!.isNotEmpty) {
+      return SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: ErrorMessage(message: provider.directoryError),
+        ),
+      );
+    }
+    
+    if (provider.directoryDoctors.isEmpty) {
+      return SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Container(
+          padding: const EdgeInsets.all(32.0),
+          alignment: Alignment.center,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.search_off, size: 64, color: Colors.grey.shade400),
+              const SizedBox(height: 16),
+              Text(
+                'No doctors found',
+                style: TextStyle(fontSize: 18, color: Colors.grey.shade600, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Try adjusting your search or filters to see more results.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey.shade500),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      physics: const AlwaysScrollableScrollPhysics(),
+      itemCount: provider.directoryDoctors.length,
+      itemBuilder: (context, index) {
+        final doctor = provider.directoryDoctors[index];
+        return DoctorListTile(
+          doctor: doctor,
+          onTap: () => context.push('/doctors/${doctor.id}'),
+        );
+      },
+    );
+  }
 }
+
