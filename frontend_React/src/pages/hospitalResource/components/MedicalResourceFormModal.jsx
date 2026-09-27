@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react'
 import {
   createMedicalResource,
   updateMedicalResource,
-  getRoomsByWard,
-  getBeds,
+  getNextAvailableResourceCode,
 } from '../../../services/hospitalResourceService'
 
 export const RESOURCE_CATEGORIES = [
@@ -46,28 +45,17 @@ export default function MedicalResourceFormModal({
   isOpen,
   onClose,
   resource,
-  wards = [],
   onSuccess,
 }) {
   const isEdit = Boolean(resource)
 
   const [resourceCode, setResourceCode] = useState('')
+  const [loadingCode, setLoadingCode] = useState(false)
   const [name, setName] = useState('')
   const [category, setCategory] = useState(1)
   const [status, setStatus] = useState(1)
   const [locationDescription, setLocationDescription] = useState('')
   const [serialNumber, setSerialNumber] = useState('')
-  const [manufacturer, setManufacturer] = useState('')
-  const [modelNumber, setModelNumber] = useState('')
-
-  // Location hierarchy
-  const [wardId, setWardId] = useState('')
-  const [roomId, setRoomId] = useState('')
-  const [bedId, setBedId] = useState('')
-  const [rooms, setRooms] = useState([])
-  const [beds, setBeds] = useState([])
-  const [loadingRooms, setLoadingRooms] = useState(false)
-  const [loadingBeds, setLoadingBeds] = useState(false)
 
   const [isActive, setIsActive] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -83,28 +71,7 @@ export default function MedicalResourceFormModal({
         setStatus(RESOURCE_STATUS_NAME_TO_INT[resource.status] || 1)
         setLocationDescription(resource.locationDescription || '')
         setSerialNumber(resource.serialNumber || '')
-        setManufacturer(resource.manufacturer || '')
-        setModelNumber(resource.modelNumber || '')
-        setWardId(resource.wardId ? String(resource.wardId) : '')
-        setRoomId(resource.roomId ? String(resource.roomId) : '')
-        setBedId(resource.bedId ? String(resource.bedId) : '')
         setIsActive(resource.isActive !== false)
-
-        // Load initial rooms if ward exists
-        if (resource.wardId) {
-          getRoomsByWard(resource.wardId).then((r) => setRooms(Array.isArray(r) ? r : []))
-        } else {
-          setRooms([])
-        }
-
-        // Load initial beds if room exists
-        if (resource.roomId) {
-          getBeds({ roomId: resource.roomId, pageSize: 100 }).then((b) =>
-            setBeds(Array.isArray(b) ? b : [])
-          )
-        } else {
-          setBeds([])
-        }
       } else {
         setResourceCode('')
         setName('')
@@ -112,59 +79,34 @@ export default function MedicalResourceFormModal({
         setStatus(1)
         setLocationDescription('')
         setSerialNumber('')
-        setManufacturer('')
-        setModelNumber('')
-        setWardId('')
-        setRoomId('')
-        setBedId('')
-        setRooms([])
-        setBeds([])
         setIsActive(true)
+
+        let isCancelled = false
+        setLoadingCode(true)
+        getNextAvailableResourceCode()
+          .then((nextCode) => {
+            if (!isCancelled) {
+              setResourceCode(nextCode)
+            }
+          })
+          .catch(() => {
+            if (!isCancelled) {
+              setResourceCode('')
+              setError('Unable to generate Resource Code. Please try again.')
+            }
+          })
+          .finally(() => {
+            if (!isCancelled) {
+              setLoadingCode(false)
+            }
+          })
+
+        return () => {
+          isCancelled = true
+        }
       }
     }
   }, [isOpen, resource])
-
-  // Handle Ward change: reset Room & Bed, fetch rooms
-  const handleWardChange = async (e) => {
-    const selectedWardId = e.target.value
-    setWardId(selectedWardId)
-    setRoomId('')
-    setBedId('')
-    setRooms([])
-    setBeds([])
-
-    if (!selectedWardId) return
-
-    try {
-      setLoadingRooms(true)
-      const data = await getRoomsByWard(selectedWardId)
-      setRooms(Array.isArray(data) ? data : [])
-    } catch {
-      setRooms([])
-    } finally {
-      setLoadingRooms(false)
-    }
-  }
-
-  // Handle Room change: reset Bed, fetch beds
-  const handleRoomChange = async (e) => {
-    const selectedRoomId = e.target.value
-    setRoomId(selectedRoomId)
-    setBedId('')
-    setBeds([])
-
-    if (!selectedRoomId) return
-
-    try {
-      setLoadingBeds(true)
-      const data = await getBeds({ roomId: parseInt(selectedRoomId, 10), pageSize: 100 })
-      setBeds(Array.isArray(data) ? data : [])
-    } catch {
-      setBeds([])
-    } finally {
-      setLoadingBeds(false)
-    }
-  }
 
   if (!isOpen) return null
 
@@ -176,7 +118,7 @@ export default function MedicalResourceFormModal({
     const trimmedName = name.trim()
     const trimmedLocation = locationDescription.trim()
 
-    if (!isEdit && !trimmedCode) {
+    if (!trimmedCode) {
       setError('Resource Code is required.')
       return
     }
@@ -200,11 +142,11 @@ export default function MedicalResourceFormModal({
           status: Number(status),
           locationDescription: trimmedLocation,
           serialNumber: serialNumber.trim() || null,
-          manufacturer: manufacturer.trim() || null,
-          modelNumber: modelNumber.trim() || null,
-          wardId: wardId ? Number(wardId) : null,
-          roomId: roomId ? Number(roomId) : null,
-          bedId: bedId ? Number(bedId) : null,
+          manufacturer: resource?.manufacturer ?? null,
+          modelNumber: resource?.modelNumber ?? null,
+          wardId: resource?.wardId ?? null,
+          roomId: resource?.roomId ?? null,
+          bedId: resource?.bedId ?? null,
           isActive,
         }
         await updateMedicalResource(resource.id, payload)
@@ -216,11 +158,11 @@ export default function MedicalResourceFormModal({
           category: Number(category),
           locationDescription: trimmedLocation,
           serialNumber: serialNumber.trim() || null,
-          manufacturer: manufacturer.trim() || null,
-          modelNumber: modelNumber.trim() || null,
-          wardId: wardId ? Number(wardId) : null,
-          roomId: roomId ? Number(roomId) : null,
-          bedId: bedId ? Number(bedId) : null,
+          manufacturer: null,
+          modelNumber: null,
+          wardId: null,
+          roomId: null,
+          bedId: null,
         }
         await createMedicalResource(payload)
         onSuccess(`Resource '${trimmedCode}' registered successfully.`)
@@ -279,26 +221,23 @@ export default function MedicalResourceFormModal({
               <input
                 id="resource-code-input"
                 type="text"
-                value={resourceCode}
-                onChange={(e) => !isEdit && setResourceCode(e.target.value)}
-                readOnly={isEdit}
+                value={loadingCode ? 'Generating...' : resourceCode}
+                readOnly
                 maxLength={50}
-                placeholder="e.g. VNT-001 or MON-101"
+                placeholder={!isEdit && !loadingCode && !resourceCode ? 'Unable to generate code' : undefined}
                 className="w-full px-3 py-2 text-xs border rounded-lg outline-none font-mono uppercase"
                 style={{
                   borderColor: 'color-mix(in srgb, var(--color-secondary) 25%, var(--color-primary))',
-                  backgroundColor: isEdit
-                    ? 'color-mix(in srgb, var(--color-secondary) 6%, var(--color-primary))'
-                    : undefined,
-                  cursor: isEdit ? 'not-allowed' : undefined,
-                  opacity: isEdit ? 0.8 : 1,
+                  backgroundColor: 'color-mix(in srgb, var(--color-secondary) 6%, var(--color-primary))',
+                  cursor: 'not-allowed',
+                  opacity: 0.85,
                 }}
                 required
               />
               <p className="text-xs opacity-60 mt-1">
                 {isEdit
                   ? 'Resource code is permanent and read-only.'
-                  : 'Must be globally unique (e.g., VNT-001).'}
+                  : 'Auto-generated sequential code (read-only).'}
               </p>
             </div>
 
@@ -384,61 +323,23 @@ export default function MedicalResourceFormModal({
             )}
           </div>
 
-          {/* Row 3: Specifications (Serial, Manufacturer, Model) */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
-            <div>
-              <label htmlFor="resource-serial-input" className="block text-xs font-semibold mb-1">
-                Serial Number
-              </label>
-              <input
-                id="resource-serial-input"
-                type="text"
-                value={serialNumber}
-                onChange={(e) => setSerialNumber(e.target.value)}
-                maxLength={100}
-                placeholder="e.g. SN-884920"
-                className="w-full px-3 py-2 text-xs border rounded-lg outline-none font-mono"
-                style={{
-                  borderColor: 'color-mix(in srgb, var(--color-secondary) 25%, var(--color-primary))',
-                }}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="resource-manufacturer-input" className="block text-xs font-semibold mb-1">
-                Manufacturer
-              </label>
-              <input
-                id="resource-manufacturer-input"
-                type="text"
-                value={manufacturer}
-                onChange={(e) => setManufacturer(e.target.value)}
-                maxLength={100}
-                placeholder="e.g. Philips, GE"
-                className="w-full px-3 py-2 text-xs border rounded-lg outline-none"
-                style={{
-                  borderColor: 'color-mix(in srgb, var(--color-secondary) 25%, var(--color-primary))',
-                }}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="resource-model-input" className="block text-xs font-semibold mb-1">
-                Model Number
-              </label>
-              <input
-                id="resource-model-input"
-                type="text"
-                value={modelNumber}
-                onChange={(e) => setModelNumber(e.target.value)}
-                maxLength={100}
-                placeholder="e.g. C6, MX800"
-                className="w-full px-3 py-2 text-xs border rounded-lg outline-none"
-                style={{
-                  borderColor: 'color-mix(in srgb, var(--color-secondary) 25%, var(--color-primary))',
-                }}
-              />
-            </div>
+          {/* Row 3: Specifications (Serial Number) */}
+          <div className="mb-3">
+            <label htmlFor="resource-serial-input" className="block text-xs font-semibold mb-1">
+              Serial Number <span className="text-xs font-normal opacity-60">(Optional)</span>
+            </label>
+            <input
+              id="resource-serial-input"
+              type="text"
+              value={serialNumber}
+              onChange={(e) => setSerialNumber(e.target.value)}
+              maxLength={100}
+              placeholder="e.g. SN-884920"
+              className="w-full px-3 py-2 text-xs border rounded-lg outline-none font-mono"
+              style={{
+                borderColor: 'color-mix(in srgb, var(--color-secondary) 25%, var(--color-primary))',
+              }}
+            />
           </div>
 
           {/* Location Description */}
@@ -452,106 +353,13 @@ export default function MedicalResourceFormModal({
               value={locationDescription}
               onChange={(e) => setLocationDescription(e.target.value)}
               maxLength={200}
-              placeholder="e.g. Central Storage Bay 2, or Mounted beside Bed A-101 BED-01"
+              placeholder="e.g. Central Equipment Storage, Main Medical Store, ICU Equipment Store"
               className="w-full px-3 py-2 text-xs border rounded-lg outline-none"
               style={{
                 borderColor: 'color-mix(in srgb, var(--color-secondary) 25%, var(--color-primary))',
               }}
               required
             />
-          </div>
-
-          {/* Optional Initial Location Assignment (Cascading Ward -> Room -> Bed) */}
-          <div
-            className="p-3 mb-3 rounded-xl border text-xs"
-            style={{
-              background: 'color-mix(in srgb, var(--color-secondary) 4%, var(--color-primary))',
-              borderColor: 'color-mix(in srgb, var(--color-secondary) 15%, var(--color-primary))',
-            }}
-          >
-            <span className="block font-semibold mb-2" style={{ color: 'var(--color-accent)' }}>
-              Physical Location Assignment (Optional)
-            </span>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <div>
-                <label className="block text-xs font-medium mb-1">Ward</label>
-                <select
-                  value={wardId}
-                  onChange={handleWardChange}
-                  className="w-full px-2.5 py-1.5 text-xs border rounded-lg outline-none bg-transparent"
-                  style={{
-                    borderColor: 'color-mix(in srgb, var(--color-secondary) 25%, var(--color-primary))',
-                  }}
-                >
-                  <option value="">-- No Ward (Storage) --</option>
-                  {wards.map((w) => (
-                    <option key={w.id} value={w.id}>
-                      {w.name} ({w.code})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium mb-1">Room</label>
-                <select
-                  value={roomId}
-                  onChange={handleRoomChange}
-                  disabled={!wardId || loadingRooms}
-                  className="w-full px-2.5 py-1.5 text-xs border rounded-lg outline-none bg-transparent"
-                  style={{
-                    borderColor: 'color-mix(in srgb, var(--color-secondary) 25%, var(--color-primary))',
-                    opacity: !wardId || loadingRooms ? 0.6 : 1,
-                    cursor: !wardId || loadingRooms ? 'not-allowed' : 'pointer',
-                  }}
-                >
-                  <option value="">
-                    {loadingRooms
-                      ? 'Loading rooms...'
-                      : !wardId
-                      ? '-- Select ward first --'
-                      : rooms.length === 0
-                      ? '-- No rooms --'
-                      : '-- Select Room --'}
-                  </option>
-                  {rooms.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      Room {r.roomNumber} ({r.type})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium mb-1">Bed</label>
-                <select
-                  value={bedId}
-                  onChange={(e) => setBedId(e.target.value)}
-                  disabled={!roomId || loadingBeds}
-                  className="w-full px-2.5 py-1.5 text-xs border rounded-lg outline-none bg-transparent"
-                  style={{
-                    borderColor: 'color-mix(in srgb, var(--color-secondary) 25%, var(--color-primary))',
-                    opacity: !roomId || loadingBeds ? 0.6 : 1,
-                    cursor: !roomId || loadingBeds ? 'not-allowed' : 'pointer',
-                  }}
-                >
-                  <option value="">
-                    {loadingBeds
-                      ? 'Loading beds...'
-                      : !roomId
-                      ? '-- Select room first --'
-                      : beds.length === 0
-                      ? '-- No beds --'
-                      : '-- Select Bed --'}
-                  </option>
-                  {beds.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.bedNumber} ({b.status})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
           </div>
 
           {/* Active Status (Edit Mode Only) */}
@@ -590,11 +398,17 @@ export default function MedicalResourceFormModal({
             </button>
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || (!isEdit && (loadingCode || !resourceCode.trim()))}
               className="primary-button text-xs px-5 py-2"
               style={{ marginTop: 0 }}
             >
-              {submitting ? 'Saving...' : isEdit ? 'Save Changes' : '+ Register Resource'}
+              {submitting
+                ? 'Saving...'
+                : !isEdit && loadingCode
+                ? 'Generating Code...'
+                : isEdit
+                ? 'Save Changes'
+                : '+ Register Resource'}
             </button>
           </div>
         </form>

@@ -252,7 +252,7 @@ export default function MedicalResources() {
               type="text"
               value={searchFilter}
               onChange={(e) => setSearchFilter(e.target.value)}
-              placeholder="e.g. VNT-001 or Monitor"
+              placeholder="e.g. RES-001 or Ventilator"
               className="w-full px-3 py-1.5 text-xs border rounded-lg outline-none"
               style={{
                 borderColor: 'color-mix(in srgb, var(--color-secondary) 25%, var(--color-primary))',
@@ -359,10 +359,13 @@ export default function MedicalResources() {
                 }}
               >
                 <th className="p-3 text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--color-accent)' }}>
-                  Code
+                  Resource Code
                 </th>
                 <th className="p-3 text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--color-accent)' }}>
-                  Name &amp; Details
+                  Resource Name
+                </th>
+                <th className="p-3 text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--color-accent)' }}>
+                  Serial Number
                 </th>
                 <th className="p-3 text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--color-accent)' }}>
                   Category
@@ -384,13 +387,13 @@ export default function MedicalResources() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="7" className="p-8 text-center" style={{ color: 'color-mix(in srgb, var(--color-secondary) 50%, var(--color-primary))' }}>
+                  <td colSpan="8" className="p-8 text-center" style={{ color: 'color-mix(in srgb, var(--color-secondary) 50%, var(--color-primary))' }}>
                     Loading medical resources...
                   </td>
                 </tr>
               ) : resources.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="p-8 text-center" style={{ color: 'color-mix(in srgb, var(--color-secondary) 50%, var(--color-primary))' }}>
+                  <td colSpan="8" className="p-8 text-center" style={{ color: 'color-mix(in srgb, var(--color-secondary) 50%, var(--color-primary))' }}>
                     No medical resources found matching current criteria.
                   </td>
                 </tr>
@@ -405,21 +408,23 @@ export default function MedicalResources() {
                         borderBottom: '1px solid color-mix(in srgb, var(--color-secondary) 10%, var(--color-primary))',
                       }}
                     >
-                      {/* Code */}
+                      {/* Resource Code */}
                       <td className="p-3 text-xs font-mono font-bold" style={{ color: 'var(--color-accent)' }}>
                         {res.resourceCode}
                       </td>
 
-                      {/* Name & Details */}
-                      <td className="p-3 text-xs">
-                        <strong className="block text-sm" style={{ color: 'var(--color-accent)' }}>
-                          {res.name}
-                        </strong>
-                        <div className="text-xs opacity-70 mt-0.5">
-                          {res.manufacturer && <span>Mfr: {res.manufacturer}</span>}
-                          {res.modelNumber && <span> · Model: {res.modelNumber}</span>}
-                          {res.serialNumber && <span> · SN: <span className="font-mono">{res.serialNumber}</span></span>}
-                        </div>
+                      {/* Resource Name */}
+                      <td className="p-3 text-xs font-semibold" style={{ color: 'var(--color-accent)' }}>
+                        {res.name}
+                      </td>
+
+                      {/* Serial Number if available */}
+                      <td className="p-3 text-xs font-mono">
+                        {res.serialNumber ? (
+                          <span>{res.serialNumber}</span>
+                        ) : (
+                          <span className="opacity-40">—</span>
+                        )}
                       </td>
 
                       {/* Category */}
@@ -533,7 +538,6 @@ export default function MedicalResources() {
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
         resource={null}
-        wards={wards}
         onSuccess={handleSuccess}
       />
 
@@ -542,7 +546,6 @@ export default function MedicalResources() {
         isOpen={Boolean(editTarget)}
         onClose={() => setEditTarget(null)}
         resource={editTarget}
-        wards={wards}
         onSuccess={handleSuccess}
       />
 

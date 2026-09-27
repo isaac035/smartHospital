@@ -168,4 +168,76 @@ export const deactivateMedicalResource = async (id) => {
   return response.data
 }
 
+export const generateNextResourceCode = (resources = []) => {
+  const usedNumbers = new Set()
+
+  if (Array.isArray(resources)) {
+    for (const item of resources) {
+      const code = item?.resourceCode
+      if (typeof code === 'string') {
+        const match = code.trim().match(/^RES-(\d+)$/i)
+        if (match) {
+          const num = parseInt(match[1], 10)
+          if (!isNaN(num) && num > 0) {
+            usedNumbers.add(num)
+          }
+        }
+      }
+    }
+  }
+
+  let nextNumber = 1
+  while (usedNumbers.has(nextNumber)) {
+    nextNumber++
+  }
+
+  return `RES-${String(nextNumber).padStart(3, '0')}`
+}
+
+export const getNextAvailableResourceCode = async () => {
+  let allResources = []
+  let page = 1
+  let hasMore = true
+
+  while (hasMore) {
+    const data = await getMedicalResources({ page, pageSize: 100 })
+    const list = Array.isArray(data) ? data : []
+    allResources = allResources.concat(list)
+    if (list.length < 100) {
+      hasMore = false
+    } else {
+      page++
+    }
+  }
+
+  return generateNextResourceCode(allResources)
+}
+
+// ── Resource Maintenance Services ─────────────────────────────────────────────
+
+export const getMaintenanceRecords = async (params = {}) => {
+  const response = await api.get('/resource-maintenances', { params })
+  return response.data
+}
+
+export const getMaintenanceById = async (id) => {
+  const response = await api.get(`/resource-maintenances/${id}`)
+  return response.data
+}
+
+export const scheduleMaintenance = async (data) => {
+  const response = await api.post('/resource-maintenances', data)
+  return response.data
+}
+
+export const startMaintenance = async (id) => {
+  const response = await api.post(`/resource-maintenances/${id}/start`)
+  return response.data
+}
+
+export const completeMaintenance = async (id, data) => {
+  const response = await api.post(`/resource-maintenances/${id}/complete`, data)
+  return response.data
+}
+
 
