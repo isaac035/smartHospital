@@ -19,6 +19,11 @@ public class DoctorService : IDoctorService
     {
         var query = _context.Doctors.AsNoTracking();
 
+        if (!filter.IncludeInactive)
+        {
+            query = query.Where(d => d.Status != DoctorStatus.Inactive);
+        }
+
         if (filter.DepartmentId.HasValue)
         {
             query = query.Where(d => d.DepartmentId == filter.DepartmentId.Value);
@@ -213,6 +218,32 @@ public class DoctorService : IDoctorService
         }
 
         doctor.Status = DoctorStatus.Inactive;
+        doctor.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+
+        return true;
+    }
+
+    public async Task<bool> ActivateAsync(int id)
+    {
+        var doctor = await _context.Doctors
+            .FirstOrDefaultAsync(d => d.Id == id);
+
+        if (doctor == null)
+        {
+            throw new KeyNotFoundException("Doctor not found.");
+        }
+
+        if (doctor.Status != DoctorStatus.Inactive)
+        {
+            throw new InvalidOperationException("Only an inactive doctor can be activated.");
+        }
+
+        // Doctor status is the existing source of truth for booking eligibility.
+        // Activation intentionally leaves users, schedules, slots, availability,
+        // and appointments unchanged.
+        doctor.Status = DoctorStatus.Active;
         doctor.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();

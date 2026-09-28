@@ -46,6 +46,7 @@ public class AvailabilityService : IAvailabilityService
             .Where(s => s.Status == ScheduleStatus.Active
                      && s.DayOfWeek == dayOfWeek
                      && s.Doctor != null
+                     && s.Doctor.Status == DoctorStatus.Active
                      && s.Doctor.UserId != null);
 
         // A one-date session overrides the doctor's weekly template for that
