@@ -13,7 +13,7 @@ public class CreateScheduleRequest
     [Required]
     public string DayOfWeek { get; set; } = string.Empty;
 
-    /// <summary>Optional date for one-day slot generation. Omit for weekly recurring availability.</summary>
+    /// <summary>Optional date for one-day availability. Omit for weekly recurring availability.</summary>
     public DateOnly? SpecificDate { get; set; }
 
     [Required]

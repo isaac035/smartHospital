@@ -30,9 +30,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
   Future<void> _changePassword() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     FocusScope.of(context).unfocus();
-    
+
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final success = await authProvider.changePassword(
       _currentPasswordController.text,
@@ -41,7 +41,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
     if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password changed successfully. Please log in again.')),
+        const SnackBar(
+          content: Text('Password changed successfully. Please log in again.'),
+        ),
       );
       // Simulate backend behavior by forcing logout after password change
       await authProvider.logout();
@@ -56,9 +58,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     final authProvider = Provider.of<AuthProvider>(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Change Password'),
-      ),
+      appBar: AppBar(title: const Text('Change Password')),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -68,30 +68,33 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 ErrorMessage(message: authProvider.error),
-                
+
                 PasswordField(
                   label: 'Current Password',
                   hint: 'Enter your current password',
                   controller: _currentPasswordController,
                   validator: Validators.validatePassword,
                 ),
-                
+
                 PasswordField(
                   label: 'New Password',
                   hint: 'Enter a new password',
                   controller: _newPasswordController,
                   validator: Validators.validatePassword,
                 ),
-                
+
                 PasswordField(
                   label: 'Confirm New Password',
                   hint: 'Confirm your new password',
                   controller: _confirmPasswordController,
-                  validator: (val) => Validators.validateConfirmPassword(val, _newPasswordController.text),
+                  validator: (val) => Validators.validateConfirmPassword(
+                    val,
+                    _newPasswordController.text,
+                  ),
                 ),
-                
+
                 const SizedBox(height: 24),
-                
+
                 AppButton(
                   text: 'Change Password',
                   onPressed: _changePassword,

@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:smart_hospital/core/theme/app_theme.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import '../../widgets/app_ui.dart';
 
 import '../../core/network/api_client.dart';
-import '../../core/theme/app_theme.dart';
 import '../../models/patient_admission_model.dart';
 import '../../services/admission_service.dart';
 
@@ -54,7 +55,9 @@ class _MyAdmissionScreenState extends State<MyAdmissionScreen>
       final admission = await _admissionService.getMyActiveAdmission();
       if (mounted) {
         setState(() {
-          _activeAdmission = (admission != null && admission.status.toLowerCase() == 'admitted')
+          _activeAdmission =
+              (admission != null &&
+                  admission.status.toLowerCase() == 'admitted')
               ? admission
               : null;
           _loadingActive = false;
@@ -80,7 +83,9 @@ class _MyAdmissionScreenState extends State<MyAdmissionScreen>
       final history = await _admissionService.getMyAdmissionHistory();
       if (mounted) {
         setState(() {
-          _history = history.where((a) => a.status.toLowerCase() == 'discharged').toList();
+          _history = history
+              .where((a) => a.status.toLowerCase() == 'discharged')
+              .toList();
           _loadingHistory = false;
         });
       }
@@ -95,10 +100,7 @@ class _MyAdmissionScreenState extends State<MyAdmissionScreen>
   }
 
   Future<void> _refreshAll() async {
-    await Future.wait([
-      _loadActiveAdmission(),
-      _loadHistory(),
-    ]);
+    await Future.wait([_loadActiveAdmission(), _loadHistory()]);
   }
 
   String _formatDateTime(DateTime? dt) {
@@ -120,28 +122,19 @@ class _MyAdmissionScreenState extends State<MyAdmissionScreen>
         ],
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: Colors.white,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          labelStyle: const TextStyle(fontWeight: FontWeight.bold),
+          indicatorColor: AppTheme.surfaceColor,
+          labelColor: AppTheme.surfaceColor,
+          unselectedLabelColor: AppTheme.onPrimary,
+          labelStyle: TextStyle(fontWeight: FontWeight.bold),
           tabs: const [
-            Tab(
-              icon: Icon(Icons.hotel_rounded, size: 20),
-              text: 'Active Stay',
-            ),
-            Tab(
-              icon: Icon(Icons.history_rounded, size: 20),
-              text: 'History',
-            ),
+            Tab(icon: Icon(Icons.hotel_rounded, size: 20), text: 'Active Stay'),
+            Tab(icon: Icon(Icons.history_rounded, size: 20), text: 'History'),
           ],
         ),
       ),
       body: TabBarView(
         controller: _tabController,
-        children: [
-          _buildActiveStayTab(),
-          _buildHistoryTab(),
-        ],
+        children: [_buildActiveStayTab(), _buildHistoryTab()],
       ),
     );
   }
@@ -164,15 +157,22 @@ class _MyAdmissionScreenState extends State<MyAdmissionScreen>
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.error_outline, size: 48, color: AppTheme.errorColor),
+                  const Icon(
+                    Icons.error_outline,
+                    size: 48,
+                    color: AppTheme.errorColor,
+                  ),
                   const SizedBox(height: 12),
                   Text(
                     _errorActive!,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 16, color: AppTheme.errorColor),
+                    style: TextStyle(
+                      fontSize: AppTheme.fontTitleMedium,
+                      color: AppTheme.errorColor,
+                    ),
                   ),
                   const SizedBox(height: 16),
-                  ElevatedButton(
+                  FilledButton(
                     onPressed: _loadActiveAdmission,
                     child: const Text('Retry'),
                   ),
@@ -196,14 +196,18 @@ class _MyAdmissionScreenState extends State<MyAdmissionScreen>
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.bed_outlined, size: 64, color: Colors.grey),
+                  Icon(
+                    Icons.bed_outlined,
+                    size: 64,
+                    color: AppTheme.textSecondary,
+                  ),
                   SizedBox(height: 16),
                   Text(
                     'No active hospital admission.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey,
+                      fontSize: AppTheme.fontTitleMedium,
+                      color: AppTheme.textSecondary,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -224,7 +228,9 @@ class _MyAdmissionScreenState extends State<MyAdmissionScreen>
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
         child: Card(
           elevation: 2,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(18.0),
             child: Column(
@@ -241,16 +247,16 @@ class _MyAdmissionScreenState extends State<MyAdmissionScreen>
                           Text(
                             'Admission Number',
                             style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade600,
+                              fontSize: AppTheme.fontBodySmall,
+                              color: AppTheme.textSecondary,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
                           const SizedBox(height: 2),
                           Text(
                             admission.admissionNumber,
-                            style: const TextStyle(
-                              fontSize: 17,
+                            style: TextStyle(
+                              fontSize: AppTheme.fontHeadlineSmall,
                               fontWeight: FontWeight.bold,
                               fontFamily: 'monospace',
                               color: AppTheme.primaryColor,
@@ -270,7 +276,10 @@ class _MyAdmissionScreenState extends State<MyAdmissionScreen>
                   children: [
                     Text(
                       'Priority: ',
-                      style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                      style: TextStyle(
+                        fontSize: AppTheme.fontBodyMedium,
+                        color: AppTheme.textSecondary,
+                      ),
                     ),
                     _buildPriorityBadge(admission.priority),
                   ],
@@ -291,11 +300,14 @@ class _MyAdmissionScreenState extends State<MyAdmissionScreen>
                 const SizedBox(height: 8),
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
-                    color: Colors.teal.shade50.withValues(alpha: 0.5),
+                    color: AppTheme.accentContainer.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.teal.shade100),
+                    border: Border.all(color: AppTheme.accentContainer),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -329,7 +341,8 @@ class _MyAdmissionScreenState extends State<MyAdmissionScreen>
                 ),
 
                 // Admitting Doctor (only if available)
-                if (admission.doctorName != null && admission.doctorName!.isNotEmpty) ...[
+                if (admission.doctorName != null &&
+                    admission.doctorName!.isNotEmpty) ...[
                   const SizedBox(height: 14),
                   _buildField(
                     label: 'Doctor',
@@ -347,8 +360,8 @@ class _MyAdmissionScreenState extends State<MyAdmissionScreen>
                     Text(
                       'Reason for Admission',
                       style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
+                        fontSize: AppTheme.fontBodySmall,
+                        color: AppTheme.textSecondary,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -357,9 +370,9 @@ class _MyAdmissionScreenState extends State<MyAdmissionScreen>
                       admission.reasonForAdmission.isNotEmpty
                           ? admission.reasonForAdmission
                           : '—',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Color(0xFF1E293B),
+                      style: TextStyle(
+                        fontSize: AppTheme.fontBodyMedium,
+                        color: AppTheme.textPrimary,
                         height: 1.35,
                       ),
                     ),
@@ -391,15 +404,22 @@ class _MyAdmissionScreenState extends State<MyAdmissionScreen>
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.error_outline, size: 48, color: AppTheme.errorColor),
+                  const Icon(
+                    Icons.error_outline,
+                    size: 48,
+                    color: AppTheme.errorColor,
+                  ),
                   const SizedBox(height: 12),
                   Text(
                     _errorHistory!,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 16, color: AppTheme.errorColor),
+                    style: TextStyle(
+                      fontSize: AppTheme.fontTitleMedium,
+                      color: AppTheme.errorColor,
+                    ),
                   ),
                   const SizedBox(height: 16),
-                  ElevatedButton(
+                  FilledButton(
                     onPressed: _loadHistory,
                     child: const Text('Retry'),
                   ),
@@ -423,14 +443,18 @@ class _MyAdmissionScreenState extends State<MyAdmissionScreen>
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.history_rounded, size: 64, color: Colors.grey),
+                  Icon(
+                    Icons.history_rounded,
+                    size: 64,
+                    color: AppTheme.textSecondary,
+                  ),
                   SizedBox(height: 16),
                   Text(
                     'No previous admissions found.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey,
+                      fontSize: AppTheme.fontTitleMedium,
+                      color: AppTheme.textSecondary,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -453,7 +477,9 @@ class _MyAdmissionScreenState extends State<MyAdmissionScreen>
           final item = _history[index];
           return Card(
             elevation: 1.5,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(15.0),
               child: Column(
@@ -466,9 +492,9 @@ class _MyAdmissionScreenState extends State<MyAdmissionScreen>
                       Expanded(
                         child: Text(
                           item.admissionNumber,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            fontSize: 15,
+                            fontSize: AppTheme.fontTitleMedium,
                             fontFamily: 'monospace',
                             color: AppTheme.primaryColor,
                           ),
@@ -485,7 +511,10 @@ class _MyAdmissionScreenState extends State<MyAdmissionScreen>
                     children: [
                       Text(
                         'Priority: ',
-                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                        style: TextStyle(
+                          fontSize: AppTheme.fontBodySmall,
+                          color: AppTheme.textSecondary,
+                        ),
                       ),
                       _buildPriorityBadge(item.priority),
                     ],
@@ -510,17 +539,25 @@ class _MyAdmissionScreenState extends State<MyAdmissionScreen>
                   ),
 
                   // Ward & Bed Location
-                  if (item.wardName != null || item.roomNumber != null || item.bedNumber != null) ...[
+                  if (item.wardName != null ||
+                      item.roomNumber != null ||
+                      item.bedNumber != null) ...[
                     const SizedBox(height: 10),
-                    _buildSectionTitle('Ward & Bed', fontSize: 12),
+                    _buildSectionTitle(
+                      'Ward & Bed',
+                      fontSize: AppTheme.fontBodySmall,
+                    ),
                     const SizedBox(height: 5),
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 7,
+                      ),
                       decoration: BoxDecoration(
-                        color: Colors.teal.shade50.withValues(alpha: 0.4),
+                        color: AppTheme.accentContainer.withValues(alpha: 0.4),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.teal.shade100),
+                        border: Border.all(color: AppTheme.accentContainer),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -528,8 +565,9 @@ class _MyAdmissionScreenState extends State<MyAdmissionScreen>
                           if (item.wardName != null) ...[
                             _buildDetailRow(
                               label: 'Ward',
-                              value: '${item.wardName}${item.wardFloor != null ? " (${item.wardFloor})" : ""}',
-                              fontSize: 12,
+                              value:
+                                  '${item.wardName}${item.wardFloor != null ? " (${item.wardFloor})" : ""}',
+                              fontSize: AppTheme.fontBodySmall,
                             ),
                           ],
                           if (item.roomNumber != null) ...[
@@ -537,7 +575,7 @@ class _MyAdmissionScreenState extends State<MyAdmissionScreen>
                             _buildDetailRow(
                               label: 'Room',
                               value: item.roomNumber!,
-                              fontSize: 12,
+                              fontSize: AppTheme.fontBodySmall,
                             ),
                           ],
                           if (item.bedNumber != null) ...[
@@ -546,7 +584,7 @@ class _MyAdmissionScreenState extends State<MyAdmissionScreen>
                               label: 'Bed',
                               value: item.bedNumber!,
                               isHighlighted: true,
-                              fontSize: 12,
+                              fontSize: AppTheme.fontBodySmall,
                             ),
                           ],
                         ],
@@ -566,7 +604,8 @@ class _MyAdmissionScreenState extends State<MyAdmissionScreen>
                   ],
 
                   // Doctor
-                  if (item.doctorName != null && item.doctorName!.isNotEmpty) ...[
+                  if (item.doctorName != null &&
+                      item.doctorName!.isNotEmpty) ...[
                     const SizedBox(height: 8),
                     _buildField(
                       label: 'Doctor',
@@ -585,17 +624,17 @@ class _MyAdmissionScreenState extends State<MyAdmissionScreen>
                         Text(
                           'Reason',
                           style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey.shade600,
+                            fontSize: AppTheme.fontBodySmall,
+                            color: AppTheme.textSecondary,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           item.reasonForAdmission,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: Color(0xFF1E293B),
+                          style: TextStyle(
+                            fontSize: AppTheme.fontBodyMedium,
+                            color: AppTheme.textPrimary,
                             height: 1.3,
                           ),
                         ),
@@ -613,7 +652,10 @@ class _MyAdmissionScreenState extends State<MyAdmissionScreen>
 
   // --- Helper Widgets ---
 
-  Widget _buildSectionTitle(String title, {double fontSize = 13}) {
+  Widget _buildSectionTitle(
+    String title, {
+    double fontSize = AppTheme.fontTitleSmall,
+  }) {
     return Text(
       title,
       style: TextStyle(
@@ -627,8 +669,8 @@ class _MyAdmissionScreenState extends State<MyAdmissionScreen>
   Widget _buildField({
     required String label,
     required String value,
-    double labelSize = 11,
-    double valueSize = 13,
+    double labelSize = AppTheme.fontLabelSmall,
+    double valueSize = AppTheme.fontTitleSmall,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -637,7 +679,7 @@ class _MyAdmissionScreenState extends State<MyAdmissionScreen>
           label,
           style: TextStyle(
             fontSize: labelSize,
-            color: Colors.grey.shade600,
+            color: AppTheme.textSecondary,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -647,7 +689,7 @@ class _MyAdmissionScreenState extends State<MyAdmissionScreen>
           style: TextStyle(
             fontSize: valueSize,
             fontWeight: FontWeight.w600,
-            color: const Color(0xFF1E293B),
+            color: AppTheme.textPrimary,
           ),
         ),
       ],
@@ -658,7 +700,7 @@ class _MyAdmissionScreenState extends State<MyAdmissionScreen>
     required String label,
     required String value,
     bool isHighlighted = false,
-    double fontSize = 13,
+    double fontSize = AppTheme.fontTitleSmall,
   }) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -667,7 +709,7 @@ class _MyAdmissionScreenState extends State<MyAdmissionScreen>
           '$label: ',
           style: TextStyle(
             fontSize: fontSize,
-            color: Colors.grey.shade600,
+            color: AppTheme.textSecondary,
             fontWeight: FontWeight.normal,
           ),
         ),
@@ -677,7 +719,9 @@ class _MyAdmissionScreenState extends State<MyAdmissionScreen>
             style: TextStyle(
               fontSize: fontSize,
               fontWeight: isHighlighted ? FontWeight.bold : FontWeight.w600,
-              color: isHighlighted ? Colors.teal.shade800 : const Color(0xFF1E293B),
+              color: isHighlighted
+                  ? AppTheme.secondaryColor
+                  : AppTheme.textPrimary,
             ),
           ),
         ),
@@ -685,72 +729,30 @@ class _MyAdmissionScreenState extends State<MyAdmissionScreen>
     );
   }
 
-
   Widget _buildStatusBadge(String status) {
     final s = status.toLowerCase();
     Color bg;
     Color fg;
 
     if (s == 'admitted') {
-      bg = Colors.green.shade50;
-      fg = Colors.green.shade800;
+      bg = AppTheme.successContainer;
+      fg = AppTheme.successColor;
     } else if (s == 'discharged') {
-      bg = Colors.grey.shade100;
-      fg = Colors.grey.shade700;
+      bg = AppTheme.neutralContainer;
+      fg = AppTheme.textSecondary;
     } else {
-      bg = Colors.red.shade50;
-      fg = Colors.red.shade700;
+      bg = AppTheme.errorContainer;
+      fg = AppTheme.errorColor;
     }
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: fg.withValues(alpha: 0.3)),
-      ),
-      child: Text(
-        status.isNotEmpty ? status : 'Unknown',
-        style: TextStyle(
-          color: fg,
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
+    return StatusBadge(
+      label: status.isNotEmpty ? status : 'Unknown',
+      color: fg,
+      backgroundColor: bg,
     );
   }
 
   Widget _buildPriorityBadge(String priority) {
-    final p = priority.toLowerCase();
-    Color bg;
-    Color fg;
-
-    if (p == 'emergency') {
-      bg = Colors.red.shade50;
-      fg = Colors.red.shade800;
-    } else if (p == 'urgent') {
-      bg = Colors.amber.shade50;
-      fg = Colors.amber.shade900;
-    } else {
-      bg = Colors.blue.shade50;
-      fg = Colors.blue.shade800;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: fg.withValues(alpha: 0.2)),
-      ),
-      child: Text(
-        priority.isNotEmpty ? priority : 'Normal',
-        style: TextStyle(
-          color: fg,
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
+    return PriorityBadge(label: priority.isNotEmpty ? priority : 'Normal');
   }
 }

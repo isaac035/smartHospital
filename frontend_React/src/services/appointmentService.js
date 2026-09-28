@@ -13,6 +13,8 @@ export const getAppointments = async (filters = {}) => {
   if (filters.fromDate) params.append('fromDate', `${filters.fromDate}T00:00:00+05:30`)
   if (filters.toDate) params.append('toDate', `${filters.toDate}T23:59:59.999+05:30`)
   if (filters.patientId) params.append('patientId', filters.patientId)
+  if (filters.page != null) params.append('page', filters.page)
+  if (filters.pageSize != null) params.append('pageSize', filters.pageSize)
   
   const response = await api.get(`/appointments?${params.toString()}`)
   return response.data
@@ -50,6 +52,16 @@ export const getAppointmentHistory = async (id) => {
 
 export const confirmEmergency = async (id) => {
   const response = await api.post(`/appointments/${id}/confirm-emergency`)
+  return response.data
+}
+
+export const confirmAppointment = async (id) => {
+  const response = await api.post(`/appointments/${id}/confirm`)
+  return response.data
+}
+
+export const updateAppointmentPriority = async (id, priority) => {
+  const response = await api.put(`/appointments/${id}/priority`, { priority })
   return response.data
 }
 

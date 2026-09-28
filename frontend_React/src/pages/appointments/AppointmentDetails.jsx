@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import DashboardLayout from '../../layouts/DashboardLayout'
-import { getAppointmentById, getAppointmentHistory, cancelAppointment, confirmEmergency, checkIn } from '../../services/appointmentService'
+import { getAppointmentById, getAppointmentHistory, cancelAppointment, confirmAppointment, confirmEmergency, checkIn, updateAppointmentPriority } from '../../services/appointmentService'
 import AppointmentStatusBadge from '../../components/appointments/AppointmentStatusBadge'
 import PriorityBadge from '../../components/appointments/PriorityBadge'
 import { useAuth } from '../../hooks/useAuth'
+import { useSignalR } from '../../hooks/useSignalR'
 
 const adminNav = ['Dashboard', 'User Management', 'Doctor Management', 'Department Management', 'Appointments', 'Reports', 'Settings']
 const staffNav = ['Dashboard', 'Patients', 'Appointments', 'Queue Management', 'Resources']
@@ -23,22 +24,21 @@ export default function AppointmentDetails() {
   const [error, setError] = useState(null)
   const [cancelReason, setCancelReason] = useState('')
   const [showCancelModal, setShowCancelModal] = useState(false)
+  const [priorityDraft, setPriorityDraft] = useState(1)
+  const [prioritySaving, setPrioritySaving] = useState(false)
 
-  useEffect(() => {
-    fetchData()
-  }, [id])
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true)
       const data = await getAppointmentById(id)
       setAppointment(data)
+      setPriorityDraft(({ Normal: 1, Urgent: 2, Emergency: 3 })[data.priority] || 1)
       
       // Fetch history if not a doctor (or if doctor is allowed, backend will enforce)
       try {
         const histData = await getAppointmentHistory(id)
         setHistory(histData)
-      } catch (e) {
+      } catch {
         // Ignore if forbidden
       }
       
@@ -48,7 +48,20 @@ export default function AppointmentDetails() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [id])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
+
+  useSignalR({
+    AppointmentUpdated: (updated) => {
+      if (!updated?.id || String(updated.id) === String(id)) fetchData()
+    },
+    AppointmentCancelled: (updated) => {
+      if (!updated?.id || String(updated.id) === String(id)) fetchData()
+    },
+  })
 
   const handleCancel = async (e) => {
     e.preventDefault()
@@ -67,6 +80,32 @@ export default function AppointmentDetails() {
       fetchData()
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to confirm emergency')
+    }
+  }
+
+  const handleConfirm = async () => {
+    try {
+      const updated = await confirmAppointment(id)
+      setAppointment(updated)
+      const updatedHistory = await getAppointmentHistory(id)
+      setHistory(updatedHistory)
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to confirm appointment')
+      // The appointment may have changed while this details view was open.
+      fetchData()
+    }
+  }
+
+  const handlePrioritySave = async () => {
+    try {
+      setPrioritySaving(true)
+      const updated = await updateAppointmentPriority(id, priorityDraft)
+      setAppointment(updated)
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to update appointment priority')
+      fetchData()
+    } finally {
+      setPrioritySaving(false)
     }
   }
 
@@ -111,8 +150,9 @@ export default function AppointmentDetails() {
 
   const isTerminal = ['Completed', 'Cancelled', 'NoShow', 'Rescheduled'].includes(appointment.status)
   const canCancel = (role === 'Staff' || role === 'Admin') && !isTerminal
-  const canCheckIn = (role === 'Staff' || role === 'Admin') && appointment.status === 'Confirmed'
-  const needsEmergencyConfirm = (role === 'Staff' || role === 'Admin') && appointment.priority === 'Emergency' && !appointment.emergencyConfirmed && appointment.status === 'Scheduled'
+  const canCheckIn = (role === 'Staff' || role === 'Admin') && ['Scheduled', 'Confirmed'].includes(appointment.status)
+  const canConfirm = (role === 'Staff' || role === 'Admin') && appointment.status === 'Scheduled'
+  const needsEmergencyConfirm = (role === 'Staff' || role === 'Admin') && appointment.priority === 'Emergency' && !appointment.priorityNeedsReview && !appointment.emergencyConfirmed && appointment.status === 'Scheduled'
 
   return (
     <DashboardLayout role={role} navigation={navigation} title={`Appointment ${appointment.referenceNumber}`} subtitle="Detailed view and actions">
@@ -181,7 +221,36 @@ export default function AppointmentDetails() {
               <div className="flex gap-2 mt-1">
                 <AppointmentStatusBadge status={appointment.status} />
                 <PriorityBadge priority={appointment.priority} />
+                {canConfirm && (
+                  <button className="primary-button" style={{ marginTop: 0 }} onClick={handleConfirm}>
+                    Confirm
+                  </button>
+                )}
               </div>
+              {(role === 'Staff' || role === 'Admin') && (
+                <div className="flex items-center gap-2 mt-2">
+                  <label htmlFor="appointment-priority" className="text-sm">Change priority</label>
+                  <select
+                    id="appointment-priority"
+                    className="border rounded px-2 py-1 text-sm"
+                    value={priorityDraft}
+                    disabled={prioritySaving}
+                    onChange={(event) => setPriorityDraft(Number(event.target.value))}
+                  >
+                    <option value={1}>Normal</option>
+                    <option value={2}>Urgent</option>
+                    <option value={3}>Emergency</option>
+                  </select>
+                  {(appointment.priorityNeedsReview || priorityDraft !== ({ Normal: 1, Urgent: 2, Emergency: 3 })[appointment.priority]) && (
+                    <button className="secondary-button" disabled={prioritySaving} onClick={handlePrioritySave}>
+                      {prioritySaving ? 'Saving…' : appointment.priorityNeedsReview ? 'Approve priority' : 'Save'}
+                    </button>
+                  )}
+                  {appointment.priorityNeedsReview && (
+                    <span className="text-xs text-gray-500">Patient requested priority; it does not affect queue order until approved.</span>
+                  )}
+                </div>
+              )}
             </div>
             {appointment.notes && (
               <div>

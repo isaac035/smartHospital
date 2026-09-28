@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:smart_hospital/core/theme/app_theme.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/utils/time_format.dart';
@@ -52,24 +53,43 @@ class _DoctorScheduleScreenState extends State<DoctorScheduleScreen> {
                     Padding(
                       padding: const EdgeInsets.only(bottom: 16),
                       child: Card(
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                         child: Padding(
                           padding: const EdgeInsets.all(16),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(day, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                              Text(
+                                day,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: AppTheme.fontTitleMedium,
+                                ),
+                              ),
                               const SizedBox(height: 8),
                               for (final slot in grouped[day]!)
                                 Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 4),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 4,
+                                  ),
                                   child: Row(
                                     children: [
-                                      const Icon(Icons.access_time, size: 16, color: Colors.grey),
+                                      const Icon(
+                                        Icons.access_time,
+                                        size: 16,
+                                        color: AppTheme.textSecondary,
+                                      ),
                                       const SizedBox(width: 8),
-                                      Text('${formatTimeOfDayString(slot.startTime)} – ${formatTimeOfDayString(slot.endTime)}'),
+                                      Text(
+                                        '${formatTimeOfDayString(slot.startTime)} – ${formatTimeOfDayString(slot.endTime)}',
+                                      ),
                                       const SizedBox(width: 12),
-                                      Chip(label: Text(slot.consultationTypeName), visualDensity: VisualDensity.compact),
+                                      Chip(
+                                        label: Text(slot.consultationTypeName),
+                                        visualDensity: VisualDensity.compact,
+                                      ),
                                     ],
                                   ),
                                 ),

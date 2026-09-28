@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:smart_hospital/core/theme/app_theme.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
@@ -11,9 +12,7 @@ class ProfileScreen extends StatelessWidget {
     final user = context.watch<AuthProvider>().currentUser;
 
     if (user == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
@@ -32,14 +31,14 @@ class ProfileScreen extends StatelessWidget {
           children: [
             const CircleAvatar(
               radius: 50,
-              backgroundColor: Colors.blue,
-              child: Icon(Icons.person, size: 50, color: Colors.white),
+              backgroundColor: AppTheme.primaryColor,
+              child: Icon(Icons.person, size: 50, color: AppTheme.surfaceColor),
             ),
             const SizedBox(height: 16),
             Text(
               '${user.firstName} ${user.lastName}',
-              style: const TextStyle(
-                fontSize: 24,
+              style: TextStyle(
+                fontSize: AppTheme.fontHeadlineMedium,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -47,16 +46,20 @@ class ProfileScreen extends StatelessWidget {
             Text(
               user.role,
               style: TextStyle(
-                fontSize: 16,
-                color: Colors.blue.shade700,
+                fontSize: AppTheme.fontTitleMedium,
+                color: AppTheme.primaryColor,
                 fontWeight: FontWeight.w500,
               ),
             ),
             const SizedBox(height: 32),
             _buildProfileItem(Icons.email, 'Email', user.email),
             _buildProfileItem(Icons.phone, 'Phone', user.phoneNumber),
-            _buildProfileItem(Icons.verified_user, 'Account Status', user.status),
-            
+            _buildProfileItem(
+              Icons.verified_user,
+              'Account Status',
+              user.status,
+            ),
+
             const SizedBox(height: 24),
             ListTile(
               leading: const Icon(Icons.lock),
@@ -74,19 +77,19 @@ class ProfileScreen extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: ListTile(
-        leading: Icon(icon, color: Colors.grey),
+        leading: Icon(icon, color: AppTheme.textSecondary),
         title: Text(
           label,
-          style: const TextStyle(
-            fontSize: 14,
-            color: Colors.grey,
+          style: TextStyle(
+            fontSize: AppTheme.fontBodyMedium,
+            color: AppTheme.textSecondary,
           ),
         ),
         subtitle: Text(
           value,
-          style: const TextStyle(
-            fontSize: 16,
-            color: Colors.black87,
+          style: TextStyle(
+            fontSize: AppTheme.fontTitleMedium,
+            color: AppTheme.textPrimary,
             fontWeight: FontWeight.w500,
           ),
         ),

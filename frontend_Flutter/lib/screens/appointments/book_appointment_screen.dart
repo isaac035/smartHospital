@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:smart_hospital/core/theme/app_theme.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import '../../core/theme/app_theme.dart';
 import '../../core/utils/api_datetime.dart';
 import '../../widgets/error_message.dart';
+import '../../widgets/app_button.dart';
+import '../../widgets/app_text_field.dart';
 import '../../providers/appointment_provider.dart';
 import '../../providers/auth_provider.dart';
+import 'widgets/priority_badge.dart';
 
 class BookAppointmentScreen extends StatefulWidget {
   final int doctorId;
@@ -27,7 +30,9 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
   final _formKey = GlobalKey<FormState>();
   final _notesController = TextEditingController();
 
-  int _appointmentType = 1;
+  final int _appointmentType = 1;
+  // Matches the backend AppointmentPriority values: Normal=1, Urgent=2, Emergency=3.
+  int _priority = 1;
 
   @override
   void dispose() {
@@ -43,40 +48,67 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
     if (user == null) return;
 
     final result = await context.read<AppointmentProvider>().bookAppointment(
-          patientId: user.id,
-          doctorId: widget.doctorId,
-          appointmentType: _appointmentType,
-          scheduledStart: ApiDateTime.toUtcIso8601(
-            ApiDateTime.parseUtcToLocal(widget.slotStart),
-          ),
-          estimatedDurationMinutes: widget.durationMinutes,
-          priority: 1, // Patient always Normal; triage done at check-in by staff
-          notes: _notesController.text.trim(),
-        );
+      patientId: user.id,
+      doctorId: widget.doctorId,
+      appointmentType: _appointmentType,
+      scheduledStart: ApiDateTime.toUtcIso8601(
+        ApiDateTime.parseUtcToLocal(widget.slotStart),
+      ),
+      estimatedDurationMinutes: widget.durationMinutes,
+      priority: _priority,
+      notes: _notesController.text.trim(),
+    );
 
     if (!mounted) return;
     if (result != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Appointment booked successfully!'), backgroundColor: Colors.green),
+        const SnackBar(
+          content: Text('Appointment booked successfully!'),
+          backgroundColor: AppTheme.successColor,
+        ),
       );
       context.go('/appointments/${result.id}');
     }
   }
 
+  Widget _priorityChip(int value, String label) => ChoiceChip(
+    label: Text(label),
+    selected: _priority == value,
+    onSelected: (selected) {
+      if (selected) setState(() => _priority = value);
+    },
+  );
+
   @override
   Widget build(BuildContext context) {
     final slotDt = ApiDateTime.parseUtcToLocal(widget.slotStart);
-    final months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    final h = slotDt.hour > 12 ? slotDt.hour - 12 : (slotDt.hour == 0 ? 12 : slotDt.hour);
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    final h = slotDt.hour > 12
+        ? slotDt.hour - 12
+        : (slotDt.hour == 0 ? 12 : slotDt.hour);
     final period = slotDt.hour >= 12 ? 'PM' : 'AM';
-    final fmtSlot = '${slotDt.day} ${months[slotDt.month - 1]} ${slotDt.year}  $h:${slotDt.minute.toString().padLeft(2, '0')} $period';
+    final fmtSlot =
+        '${slotDt.day} ${months[slotDt.month - 1]} ${slotDt.year}  $h:${slotDt.minute.toString().padLeft(2, '0')} $period';
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Confirm Booking'),
         elevation: 0,
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.black87,
+        backgroundColor: AppTheme.transparentColor,
+        foregroundColor: AppTheme.textPrimary,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -92,24 +124,49 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                   color: AppTheme.primaryColor,
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
-                    BoxShadow(color: AppTheme.primaryColor.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 4)),
+                    BoxShadow(
+                      color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
                   ],
                 ),
                 child: Row(
                   children: [
                     Container(
                       padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle),
-                      child: const Icon(Icons.event_available, color: Colors.white, size: 28),
+                      decoration: BoxDecoration(
+                        color: AppTheme.surfaceColor.withValues(alpha: 0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.event_available,
+                        color: AppTheme.surfaceColor,
+                        size: 28,
+                      ),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Selected Date & Time', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500)),
+                          const Text(
+                            'Selected Date & Time',
+                            style: TextStyle(
+                              color: AppTheme.onPrimary,
+                              fontSize: AppTheme.fontBodyMedium,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
                           const SizedBox(height: 4),
-                          Text(fmtSlot, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+                          Text(
+                            fmtSlot,
+                            style: TextStyle(
+                              color: AppTheme.surfaceColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: AppTheme.fontHeadlineSmall,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -118,28 +175,97 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
               ),
 
               const SizedBox(height: 32),
-              
-              const Text('Appointment Details', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+
+              const Text(
+                'Appointment Details',
+                style: TextStyle(
+                  fontSize: AppTheme.fontHeadlineSmall,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               const SizedBox(height: 16),
 
-              Text('Consultation length: ${widget.durationMinutes} minutes', style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black87)),
+              Text(
+                'Consultation length: ${widget.durationMinutes} minutes',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
 
               const SizedBox(height: 20),
 
-              // Notes
-              const Text('Additional Notes (Optional)', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.black87)),
+              const Text(
+                'Priority',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
               const SizedBox(height: 8),
-              TextFormField(
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _priorityChip(1, 'Normal'),
+                  _priorityChip(2, 'Urgent'),
+                  _priorityChip(3, 'Emergency'),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                switch (_priority) {
+                  2 => 'Urgent: needs attention soon.',
+                  3 => 'Emergency: severe or sudden symptoms.',
+                  _ => 'Normal: routine visit.',
+                },
+                style: TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: AppTheme.fontTitleMedium,
+                ),
+              ),
+              if (_priority == 3) ...[
+                const SizedBox(height: 10),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.errorContainer,
+                    border: Border.all(color: AppTheme.errorContainer),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    'If this is life-threatening, go to the nearest emergency department or call emergency services. An appointment slot is not an emergency response.',
+                    style: TextStyle(
+                      color: AppTheme.errorColor,
+                      fontSize: AppTheme.fontBodySmall,
+                    ),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: PriorityBadge(priority: _priority),
+              ),
+              if (_priority != 1) ...[
+                const SizedBox(height: 4),
+                Text(
+                  'This is a priority request. Hospital staff will review it before it affects queue order.',
+                  style: TextStyle(
+                    color: AppTheme.textSecondary,
+                    fontSize: AppTheme.fontBodySmall,
+                  ),
+                ),
+              ],
+
+              const SizedBox(height: 20),
+
+              AppTextField(
+                label: 'Additional Notes (Optional)',
+                hint: 'Briefly describe your symptoms or reason for visit...',
                 controller: _notesController,
                 maxLines: 4,
-                decoration: InputDecoration(
-                  hintText: 'Briefly describe your symptoms or reason for visit...',
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
-                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
-                  filled: true,
-                  fillColor: Colors.grey.shade50,
-                ),
               ),
 
               const SizedBox(height: 32),
@@ -152,21 +278,10 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                         ErrorMessage(message: provider.actionError),
                         const SizedBox(height: 16),
                       ],
-                      SizedBox(
-                        width: double.infinity,
-                        height: 54,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.primaryColor,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            elevation: 2,
-                          ),
-                          onPressed: provider.actionLoading ? null : _submit,
-                          child: provider.actionLoading 
-                              ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                              : const Text('Confirm Booking', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                        ),
+                      AppButton(
+                        text: 'Confirm Booking',
+                        onPressed: _submit,
+                        isLoading: provider.actionLoading,
                       ),
                     ],
                   );

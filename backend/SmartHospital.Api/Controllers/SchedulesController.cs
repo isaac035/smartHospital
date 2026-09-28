@@ -1,8 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using SmartHospital.Api.Data;
 using SmartHospital.Api.DTOs.Schedules;
 using SmartHospital.Api.Services.Interfaces;
 
@@ -14,13 +12,11 @@ namespace SmartHospital.Api.Controllers;
 public class SchedulesController : ControllerBase
 {
     private readonly IScheduleService _scheduleService;
-    private readonly AppDbContext _context;
     private readonly IHubContext<Hubs.HospitalHub> _hub;
 
-    public SchedulesController(IScheduleService scheduleService, AppDbContext context, IHubContext<Hubs.HospitalHub> hub)
+    public SchedulesController(IScheduleService scheduleService, IHubContext<Hubs.HospitalHub> hub)
     {
         _scheduleService = scheduleService;
-        _context = context;
         _hub = hub;
     }
 
@@ -96,6 +92,25 @@ public class SchedulesController : ControllerBase
         }
     }
 
+    [HttpPost("{id:int}/add-slots")]
+    [Authorize(Roles = "Admin,Staff")]
+    public async Task<IActionResult> AddSlots(int id, AddScheduleSlotsRequest request)
+    {
+        try
+        {
+            var schedule = await _scheduleService.AddSlotsAsync(id, request.Date, request.AdditionalSlotCount);
+            if (schedule == null)
+                return NotFound(new { message = "Schedule not found or inactive." });
+
+            await BroadcastSlotUpdateAsync(schedule.DoctorId, schedule);
+            return Ok(schedule);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+    }
+
     [HttpDelete("{id:int}")]
     [Authorize(Roles = "Admin,Staff")]
     public async Task<IActionResult> Remove(int id)
@@ -120,14 +135,8 @@ public class SchedulesController : ControllerBase
 
     private async Task BroadcastSlotUpdateAsync(int doctorProfileId, object payload)
     {
-        var userId = await _context.Doctors.Where(d => d.Id == doctorProfileId)
-            .Select(d => d.UserId).FirstOrDefaultAsync();
-        var groups = new List<string> { "staff", "admin" };
-        if (userId.HasValue)
-        {
-            groups.Add($"doctor:{userId.Value}");
-            groups.Add($"user:{userId.Value}");
-        }
-        await _hub.Clients.Groups(groups).SendAsync("SlotUpdated", payload);
+        // Patient booking screens also subscribe to slot changes. The payload only
+        // describes a schedule; clients refetch scoped data for their selected doctor/date.
+        await _hub.Clients.All.SendAsync("SlotUpdated", payload);
     }
 }
