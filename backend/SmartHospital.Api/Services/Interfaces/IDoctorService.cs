@@ -16,6 +16,8 @@ public interface IDoctorService
 
     Task<bool> DeactivateAsync(int id);
 
+    Task<bool> ActivateAsync(int id);
+
     Task<List<DoctorResponse>> GetAvailableAsync(AvailableDoctorFilterRequest filter);
 
     Task<DoctorResponse?> GetByUserIdAsync(int userId);

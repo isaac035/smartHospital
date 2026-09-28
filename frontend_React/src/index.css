@@ -46,6 +46,14 @@ form { display: grid; gap: 9px; } label { font-size: .9rem; font-weight: 650; } 
 .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px; }
 .modal-actions .secondary-button, .modal-actions .primary-button { margin-top: 0; }
+.doctor-status-success { margin: 0 0 12px; padding: 10px 12px; border-radius: 8px; color: #0f7a3d; background: color-mix(in srgb, #0f7a3d 10%, var(--color-primary)); }
+.doctor-activate { color: #fff; background: #0f7a3d; border-color: #0f7a3d; }
+.doctor-activate:hover { background: #0b6331; border-color: #0b6331; }
+.doctor-deactivate { color: #fff; background: #b3261e; border-color: #b3261e; }
+.doctor-management-table { min-width: 850px; }
+.doctor-management-table .doctor-actions { position: sticky; right: 0; z-index: 1; min-width: 172px; background: var(--color-primary); box-shadow: -8px 0 10px -10px color-mix(in srgb, var(--color-secondary) 45%, transparent); }
+.doctor-management-table thead .doctor-actions { z-index: 2; }
+.doctor-management-table tbody tr:hover .doctor-actions { background: color-mix(in srgb, var(--color-accent) 4%, var(--color-primary)); }
 .field-error { margin: -4px 0 0; color: #b3261e; font-size: .8rem; }
 .calendar-page .rbc-calendar { border-radius: 12px; overflow: hidden; }
 .calendar-page .rbc-toolbar button { color: var(--color-secondary); }

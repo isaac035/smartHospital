@@ -59,6 +59,12 @@ public class AppointmentService : IAppointmentService
             .FirstOrDefaultAsync(u => u.Id == request.DoctorId && u.Role == UserRole.Doctor && u.Status == UserStatus.Active)
             ?? throw new InvalidOperationException("Active doctor not found.");
 
+        if (await _context.Doctors.AnyAsync(d =>
+                d.UserId == request.DoctorId && d.Status == DoctorStatus.Inactive))
+        {
+            throw new InvalidOperationException("Inactive doctors cannot be booked.");
+        }
+
         // 3. Validate department (if provided)
         if (request.DepartmentId.HasValue)
         {
