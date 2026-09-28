@@ -256,7 +256,7 @@ class _HomeScreenState extends State<HomeScreen> {
       semanticDestination: 'your bookings',
       tint: AppTheme.serviceAppointmentsTint,
       foreground: AppTheme.serviceAppointmentsForeground,
-      onTap: () => context.push('/appointments'),
+      onTap: () => context.go('/appointments'),
     ),
     _HomeService(
       icon: Icons.groups_rounded,
@@ -274,7 +274,7 @@ class _HomeScreenState extends State<HomeScreen> {
       semanticDestination: 'doctor search',
       tint: AppTheme.serviceDoctorsTint,
       foreground: AppTheme.serviceDoctorsForeground,
-      onTap: () => context.push('/appointments/search'),
+      onTap: () => context.go('/doctors'),
     ),
     _HomeService(
       icon: Icons.monitor_heart_rounded,
@@ -283,16 +283,16 @@ class _HomeScreenState extends State<HomeScreen> {
       semanticDestination: 'your medical records',
       tint: AppTheme.serviceRecordsTint,
       foreground: AppTheme.serviceRecordsForeground,
-      onTap: () => context.push('/medical-records'),
+      onTap: () => context.go('/medical-records'),
     ),
     _HomeService(
       icon: Icons.bed_rounded,
-      title: 'My Admission',
+      title: 'My Admissions',
       subtitle: 'View your admission details',
       semanticDestination: 'your admission details',
-      tint: AppTheme.serviceAdmissionTint,
-      foreground: AppTheme.serviceAdmissionForeground,
-      onTap: () => context.push('/my-admission'),
+      tint: const Color(0xFFD2E3F0),
+      foreground: AppTheme.serviceAppointmentsForeground,
+      onTap: () => context.go('/my-admission'),
     ),
   ];
 

@@ -26,16 +26,45 @@ import '../screens/appointments/book_appointment_screen.dart';
 import '../screens/appointments/reschedule_screen.dart';
 import '../screens/queue/queue_status_screen.dart';
 import '../screens/admissions/my_admission_screen.dart';
+import '../widgets/patient_navigation_shell.dart';
 
-final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
+// Unique GlobalKey for root navigator and each bottom navigation branch.
+// Each branch MUST have its own unique key to avoid duplicate key conflicts.
+final GlobalKey<NavigatorState> _rootNavigatorKey =
+    GlobalKey<NavigatorState>(debugLabel: 'rootNav');
+final GlobalKey<NavigatorState> _homeNavigatorKey =
+    GlobalKey<NavigatorState>(debugLabel: 'homeNav');
+final GlobalKey<NavigatorState> _appointmentsNavigatorKey =
+    GlobalKey<NavigatorState>(debugLabel: 'appointmentsNav');
+final GlobalKey<NavigatorState> _doctorsNavigatorKey =
+    GlobalKey<NavigatorState>(debugLabel: 'doctorsNav');
+final GlobalKey<NavigatorState> _admissionsNavigatorKey =
+    GlobalKey<NavigatorState>(debugLabel: 'admissionsNav');
+final GlobalKey<NavigatorState> _recordsNavigatorKey =
+    GlobalKey<NavigatorState>(debugLabel: 'recordsNav');
 
 class AppRouter {
+  static GoRouter? _router;
+
+  /// Resets the cached router instance (e.g. on full re-init or tests).
+  static void reset() {
+    _router = null;
+  }
+
+  /// Returns the singleton GoRouter instance so it is not recreated
+  /// on every build or hot reload, preventing duplicate GlobalKey errors.
   static GoRouter router(BuildContext context) {
+    return _router ??= _createRouter(context);
+  }
+
+  static GoRouter _createRouter(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
     return GoRouter(
       navigatorKey: _rootNavigatorKey,
+      refreshListenable: authProvider,
       initialLocation: '/splash',
       redirect: (BuildContext context, GoRouterState state) {
-        final authProvider = Provider.of<AuthProvider>(context, listen: false);
         final isAuth = authProvider.isAuthenticated;
         final isInitialized = authProvider.isInitialized;
 
@@ -54,94 +83,169 @@ class AppRouter {
             if (isLogin || isRegister || isSplash) return '/home';
           }
         }
-        
+
         return null;
       },
       routes: [
         GoRoute(
+          parentNavigatorKey: _rootNavigatorKey,
           path: '/splash',
           builder: (context, state) => const SplashScreen(),
         ),
         GoRoute(
+          parentNavigatorKey: _rootNavigatorKey,
           path: '/login',
           builder: (context, state) => const LoginScreen(),
         ),
         GoRoute(
+          parentNavigatorKey: _rootNavigatorKey,
           path: '/register',
           builder: (context, state) => const RegisterScreen(),
         ),
         GoRoute(
-          path: '/home',
-          builder: (context, state) => const HomeScreen(),
-        ),
-        GoRoute(
+          parentNavigatorKey: _rootNavigatorKey,
           path: '/profile',
           builder: (context, state) => const ProfileScreen(),
           routes: [
             GoRoute(
+              parentNavigatorKey: _rootNavigatorKey,
               path: 'edit',
               builder: (context, state) => const EditProfileScreen(),
             ),
             GoRoute(
+              parentNavigatorKey: _rootNavigatorKey,
               path: 'change-password',
               builder: (context, state) => const ChangePasswordScreen(),
             ),
           ],
         ),
-        GoRoute(
-          path: '/doctors',
-          builder: (context, state) => const DoctorDirectoryScreen(),
-          routes: [
-            GoRoute(
-              path: ':doctorId',
-              builder: (context, state) => DoctorDetailsScreen(
-                doctorId: int.parse(state.pathParameters['doctorId']!),
-              ),
+
+        // Stateful bottom navigation shell with 5 separate branches,
+        // each having its own unique navigatorKey.
+        StatefulShellRoute.indexedStack(
+          builder: (context, state, navigationShell) {
+            return PatientNavigationShell(
+              navigationShell: navigationShell,
+            );
+          },
+          branches: [
+            // Branch 0: Home
+            StatefulShellBranch(
+              navigatorKey: _homeNavigatorKey,
               routes: [
                 GoRoute(
-                  path: 'schedule',
-                  builder: (context, state) => DoctorScheduleScreen(
-                    doctorId: int.parse(state.pathParameters['doctorId']!),
-                  ),
+                  path: '/home',
+                  builder: (context, state) => const HomeScreen(),
                 ),
+              ],
+            ),
+
+            // Branch 1: Appointments
+            StatefulShellBranch(
+              navigatorKey: _appointmentsNavigatorKey,
+              routes: [
                 GoRoute(
-                  path: 'availability',
-                  builder: (context, state) => DoctorAvailabilityScreen(
-                    doctorId: int.parse(state.pathParameters['doctorId']!),
-                  ),
+                  path: '/appointments',
+                  builder: (context, state) => const MyAppointmentsScreen(),
+                ),
+              ],
+            ),
+
+            // Branch 2: Doctors
+            StatefulShellBranch(
+              navigatorKey: _doctorsNavigatorKey,
+              routes: [
+                GoRoute(
+                  path: '/doctors',
+                  builder: (context, state) => const DoctorDirectoryScreen(),
+                ),
+              ],
+            ),
+
+            // Branch 3: Admissions
+            StatefulShellBranch(
+              navigatorKey: _admissionsNavigatorKey,
+              routes: [
+                GoRoute(
+                  path: '/my-admission',
+                  builder: (context, state) => const MyAdmissionScreen(),
+                ),
+              ],
+            ),
+
+            // Branch 4: Records
+            StatefulShellBranch(
+              navigatorKey: _recordsNavigatorKey,
+              routes: [
+                GoRoute(
+                  path: '/medical-records',
+                  builder: (context, state) =>
+                      const PatientMedicalRecordsScreen(),
                 ),
               ],
             ),
           ],
         ),
+
+        // Queue Status (accessible from Home card, displayed on root navigator)
         GoRoute(
-          path: '/medical-records',
-          builder: (context, state) => const PatientMedicalRecordsScreen(),
-          routes: [
-            GoRoute(
-              path: 'vitals',
-              builder: (context, state) => const PatientVitalsScreen(),
-            ),
-            GoRoute(
-              path: 'prescriptions',
-              builder: (context, state) => const PatientPrescriptionsScreen(),
-            ),
-            GoRoute(
-              path: 'lab-reports',
-              builder: (context, state) => const PatientLabReportsScreen(),
-            ),
-          ],
+          parentNavigatorKey: _rootNavigatorKey,
+          path: '/queue',
+          builder: (context, state) => const QueueStatusScreen(),
         ),
-        // --- Smart Appointment & Queue Management ---
+
+        // Search Doctors for Appointment Booking
         GoRoute(
-          path: '/appointments',
-          builder: (context, state) => const MyAppointmentsScreen(),
-        ),
-        GoRoute(
+          parentNavigatorKey: _rootNavigatorKey,
           path: '/appointments/search',
           builder: (context, state) => const SearchDoctorsScreen(),
         ),
+
+        // Doctor Detail Flows (full screen on root navigator)
         GoRoute(
+          parentNavigatorKey: _rootNavigatorKey,
+          path: '/doctors/:doctorId',
+          builder: (context, state) => DoctorDetailsScreen(
+            doctorId: int.parse(state.pathParameters['doctorId']!),
+          ),
+          routes: [
+            GoRoute(
+              parentNavigatorKey: _rootNavigatorKey,
+              path: 'schedule',
+              builder: (context, state) => DoctorScheduleScreen(
+                doctorId: int.parse(state.pathParameters['doctorId']!),
+              ),
+            ),
+            GoRoute(
+              parentNavigatorKey: _rootNavigatorKey,
+              path: 'availability',
+              builder: (context, state) => DoctorAvailabilityScreen(
+                doctorId: int.parse(state.pathParameters['doctorId']!),
+              ),
+            ),
+          ],
+        ),
+
+        // Medical Records Sub-screens (full screen on root navigator)
+        GoRoute(
+          parentNavigatorKey: _rootNavigatorKey,
+          path: '/medical-records/vitals',
+          builder: (context, state) => const PatientVitalsScreen(),
+        ),
+        GoRoute(
+          parentNavigatorKey: _rootNavigatorKey,
+          path: '/medical-records/prescriptions',
+          builder: (context, state) => const PatientPrescriptionsScreen(),
+        ),
+        GoRoute(
+          parentNavigatorKey: _rootNavigatorKey,
+          path: '/medical-records/lab-reports',
+          builder: (context, state) => const PatientLabReportsScreen(),
+        ),
+
+        // Appointment Booking Flows (full screen on root navigator)
+        GoRoute(
+          parentNavigatorKey: _rootNavigatorKey,
           path: '/appointments/book',
           builder: (context, state) {
             final extra = state.extra as Map<String, dynamic>;
@@ -153,6 +257,7 @@ class AppRouter {
           },
         ),
         GoRoute(
+          parentNavigatorKey: _rootNavigatorKey,
           path: '/appointments/doctor/:doctorProfileId',
           builder: (context, state) {
             final doctorProfileId =
@@ -168,26 +273,20 @@ class AppRouter {
           },
         ),
         GoRoute(
+          parentNavigatorKey: _rootNavigatorKey,
           path: '/appointments/:id',
           builder: (context, state) => AppointmentDetailsScreen(
             appointmentId: int.parse(state.pathParameters['id']!),
           ),
           routes: [
             GoRoute(
+              parentNavigatorKey: _rootNavigatorKey,
               path: 'reschedule',
               builder: (context, state) => RescheduleScreen(
                 appointmentId: int.parse(state.pathParameters['id']!),
               ),
             ),
           ],
-        ),
-        GoRoute(
-          path: '/queue',
-          builder: (context, state) => const QueueStatusScreen(),
-        ),
-        GoRoute(
-          path: '/my-admission',
-          builder: (context, state) => const MyAdmissionScreen(),
         ),
       ],
     );
