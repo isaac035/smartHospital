@@ -1,30 +1,45 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:smart_hospital/main.dart';
+import 'package:smart_hospital/widgets/patient_navigation_shell.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('PatientBottomNavigationBar renders all 5 tabs and handles selection', (WidgetTester tester) async {
+    int selectedIndex = 0;
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          bottomNavigationBar: StatefulBuilder(
+            builder: (context, setState) {
+              return PatientBottomNavigationBar(
+                selectedIndex: selectedIndex,
+                onItemTapped: (index) {
+                  setState(() {
+                    selectedIndex = index;
+                  });
+                },
+              );
+            },
+          ),
+        ),
+      ),
+    );
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    expect(find.text('Home'), findsOneWidget);
+    expect(find.text('Appointments'), findsOneWidget);
+    expect(find.text('Doctors'), findsOneWidget);
+    expect(find.text('Admissions'), findsOneWidget);
+    expect(find.text('Records'), findsOneWidget);
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // Tap Doctors tab
+    await tester.tap(find.text('Doctors'));
+    await tester.pumpAndSettle();
+    expect(selectedIndex, 2);
+
+    // Tap Admissions tab
+    await tester.tap(find.text('Admissions'));
+    await tester.pumpAndSettle();
+    expect(selectedIndex, 3);
   });
 }
+
