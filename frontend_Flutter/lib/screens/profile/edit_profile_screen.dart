@@ -39,9 +39,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Future<void> _updateProfile() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     FocusScope.of(context).unfocus();
-    
+
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final success = await authProvider.updateProfile(
       _firstNameController.text.trim(),
@@ -62,9 +62,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final authProvider = Provider.of<AuthProvider>(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Edit Profile'),
-      ),
+      appBar: AppBar(title: const Text('Edit Profile')),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -74,28 +72,29 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 ErrorMessage(message: authProvider.error),
-                
+
                 AppTextField(
                   label: 'First Name',
                   controller: _firstNameController,
-                  validator: (val) => Validators.validateName(val, 'First Name'),
+                  validator: (val) =>
+                      Validators.validateName(val, 'First Name'),
                 ),
-                
+
                 AppTextField(
                   label: 'Last Name',
                   controller: _lastNameController,
                   validator: (val) => Validators.validateName(val, 'Last Name'),
                 ),
-                
+
                 AppTextField(
                   label: 'Phone Number',
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
                   validator: Validators.validatePhone,
                 ),
-                
+
                 const SizedBox(height: 24),
-                
+
                 AppButton(
                   text: 'Save Changes',
                   onPressed: _updateProfile,

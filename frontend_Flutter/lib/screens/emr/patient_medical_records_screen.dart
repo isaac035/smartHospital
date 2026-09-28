@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:smart_hospital/core/theme/app_theme.dart';
 import 'package:go_router/go_router.dart';
 
 class PatientMedicalRecordsScreen extends StatelessWidget {
@@ -7,21 +8,27 @@ class PatientMedicalRecordsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
         title: const Text('Medical Records'),
         elevation: 0,
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
+        backgroundColor: AppTheme.surfaceColor,
+        foregroundColor: AppTheme.textPrimary,
       ),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
-          const Text('Health Data', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const Text(
+            'Health Data',
+            style: TextStyle(
+              fontSize: AppTheme.fontTitleMedium,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 12),
           _HubCard(
             icon: Icons.favorite,
-            iconColor: Colors.redAccent,
+            iconColor: AppTheme.errorColor,
             title: 'Vital Signs',
             subtitle: 'View temperature, BP, heart rate history',
             onTap: () => context.push('/medical-records/vitals'),
@@ -29,7 +36,7 @@ class PatientMedicalRecordsScreen extends StatelessWidget {
           const SizedBox(height: 12),
           _HubCard(
             icon: Icons.medication,
-            iconColor: Colors.blue.shade600,
+            iconColor: AppTheme.primaryColor,
             title: 'Prescriptions',
             subtitle: 'Active and completed medications',
             onTap: () => context.push('/medical-records/prescriptions'),
@@ -37,35 +44,47 @@ class PatientMedicalRecordsScreen extends StatelessWidget {
           const SizedBox(height: 12),
           _HubCard(
             icon: Icons.biotech,
-            iconColor: Colors.teal.shade600,
+            iconColor: AppTheme.secondaryColor,
             title: 'Lab Reports',
             subtitle: 'Diagnostic test results and findings',
             onTap: () => context.push('/medical-records/lab-reports'),
           ),
-          
+
           const SizedBox(height: 32),
-          const Text('Recent Consultations', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const Text(
+            'Recent Consultations',
+            style: TextStyle(
+              fontSize: AppTheme.fontTitleMedium,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(32),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppTheme.surfaceColor,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey.shade200),
+              border: Border.all(color: AppTheme.neutralContainer),
             ),
             child: Column(
               children: [
-                Icon(Icons.folder_open, size: 48, color: Colors.grey.shade300),
+                Icon(Icons.folder_open, size: 48, color: AppTheme.borderColor),
                 const SizedBox(height: 16),
                 Text(
                   'No past consultations recorded.',
-                  style: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.w500),
+                  style: TextStyle(
+                    color: AppTheme.textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Once a doctor completes your visit, your consultation notes will appear here.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                  style: TextStyle(
+                    color: AppTheme.onPrimary,
+                    fontSize: AppTheme.fontBodyMedium,
+                  ),
                 ),
               ],
             ),
@@ -95,13 +114,19 @@ class _HubCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surfaceColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 4, offset: const Offset(0, 2))],
+        border: Border.all(color: AppTheme.neutralContainer),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.textPrimary.withValues(alpha: 0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Material(
-        color: Colors.transparent,
+        color: AppTheme.transparentColor,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: onTap,
@@ -122,13 +147,25 @@ class _HubCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: AppTheme.fontTitleMedium,
+                        ),
+                      ),
                       const SizedBox(height: 4),
-                      Text(subtitle, style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          color: AppTheme.textSecondary,
+                          fontSize: AppTheme.fontBodyMedium,
+                        ),
+                      ),
                     ],
                   ),
                 ),
-                Icon(Icons.chevron_right, color: Colors.grey.shade400),
+                Icon(Icons.chevron_right, color: AppTheme.textMuted),
               ],
             ),
           ),

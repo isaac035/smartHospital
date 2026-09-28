@@ -1,3 +1,4 @@
+// ignore_for_file: use_null_aware_elements
 import '../core/constants/api_constants.dart';
 import '../core/network/api_client.dart';
 import '../models/schedule_model.dart';

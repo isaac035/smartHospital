@@ -1,3 +1,4 @@
+// ignore_for_file: use_null_aware_elements
 import 'package:intl/intl.dart';
 
 import '../core/constants/api_constants.dart';
@@ -19,9 +20,12 @@ class DoctorService {
       ApiConstants.doctors,
       queryParameters: {
         if (departmentId != null) 'departmentId': departmentId,
-        if (specialization != null && specialization.isNotEmpty) 'specialization': specialization,
-        if (consultationTypeId != null) 'consultationTypeId': consultationTypeId,
-        if (searchTerm != null && searchTerm.isNotEmpty) 'searchTerm': searchTerm,
+        if (specialization != null && specialization.isNotEmpty)
+          'specialization': specialization,
+        if (consultationTypeId != null)
+          'consultationTypeId': consultationTypeId,
+        if (searchTerm != null && searchTerm.isNotEmpty)
+          'searchTerm': searchTerm,
       },
     );
     return (response as List).map((e) => Doctor.fromJson(e)).toList();
@@ -36,7 +40,8 @@ class DoctorService {
       ApiConstants.doctorsAvailable,
       queryParameters: {
         if (departmentId != null) 'departmentId': departmentId,
-        if (consultationTypeId != null) 'consultationTypeId': consultationTypeId,
+        if (consultationTypeId != null)
+          'consultationTypeId': consultationTypeId,
         if (date != null) 'date': DateFormat('yyyy-MM-dd').format(date),
       },
     );

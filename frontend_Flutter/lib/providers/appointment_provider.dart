@@ -75,37 +75,44 @@ class AppointmentProvider extends ChangeNotifier {
 
   // --- Methods ---
 
-  Future<void> loadMyAppointments({String? statusFilter}) async {
-    _appointmentsLoading = true;
-    _appointmentsError = null;
-    notifyListeners();
+  Future<void> loadMyAppointments({
+    String? statusFilter,
+    bool showLoading = true,
+  }) async {
+    if (showLoading) {
+      _appointmentsLoading = true;
+      _appointmentsError = null;
+      notifyListeners();
+    }
     try {
       _appointments = await _service.getMyAppointments(status: statusFilter);
     } on ApiException catch (e) {
-      _appointmentsError = e.message;
+      if (showLoading) _appointmentsError = e.message;
     } catch (_) {
-      _appointmentsError = 'Failed to load appointments.';
+      if (showLoading) _appointmentsError = 'Failed to load appointments.';
     } finally {
-      _appointmentsLoading = false;
+      if (showLoading) _appointmentsLoading = false;
       notifyListeners();
     }
   }
 
-  Future<void> loadAppointmentDetail(int id) async {
-    _detailLoading = true;
-    _detailError = null;
-    _selectedAppointment = null;
-    _selectedHistory = [];
-    notifyListeners();
+  Future<void> loadAppointmentDetail(int id, {bool showLoading = true}) async {
+    if (showLoading) {
+      _detailLoading = true;
+      _detailError = null;
+      _selectedAppointment = null;
+      _selectedHistory = [];
+      notifyListeners();
+    }
     try {
       _selectedAppointment = await _service.getAppointmentById(id);
       _selectedHistory = await _service.getAppointmentHistory(id);
     } on ApiException catch (e) {
-      _detailError = e.message;
+      if (showLoading) _detailError = e.message;
     } catch (_) {
-      _detailError = 'Failed to load appointment details.';
+      if (showLoading) _detailError = 'Failed to load appointment details.';
     } finally {
-      _detailLoading = false;
+      if (showLoading) _detailLoading = false;
       notifyListeners();
     }
   }

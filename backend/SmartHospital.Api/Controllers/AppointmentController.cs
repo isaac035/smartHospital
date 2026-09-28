@@ -21,12 +21,18 @@ public class AppointmentController : ControllerBase { private readonly IAppointm
     /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(List<AppointmentResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(AppointmentListPageResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAppointments([FromQuery] AppointmentQueryFilter filter)
     {
         var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized(new { message = "User is not authenticated." });
 
         var role = GetCurrentUserRole();
+        if (filter.Page.HasValue || filter.PageSize.HasValue)
+        {
+            var page = await _appointmentService.GetAppointmentsPageAsync(userId.Value, role, filter);
+            return Ok(page);
+        }
         var appointments = await _appointmentService.GetAppointmentsAsync(userId.Value, role, filter);
         return Ok(appointments);
     }
@@ -109,6 +115,35 @@ public class AppointmentController : ControllerBase { private readonly IAppointm
         catch (UnauthorizedAccessException)
         {
             return Forbid();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
+
+    /// <summary>Changes an appointment's queue priority. Only Staff or Admin may call this endpoint.</summary>
+    [HttpPut("{id:int}/priority")]
+    [Authorize(Roles = "Staff,Admin")]
+    [ProducesResponseType(typeof(AppointmentResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateAppointmentPriority(int id, [FromBody] UpdateAppointmentPriorityRequest request)
+    {
+        var userId = GetCurrentUserId();
+        if (!userId.HasValue) return Unauthorized(new { message = "User is not authenticated." });
+
+        try
+        {
+            var priority = request.Priority!.Value;
+            var result = await _appointmentService.UpdateAppointmentPriorityAsync(id, priority, userId.Value);
+            await BroadcastAppointmentEventAsync("AppointmentUpdated", result);
+            await BroadcastAppointmentEventAsync("QueueUpdated", result);
+            return Ok(result);
         }
         catch (InvalidOperationException ex)
         {
@@ -212,6 +247,33 @@ public class AppointmentController : ControllerBase { private readonly IAppointm
     }
 
     // ── POST /api/appointments/{id}/confirm-emergency ─────────────────────────
+
+    /// <summary>Confirms a Scheduled appointment. Only Staff or Admin may call this endpoint.</summary>
+    [HttpPost("{id:int}/confirm")]
+    [Authorize(Roles = "Staff,Admin")]
+    [ProducesResponseType(typeof(AppointmentResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ConfirmAppointment(int id)
+    {
+        var userId = GetCurrentUserId();
+        if (!userId.HasValue) return Unauthorized(new { message = "User is not authenticated." });
+
+        try
+        {
+            var result = await _appointmentService.ConfirmAppointmentAsync(id, userId.Value);
+            await BroadcastAppointmentEventAsync("AppointmentUpdated", result);
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
 
     /// <summary>
     /// Confirms an Emergency-priority appointment.

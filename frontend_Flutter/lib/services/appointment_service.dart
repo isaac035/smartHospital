@@ -1,3 +1,4 @@
+// ignore_for_file: use_null_aware_elements
 import '../../core/network/api_client.dart';
 import '../models/appointments/appointment_model.dart';
 import '../models/appointments/appointment_slot_model.dart';
@@ -41,8 +42,10 @@ class AppointmentService {
       final response = await _apiClient.get('/appointments/$id/history');
       if (response is List) {
         return response
-            .map((e) =>
-                AppointmentHistoryModel.fromJson(e as Map<String, dynamic>))
+            .map(
+              (e) =>
+                  AppointmentHistoryModel.fromJson(e as Map<String, dynamic>),
+            )
             .toList();
       }
     } catch (_) {
@@ -60,21 +63,23 @@ class AppointmentService {
     required int priority,
     String? notes,
   }) async {
-    final response = await _apiClient.post('/appointments', data: {
-      'patientId': patientId,
-      'doctorId': doctorId,
-      'appointmentType': appointmentType,
-      'scheduledStart': scheduledStart,
-      'estimatedDurationMinutes': estimatedDurationMinutes,
-      'priority': priority,
-      if (notes != null && notes.isNotEmpty) 'notes': notes,
-    });
+    final response = await _apiClient.post(
+      '/appointments',
+      data: {
+        'patientId': patientId,
+        'doctorId': doctorId,
+        'appointmentType': appointmentType,
+        'scheduledStart': scheduledStart,
+        'estimatedDurationMinutes': estimatedDurationMinutes,
+        'priority': priority,
+        if (notes != null && notes.isNotEmpty) 'notes': notes,
+      },
+    );
     return AppointmentModel.fromJson(response as Map<String, dynamic>);
   }
 
   Future<void> cancelAppointment(int id, String reason) async {
-    await _apiClient.post('/appointments/$id/cancel',
-        data: {'reason': reason});
+    await _apiClient.post('/appointments/$id/cancel', data: {'reason': reason});
   }
 
   Future<AppointmentModel> rescheduleAppointment(
@@ -83,11 +88,14 @@ class AppointmentService {
     required int newEstimatedDurationMinutes,
     required String reason,
   }) async {
-    final response = await _apiClient.post('/appointments/$id/reschedule', data: {
-      'newScheduledStart': newScheduledStart,
-      'newEstimatedDurationMinutes': newEstimatedDurationMinutes,
-      'reason': reason,
-    });
+    final response = await _apiClient.post(
+      '/appointments/$id/reschedule',
+      data: {
+        'newScheduledStart': newScheduledStart,
+        'newEstimatedDurationMinutes': newEstimatedDurationMinutes,
+        'reason': reason,
+      },
+    );
     return AppointmentModel.fromJson(response as Map<String, dynamic>);
   }
 
@@ -108,8 +116,7 @@ class AppointmentService {
     );
     if (response is List) {
       return response
-          .map((e) =>
-              AppointmentSlotModel.fromJson(e as Map<String, dynamic>))
+          .map((e) => AppointmentSlotModel.fromJson(e as Map<String, dynamic>))
           .toList();
     }
     return [];
@@ -118,8 +125,13 @@ class AppointmentService {
   // --- Queue endpoints ---
 
   Future<List<QueueEntryModel>> getQueueForDoctor(int doctorId) async {
-    final response = await _apiClient.get('/queues/mine', queryParameters: {'doctorId': doctorId});
-    if (response is Map<String, dynamic>) return [QueueEntryModel.fromJson(response)];
+    final response = await _apiClient.get(
+      '/queues/mine',
+      queryParameters: {'doctorId': doctorId},
+    );
+    if (response is Map<String, dynamic>) {
+      return [QueueEntryModel.fromJson(response)];
+    }
     return [];
   }
 
@@ -137,7 +149,8 @@ class AppointmentService {
     if (response is List) {
       return response.map((e) {
         final map = e as Map<String, dynamic>;
-        if (map.containsKey('departmentName') && !map.containsKey('department')) {
+        if (map.containsKey('departmentName') &&
+            !map.containsKey('department')) {
           map['department'] = map['departmentName'];
         }
         return DoctorSummaryModel.fromJson(map);

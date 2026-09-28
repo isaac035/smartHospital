@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:smart_hospital/core/theme/app_theme.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../core/utils/api_datetime.dart';
 import '../../models/appointments/appointment_slot_model.dart';
 import '../../providers/appointment_provider.dart';
 import '../../widgets/error_message.dart';
+import '../../widgets/app_button.dart';
+import '../../widgets/app_text_field.dart';
 import 'widgets/slot_picker_grid.dart';
 
 class RescheduleScreen extends StatefulWidget {
@@ -44,9 +47,10 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
 
   void _loadSlots(int? doctorId) {
     if (doctorId == null) return;
-    context
-        .read<AppointmentProvider>()
-        .loadSlots(doctorId: doctorId, date: _dateString);
+    context.read<AppointmentProvider>().loadSlots(
+      doctorId: doctorId,
+      date: _dateString,
+    );
   }
 
   Future<void> _pickDate(int? doctorId) async {
@@ -75,17 +79,17 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
     }
 
     final ok = await context.read<AppointmentProvider>().rescheduleAppointment(
-          widget.appointmentId,
-          newScheduledStart: ApiDateTime.toUtcIso8601(_selectedSlot!.slotStart),
-          newEstimatedDurationMinutes: durationMinutes,
-          reason: _reasonController.text.trim(),
-        );
+      widget.appointmentId,
+      newScheduledStart: ApiDateTime.toUtcIso8601(_selectedSlot!.slotStart),
+      newEstimatedDurationMinutes: durationMinutes,
+      reason: _reasonController.text.trim(),
+    );
 
     if (!mounted) return;
     if (ok) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Appointment rescheduled.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Appointment rescheduled.')));
       context.pop();
     }
   }
@@ -96,8 +100,8 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
       appBar: AppBar(
         title: const Text('Reschedule Appointment'),
         elevation: 0,
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.black87,
+        backgroundColor: AppTheme.transparentColor,
+        foregroundColor: AppTheme.textPrimary,
       ),
       body: Consumer<AppointmentProvider>(
         builder: (context, provider, _) {
@@ -114,14 +118,24 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.block, size: 64, color: Colors.redAccent),
+                    const Icon(
+                      Icons.block,
+                      size: 64,
+                      color: AppTheme.errorColor,
+                    ),
                     const SizedBox(height: 16),
-                    const Text('Cannot Reschedule', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    const Text(
+                      'Cannot Reschedule',
+                      style: TextStyle(
+                        fontSize: AppTheme.fontHeadlineSmall,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     Text(
                       'This appointment is currently marked as ${apt.statusLabel}. Only Scheduled or Confirmed appointments can be rescheduled.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey.shade600),
+                      style: TextStyle(color: AppTheme.textSecondary),
                     ),
                   ],
                 ),
@@ -140,23 +154,37 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.orange.shade50,
+                      color: AppTheme.warningContainer,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.orange.shade300),
+                      border: Border.all(color: AppTheme.warningColor),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.info_outline, color: Colors.orange, size: 28),
+                        const Icon(
+                          Icons.info_outline,
+                          color: AppTheme.warningColor,
+                          size: 28,
+                        ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Currently Scheduled', style: TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.bold)),
+                              const Text(
+                                'Currently Scheduled',
+                                style: TextStyle(
+                                  color: AppTheme.warningColor,
+                                  fontSize: AppTheme.fontBodySmall,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                               const SizedBox(height: 4),
                               Text(
                                 '${apt.scheduledStart.day}/${apt.scheduledStart.month}/${apt.scheduledStart.year} at ${apt.scheduledStart.hour > 12 ? apt.scheduledStart.hour - 12 : (apt.scheduledStart.hour == 0 ? 12 : apt.scheduledStart.hour)}:${apt.scheduledStart.minute.toString().padLeft(2, '0')} ${apt.scheduledStart.hour >= 12 ? 'PM' : 'AM'}',
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: AppTheme.fontTitleMedium,
+                                ),
                               ),
                             ],
                           ),
@@ -168,34 +196,68 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
                   const SizedBox(height: 24),
 
                   // Date picker
-                  const Text('1. Select New Date', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  const Text(
+                    '1. Select New Date',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: AppTheme.fontTitleMedium,
+                    ),
+                  ),
                   const SizedBox(height: 12),
                   GestureDetector(
                     onTap: () => _pickDate(apt.doctorId),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 16,
+                      ),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppTheme.surfaceColor,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.shade300),
+                        border: Border.all(color: AppTheme.borderColor),
                         boxShadow: [
-                          BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 4, offset: const Offset(0, 2))
-                        ]
+                          BoxShadow(
+                            color: AppTheme.textPrimary.withValues(alpha: 0.02),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.calendar_month, color: Colors.blue.shade700),
+                          Icon(
+                            Icons.calendar_month,
+                            color: AppTheme.primaryColor,
+                          ),
                           const SizedBox(width: 12),
-                          Text('${_selectedDate.day} / ${_selectedDate.month} / ${_selectedDate.year}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                          Text(
+                            '${_selectedDate.day} / ${_selectedDate.month} / ${_selectedDate.year}',
+                            style: TextStyle(
+                              fontSize: AppTheme.fontTitleMedium,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
                           const Spacer(),
-                          Text('Change', style: TextStyle(color: Colors.blue.shade700, fontWeight: FontWeight.bold)),
+                          Text(
+                            'Change',
+                            style: TextStyle(
+                              color: AppTheme.primaryColor,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ],
                       ),
                     ),
                   ),
 
                   const SizedBox(height: 24),
-                  const Text('2. Select New Time Slot', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  const Text(
+                    '2. Select New Time Slot',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: AppTheme.fontTitleMedium,
+                    ),
+                  ),
                   const SizedBox(height: 12),
 
                   if (provider.slotsError != null)
@@ -209,20 +271,22 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
                   ),
 
                   const SizedBox(height: 24),
-                  const Text('3. Reason for Rescheduling *', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  const Text(
+                    '3. Reason for Rescheduling *',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: AppTheme.fontTitleMedium,
+                    ),
+                  ),
                   const SizedBox(height: 12),
-                  TextFormField(
+                  AppTextField(
+                    label: 'Reason for Rescheduling *',
+                    hint: 'e.g. Schedule conflict, feeling unwell...',
                     controller: _reasonController,
                     maxLines: 3,
-                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Please provide a reason to inform the doctor.' : null,
-                    decoration: InputDecoration(
-                      hintText: 'e.g. Schedule conflict, feeling unwell...',
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
-                      filled: true,
-                      fillColor: Colors.grey.shade50,
-                    ),
+                    validator: (v) => (v == null || v.trim().isEmpty)
+                        ? 'Please provide a reason to inform the doctor.'
+                        : null,
                   ),
 
                   const SizedBox(height: 32),
@@ -230,21 +294,11 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
                     ErrorMessage(message: provider.actionError),
                     const SizedBox(height: 16),
                   ],
-                  
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue.shade700,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      onPressed: provider.actionLoading ? null : () => _submit(apt.estimatedDurationMinutes),
-                      child: provider.actionLoading
-                          ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                          : const Text('Confirm Reschedule', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                    ),
+
+                  AppButton(
+                    text: 'Confirm Reschedule',
+                    onPressed: () => _submit(apt.estimatedDurationMinutes),
+                    isLoading: provider.actionLoading,
                   ),
                   const SizedBox(height: 32),
                 ],

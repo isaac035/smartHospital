@@ -13,6 +13,7 @@ class AppointmentModel {
   final int appointmentType;
   final int status;
   final int priority;
+  final bool priorityNeedsReview;
   final bool emergencyConfirmed;
   final String? notes;
   final String? cancelledReason;
@@ -31,6 +32,7 @@ class AppointmentModel {
     required this.appointmentType,
     required this.status,
     required this.priority,
+    this.priorityNeedsReview = false,
     required this.emergencyConfirmed,
     this.notes,
     this.cancelledReason,
@@ -59,6 +61,7 @@ class AppointmentModel {
       priority: _enumValue(json['priority'], const {
         'Normal': 1, 'Urgent': 2, 'Emergency': 3,
       }),
+      priorityNeedsReview: json['priorityNeedsReview'] as bool? ?? false,
       emergencyConfirmed: json['emergencyConfirmed'] as bool? ?? false,
       notes: json['notes'] as String?,
       cancelledReason: json['cancelledReason'] as String?,

@@ -1,4 +1,5 @@
 using SmartHospital.Api.DTOs.Appointments;
+using SmartHospital.Api.Models;
 
 namespace SmartHospital.Api.Services.Interfaces;
 
@@ -16,6 +17,12 @@ public interface IAppointmentService
         string requestingUserRole,
         AppointmentQueryFilter filter);
 
+    /// <summary>Returns a filtered page plus aggregate counts computed across all matching appointments.</summary>
+    Task<AppointmentListPageResponse> GetAppointmentsPageAsync(
+        int requestingUserId,
+        string requestingUserRole,
+        AppointmentQueryFilter filter);
+
     /// <summary>Returns a single appointment, enforcing patient-ownership rules.</summary>
     Task<AppointmentResponse?> GetAppointmentByIdAsync(
         int id,
@@ -28,6 +35,9 @@ public interface IAppointmentService
         UpdateAppointmentRequest request,
         int requestingUserId,
         string requestingUserRole);
+
+    /// <summary>Updates priority and any active queue entry. Only Staff/Admin may call this.</summary>
+    Task<AppointmentResponse> UpdateAppointmentPriorityAsync(int id, AppointmentPriority priority, int staffUserId);
 
     /// <summary>Cancels an appointment and records the reason in the status history.</summary>
     Task<AppointmentResponse> CancelAppointmentAsync(
@@ -45,6 +55,9 @@ public interface IAppointmentService
         RescheduleAppointmentRequest request,
         int requestingUserId,
         string requestingUserRole);
+
+    /// <summary>Confirms a Scheduled appointment and records the staff member in status history.</summary>
+    Task<AppointmentResponse> ConfirmAppointmentAsync(int id, int staffUserId);
 
     /// <summary>Returns the full status-change audit trail for an appointment.</summary>
     Task<List<AppointmentStatusHistoryResponse>> GetStatusHistoryAsync(int appointmentId);

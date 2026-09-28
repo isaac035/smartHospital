@@ -68,6 +68,7 @@ public class ScheduleService : IScheduleService
                 SpecificDate = s.SpecificDate,
                 StartTime = s.StartTime,
                 EndTime = s.EndTime,
+                SlotDurationMinutes = s.SlotDurationMinutes,
                 Status = s.Status.ToString()
             })
             .ToListAsync();
@@ -89,6 +90,7 @@ public class ScheduleService : IScheduleService
                 SpecificDate = s.SpecificDate,
                 StartTime = s.StartTime,
                 EndTime = s.EndTime,
+                SlotDurationMinutes = s.SlotDurationMinutes,
                 Status = s.Status.ToString()
             })
             .FirstOrDefaultAsync();
@@ -254,5 +256,153 @@ public class ScheduleService : IScheduleService
         await _context.SaveChangesAsync();
 
         return true;
+    }
+
+    public async Task<ScheduleResponse?> AddSlotsAsync(int scheduleId, DateOnly date, int additionalSlotCount)
+    {
+        if (additionalSlotCount is < 1 or > 100)
+            throw new InvalidOperationException("Add between 1 and 100 slots at a time.");
+
+        var zone = ResolveHospitalTimeZone();
+        var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, zone));
+        if (date < today)
+            throw new InvalidOperationException("Slots can only be added to today or a future date.");
+
+        await using var transaction = _context.Database.IsRelational()
+            ? await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable)
+            : null;
+        try
+        {
+            var source = await _context.DoctorSchedules
+                .Include(s => s.Doctor)
+                .Include(s => s.ConsultationType)
+                .FirstOrDefaultAsync(s => s.Id == scheduleId && s.Status == ScheduleStatus.Active);
+            if (source == null) return null;
+
+            if (source.Doctor?.Status != DoctorStatus.Active)
+                throw new InvalidOperationException("Slots cannot be added because this doctor is not active.");
+
+            var dayOfWeek = ToScheduleDay(date);
+            if (source.DayOfWeek != dayOfWeek || (source.SpecificDate.HasValue && source.SpecificDate.Value != date))
+                throw new InvalidOperationException("This schedule does not apply to the selected date.");
+
+            var onLeave = await _context.DoctorLeaves.AnyAsync(l => l.DoctorId == source.DoctorId
+                && l.Status == LeaveStatus.Approved && l.StartDate <= date && l.EndDate >= date);
+            if (onLeave)
+                throw new InvalidOperationException("Slots cannot be added while the doctor is on approved leave.");
+
+            var dateSchedules = await _context.DoctorSchedules
+                .Where(s => s.DoctorId == source.DoctorId && s.SpecificDate == date && s.Status == ScheduleStatus.Active)
+                .OrderBy(s => s.StartTime)
+                .ToListAsync();
+
+            DoctorSchedule selectedDateSchedule;
+            if (source.SpecificDate == date)
+            {
+                selectedDateSchedule = source;
+            }
+            else
+            {
+                if (dateSchedules.Count > 0)
+                    throw new InvalidOperationException("This recurring schedule is overridden by date-specific availability.");
+
+                // A date-specific schedule overrides every weekly schedule for that day.
+                // Snapshot all of that day's active sessions so extending one does not hide the others.
+                var recurring = await _context.DoctorSchedules
+                    .Include(s => s.ConsultationType)
+                    .Where(s => s.DoctorId == source.DoctorId && s.SpecificDate == null
+                        && s.DayOfWeek == dayOfWeek && s.Status == ScheduleStatus.Active)
+                    .OrderBy(s => s.StartTime)
+                    .ToListAsync();
+
+                selectedDateSchedule = null!;
+                foreach (var weekly in recurring)
+                {
+                    var endTime = weekly.Id == source.Id
+                        ? ExtendEndTime(weekly.EndTime, weekly.SlotDurationMinutes, additionalSlotCount)
+                        : weekly.EndTime;
+                    var created = await CreateAsync(new CreateScheduleRequest
+                    {
+                        DoctorId = weekly.DoctorId,
+                        ConsultationTypeId = weekly.ConsultationTypeId,
+                        DayOfWeek = dayOfWeek.ToString(),
+                        SpecificDate = date,
+                        StartTime = weekly.StartTime,
+                        EndTime = endTime
+                    });
+                    if (weekly.Id == source.Id)
+                        selectedDateSchedule = await _context.DoctorSchedules.FirstAsync(s => s.Id == created.Id);
+                }
+            }
+
+            if (source.SpecificDate == date)
+            {
+                var newEnd = ExtendEndTime(selectedDateSchedule.EndTime, selectedDateSchedule.SlotDurationMinutes, additionalSlotCount);
+                await EnsureNoAppointmentsInExtensionAsync(selectedDateSchedule, date, newEnd);
+                await UpdateAsync(selectedDateSchedule.Id, new UpdateScheduleRequest
+                {
+                    ConsultationTypeId = selectedDateSchedule.ConsultationTypeId,
+                    DayOfWeek = dayOfWeek.ToString(),
+                    StartTime = selectedDateSchedule.StartTime,
+                    EndTime = newEnd
+                });
+            }
+            else
+            {
+                // Validate the added segment before committing the newly snapshotted one-day schedules.
+                var oldEnd = source.EndTime;
+                var addedSchedule = selectedDateSchedule;
+                // CreateAsync saved the expanded row already; compare only the appended interval.
+                await EnsureNoAppointmentsInExtensionAsync(addedSchedule, date, addedSchedule.EndTime, oldEnd);
+            }
+
+            if (transaction != null) await transaction.CommitAsync();
+            return await GetByIdAsync(selectedDateSchedule.Id);
+        }
+        catch
+        {
+            if (transaction != null) await transaction.RollbackAsync();
+            throw;
+        }
+    }
+
+    private async Task EnsureNoAppointmentsInExtensionAsync(
+        DoctorSchedule schedule, DateOnly date, TimeOnly newEnd, TimeOnly? previousEnd = null)
+    {
+        var startLocal = date.ToDateTime(previousEnd ?? schedule.EndTime, DateTimeKind.Unspecified);
+        var endLocal = date.ToDateTime(newEnd, DateTimeKind.Unspecified);
+        var zone = ResolveHospitalTimeZone();
+        var startUtc = TimeZoneInfo.ConvertTimeToUtc(startLocal, zone);
+        var endUtc = TimeZoneInfo.ConvertTimeToUtc(endLocal, zone);
+        var userId = schedule.Doctor?.UserId ?? await _context.Doctors
+            .Where(d => d.Id == schedule.DoctorId).Select(d => d.UserId).FirstOrDefaultAsync();
+        if (!userId.HasValue) return;
+
+        var candidates = await _context.Appointments
+            .Where(a => a.DoctorId == userId.Value && a.ScheduledStart < endUtc
+                && a.Status != AppointmentStatus.Cancelled && a.Status != AppointmentStatus.Rescheduled)
+            .ToListAsync();
+        if (candidates.Any(a => a.ScheduledStart.AddMinutes(a.EstimatedDurationMinutes) > startUtc))
+            throw new InvalidOperationException("The added time overlaps an existing appointment. Choose a different schedule window.");
+    }
+
+    private static TimeOnly ExtendEndTime(TimeOnly endTime, int durationMinutes, int count)
+    {
+        var totalMinutes = endTime.Hour * 60 + endTime.Minute + durationMinutes * count;
+        if (durationMinutes <= 0 || totalMinutes >= 24 * 60)
+            throw new InvalidOperationException("Added slots must end before midnight.");
+        return new TimeOnly(totalMinutes / 60, totalMinutes % 60);
+    }
+
+    private static Models.DayOfWeek ToScheduleDay(DateOnly date)
+    {
+        var systemDay = (int)date.DayOfWeek;
+        return (Models.DayOfWeek)(systemDay == 0 ? 7 : systemDay);
+    }
+
+    private static TimeZoneInfo ResolveHospitalTimeZone()
+    {
+        try { return TimeZoneInfo.FindSystemTimeZoneById("Asia/Colombo"); }
+        catch (TimeZoneNotFoundException) { return TimeZoneInfo.FindSystemTimeZoneById("Sri Lanka Standard Time"); }
     }
 }

@@ -20,4 +20,10 @@ public class AppointmentQueryFilter
 
     /// <summary>Filter appointments on or before this UTC date.</summary>
     public DateTime? ToDate { get; set; }
+
+    /// <summary>Optional one-based page number for paginated list requests.</summary>
+    public int? Page { get; set; }
+
+    /// <summary>Optional page size, capped by the service.</summary>
+    public int? PageSize { get; set; }
 }

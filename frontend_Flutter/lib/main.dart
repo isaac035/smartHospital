@@ -16,6 +16,7 @@ import 'providers/doctor_provider.dart';
 import 'routes/app_router.dart';
 import 'services/appointment_service.dart';
 import 'providers/appointment_provider.dart';
+import 'widgets/app_ui.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,9 +30,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        Provider<SecureStorageService>(
-          create: (_) => SecureStorageService(),
-        ),
+        Provider<SecureStorageService>(create: (_) => SecureStorageService()),
         ProxyProvider<SecureStorageService, ApiClient>(
           update: (_, storageService, previous) => ApiClient(storageService),
         ),
@@ -41,14 +40,20 @@ class MyApp extends StatelessWidget {
         ProxyProvider<ApiClient, UserService>(
           update: (_, apiClient, previous) => UserService(apiClient),
         ),
-        ChangeNotifierProxyProvider3<AuthService, UserService, SecureStorageService, AuthProvider>(
+        ChangeNotifierProxyProvider3<
+          AuthService,
+          UserService,
+          SecureStorageService,
+          AuthProvider
+        >(
           create: (_) => AuthProvider(
             AuthService(ApiClient(SecureStorageService())),
             UserService(ApiClient(SecureStorageService())),
             SecureStorageService(),
           ),
           update: (_, authService, userService, storageService, previous) =>
-              previous ?? AuthProvider(authService, userService, storageService),
+              previous ??
+              AuthProvider(authService, userService, storageService),
         ),
         ProxyProvider<ApiClient, DoctorService>(
           update: (_, apiClient, previous) => DoctorService(apiClient),
@@ -63,10 +68,17 @@ class MyApp extends StatelessWidget {
           update: (_, apiClient, previous) => DepartmentService(apiClient),
         ),
         ProxyProvider<ApiClient, ConsultationTypeService>(
-          update: (_, apiClient, previous) => ConsultationTypeService(apiClient),
+          update: (_, apiClient, previous) =>
+              ConsultationTypeService(apiClient),
         ),
-        ChangeNotifierProxyProvider5<DoctorService, ScheduleService, LeaveService, DepartmentService,
-            ConsultationTypeService, DoctorProvider>(
+        ChangeNotifierProxyProvider5<
+          DoctorService,
+          ScheduleService,
+          LeaveService,
+          DepartmentService,
+          ConsultationTypeService,
+          DoctorProvider
+        >(
           create: (_) => DoctorProvider(
             DoctorService(ApiClient(SecureStorageService())),
             ScheduleService(ApiClient(SecureStorageService())),
@@ -74,16 +86,32 @@ class MyApp extends StatelessWidget {
             DepartmentService(ApiClient(SecureStorageService())),
             ConsultationTypeService(ApiClient(SecureStorageService())),
           ),
-          update: (_, doctorService, scheduleService, leaveService, departmentService, consultationTypeService, previous) =>
-              previous ??
-              DoctorProvider(doctorService, scheduleService, leaveService, departmentService, consultationTypeService),
+          update:
+              (
+                _,
+                doctorService,
+                scheduleService,
+                leaveService,
+                departmentService,
+                consultationTypeService,
+                previous,
+              ) =>
+                  previous ??
+                  DoctorProvider(
+                    doctorService,
+                    scheduleService,
+                    leaveService,
+                    departmentService,
+                    consultationTypeService,
+                  ),
         ),
         ProxyProvider<ApiClient, AppointmentService>(
-          update: (_, apiClient, __) => AppointmentService(apiClient),
+          update: (_, apiClient, _) => AppointmentService(apiClient),
         ),
         ChangeNotifierProxyProvider<AppointmentService, AppointmentProvider>(
           create: (_) => AppointmentProvider(
-              AppointmentService(ApiClient(SecureStorageService()))),
+            AppointmentService(ApiClient(SecureStorageService())),
+          ),
           update: (_, svc, previous) => previous ?? AppointmentProvider(svc),
         ),
       ],
@@ -95,6 +123,8 @@ class MyApp extends StatelessWidget {
             theme: AppTheme.lightTheme,
             debugShowCheckedModeBanner: false,
             routerConfig: router,
+            builder: (context, child) =>
+                AppPageFrame(child: child ?? const SizedBox.shrink()),
           );
         },
       ),

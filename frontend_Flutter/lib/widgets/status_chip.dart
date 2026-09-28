@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:smart_hospital/core/theme/app_theme.dart';
 
 enum DoctorAvailabilityState { available, unavailable, onLeave }
 
@@ -9,10 +10,13 @@ class StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (MaterialColor color, String label) = switch (state) {
-      DoctorAvailabilityState.available => (Colors.green, 'Available'),
-      DoctorAvailabilityState.unavailable => (Colors.grey, 'Unavailable'),
-      DoctorAvailabilityState.onLeave => (Colors.orange, 'On Leave'),
+    final (Color color, String label) = switch (state) {
+      DoctorAvailabilityState.available => (AppTheme.successColor, 'Available'),
+      DoctorAvailabilityState.unavailable => (
+        AppTheme.textSecondary,
+        'Unavailable',
+      ),
+      DoctorAvailabilityState.onLeave => (AppTheme.warningColor, 'On Leave'),
     };
 
     return Container(
@@ -24,7 +28,7 @@ class StatusChip extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(color: color.shade700, fontWeight: FontWeight.w600, fontSize: 13),
+        style: Theme.of(context).textTheme.labelMedium?.copyWith(color: color),
       ),
     );
   }

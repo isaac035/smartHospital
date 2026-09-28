@@ -127,6 +127,9 @@ namespace SmartHospital.Api.Migrations
                     b.Property<int?>("QueueNumber")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("RequestedPriority")
+                        .HasColumnType("integer");
+
                     b.Property<string>("ReferenceNumber")
                         .IsRequired()
                         .HasMaxLength(40)

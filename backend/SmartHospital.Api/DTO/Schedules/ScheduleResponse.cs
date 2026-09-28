@@ -20,5 +20,7 @@ public class ScheduleResponse
 
     public TimeOnly EndTime { get; set; }
 
+    public int SlotDurationMinutes { get; set; }
+
     public string Status { get; set; } = string.Empty;
 }

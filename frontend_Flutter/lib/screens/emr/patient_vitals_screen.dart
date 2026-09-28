@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:smart_hospital/core/theme/app_theme.dart';
 
 class PatientVitalsScreen extends StatelessWidget {
   const PatientVitalsScreen({super.key});
@@ -6,15 +7,13 @@ class PatientVitalsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('My Vital Signs'),
-      ),
+      appBar: AppBar(title: const Text('My Vital Signs')),
       body: const Center(
         child: Padding(
           padding: EdgeInsets.all(16.0),
           child: Text(
             'No recorded vital signs yet.',
-            style: TextStyle(color: Colors.grey),
+            style: TextStyle(color: AppTheme.textSecondary),
           ),
         ),
       ),

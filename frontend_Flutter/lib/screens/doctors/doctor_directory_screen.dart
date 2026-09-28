@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:smart_hospital/core/theme/app_theme.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -80,8 +81,11 @@ class _DoctorDirectoryScreenState extends State<DoctorDirectoryScreen> {
         elevation: 0,
         actions: [
           IconButton(
-            icon: Icon(_filtersExpanded ? Icons.filter_list_off : Icons.filter_list),
-            onPressed: () => setState(() => _filtersExpanded = !_filtersExpanded),
+            icon: Icon(
+              _filtersExpanded ? Icons.filter_list_off : Icons.filter_list,
+            ),
+            onPressed: () =>
+                setState(() => _filtersExpanded = !_filtersExpanded),
             tooltip: 'Toggle Filters',
           ),
         ],
@@ -95,10 +99,10 @@ class _DoctorDirectoryScreenState extends State<DoctorDirectoryScreen> {
               color: Theme.of(context).cardColor,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: AppTheme.textPrimary.withValues(alpha: 0.05),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
-                )
+                ),
               ],
             ),
             child: Column(
@@ -120,14 +124,22 @@ class _DoctorDirectoryScreenState extends State<DoctorDirectoryScreen> {
                         // Availability Toggle
                         Container(
                           decoration: BoxDecoration(
-                            color: Colors.blue.withOpacity(0.05),
+                            color: AppTheme.primaryColor.withValues(
+                              alpha: 0.05,
+                            ),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: SwitchListTile(
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                            title: const Text('Filter by specific date', style: TextStyle(fontWeight: FontWeight.w500)),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                            ),
+                            title: const Text(
+                              'Filter by specific date',
+                              style: TextStyle(fontWeight: FontWeight.w500),
+                            ),
                             value: availabilityOn,
-                            onChanged: (value) => provider.setAvailabilityFilterOn(value),
+                            onChanged: (value) =>
+                                provider.setAvailabilityFilterOn(value),
                           ),
                         ),
                         if (availabilityOn)
@@ -138,11 +150,11 @@ class _DoctorDirectoryScreenState extends State<DoctorDirectoryScreen> {
                               icon: const Icon(Icons.calendar_today, size: 18),
                               label: Text(
                                 'Checking: ${DateFormat('MMM d, yyyy').format(provider.availabilityFilterDate)}',
-                                style: const TextStyle(fontWeight: FontWeight.bold),
+                                style: TextStyle(fontWeight: FontWeight.bold),
                               ),
                             ),
                           ),
-                        
+
                         if (!availabilityOn) ...[
                           const SizedBox(height: 12),
                           Row(
@@ -152,8 +164,16 @@ class _DoctorDirectoryScreenState extends State<DoctorDirectoryScreen> {
                                   label: 'Department',
                                   value: provider.filterDepartmentId,
                                   items: [
-                                    const DropdownMenuItem(value: null, child: Text('All Depts')),
-                                    ...provider.departments.map((d) => DropdownMenuItem(value: d.id, child: Text(d.name))),
+                                    const DropdownMenuItem(
+                                      value: null,
+                                      child: Text('All Depts'),
+                                    ),
+                                    ...provider.departments.map(
+                                      (d) => DropdownMenuItem(
+                                        value: d.id,
+                                        child: Text(d.name),
+                                      ),
+                                    ),
                                   ],
                                   onChanged: (value) {
                                     provider.filterDepartmentId = value;
@@ -167,8 +187,16 @@ class _DoctorDirectoryScreenState extends State<DoctorDirectoryScreen> {
                                   label: 'Consultation',
                                   value: provider.filterConsultationTypeId,
                                   items: [
-                                    const DropdownMenuItem(value: null, child: Text('All Types')),
-                                    ...provider.consultationTypes.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))),
+                                    const DropdownMenuItem(
+                                      value: null,
+                                      child: Text('All Types'),
+                                    ),
+                                    ...provider.consultationTypes.map(
+                                      (c) => DropdownMenuItem(
+                                        value: c.id,
+                                        child: Text(c.name),
+                                      ),
+                                    ),
                                   ],
                                   onChanged: (value) {
                                     provider.filterConsultationTypeId = value;
@@ -183,13 +211,17 @@ class _DoctorDirectoryScreenState extends State<DoctorDirectoryScreen> {
                             label: '',
                             hint: 'Specialization (e.g. Cardiology)',
                             onChanged: _onSpecializationChanged,
-                            prefixIcon: const Icon(Icons.medical_services_outlined),
+                            prefixIcon: const Icon(
+                              Icons.medical_services_outlined,
+                            ),
                           ),
                         ],
                       ],
                     ),
                   ),
-                  crossFadeState: _filtersExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+                  crossFadeState: _filtersExpanded
+                      ? CrossFadeState.showSecond
+                      : CrossFadeState.showFirst,
                   duration: const Duration(milliseconds: 250),
                 ),
               ],
@@ -212,8 +244,9 @@ class _DoctorDirectoryScreenState extends State<DoctorDirectoryScreen> {
     if (provider.isLoadingDirectory && provider.directoryDoctors.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
-    
-    if (provider.directoryError != null && provider.directoryError!.isNotEmpty) {
+
+    if (provider.directoryError != null &&
+        provider.directoryError!.isNotEmpty) {
       return SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         child: Padding(
@@ -222,7 +255,7 @@ class _DoctorDirectoryScreenState extends State<DoctorDirectoryScreen> {
         ),
       );
     }
-    
+
     if (provider.directoryDoctors.isEmpty) {
       return SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -232,17 +265,21 @@ class _DoctorDirectoryScreenState extends State<DoctorDirectoryScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.search_off, size: 64, color: Colors.grey.shade400),
+              Icon(Icons.search_off, size: 64, color: AppTheme.textMuted),
               const SizedBox(height: 16),
               Text(
                 'No doctors found',
-                style: TextStyle(fontSize: 18, color: Colors.grey.shade600, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: AppTheme.fontHeadlineSmall,
+                  color: AppTheme.textSecondary,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
                 'Try adjusting your search or filters to see more results.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey.shade500),
+                style: TextStyle(color: AppTheme.onPrimary),
               ),
             ],
           ),
@@ -264,4 +301,3 @@ class _DoctorDirectoryScreenState extends State<DoctorDirectoryScreen> {
     );
   }
 }
-

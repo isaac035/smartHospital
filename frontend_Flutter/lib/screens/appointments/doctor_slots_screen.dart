@@ -1,11 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:smart_hospital/core/theme/app_theme.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:signalr_netcore/signalr_client.dart';
+import '../../core/constants/api_constants.dart';
+import '../../core/storage/secure_storage_service.dart';
 import '../../core/utils/api_datetime.dart';
-import '../../core/theme/app_theme.dart';
 import '../../models/appointments/appointment_slot_model.dart';
 import '../../providers/appointment_provider.dart';
-import '../../widgets/app_button.dart';
 import '../../widgets/error_message.dart';
 import 'widgets/slot_picker_grid.dart';
 
@@ -26,6 +30,7 @@ class DoctorSlotsScreen extends StatefulWidget {
 class _DoctorSlotsScreenState extends State<DoctorSlotsScreen> {
   DateTime _selectedDate = DateTime.now();
   AppointmentSlotModel? _selectedSlot;
+  HubConnection? _slotUpdatesConnection;
 
   String get _dateString =>
       '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}';
@@ -35,17 +40,71 @@ class _DoctorSlotsScreenState extends State<DoctorSlotsScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadSlots();
+      _connectToSlotUpdates();
     });
   }
 
+  Future<void> _connectToSlotUpdates() async {
+    try {
+      final token = await context.read<SecureStorageService>().getToken();
+      if (!mounted || token == null || token.isEmpty) return;
+
+      final apiBase = ApiConstants.baseUrl.replaceFirst(RegExp(r'/api/?$'), '');
+      final connection = HubConnectionBuilder()
+          .withUrl(
+            '$apiBase/hubs/hospital',
+            options: HttpConnectionOptions(
+              accessTokenFactory: () async => token,
+            ),
+          )
+          .withAutomaticReconnect()
+          .build();
+
+      void refreshForSelectedDoctor(List<Object?>? arguments) {
+        if (!mounted || !_matchesSelectedDoctor(arguments)) return;
+        _loadSlots();
+      }
+
+      connection.on('SlotUpdated', refreshForSelectedDoctor);
+      connection.on('SlotBooked', refreshForSelectedDoctor);
+      connection.on('SlotReleased', refreshForSelectedDoctor);
+      _slotUpdatesConnection = connection;
+      await connection.start();
+    } catch (_) {
+      // Slot loading still works from the API on entry or when the date changes.
+    }
+  }
+
+  bool _matchesSelectedDoctor(List<Object?>? arguments) {
+    if (arguments == null || arguments.isEmpty) return true;
+    final payload = arguments.first;
+    if (payload is! Map) return true;
+    final payloadDoctorId = payload['doctorId'] ?? payload['DoctorId'];
+    final payloadProfileId =
+        payload['doctorProfileId'] ?? payload['DoctorProfileId'];
+    if (payloadProfileId != null) {
+      return payloadProfileId.toString() == widget.doctorProfileId.toString();
+    }
+    if (payloadDoctorId != null) {
+      return payloadDoctorId.toString() == widget.bookingDoctorId.toString() ||
+          payloadDoctorId.toString() == widget.doctorProfileId.toString();
+    }
+    return true;
+  }
+
+  @override
+  void dispose() {
+    final connection = _slotUpdatesConnection;
+    if (connection != null) unawaited(connection.stop());
+    super.dispose();
+  }
+
   void _loadSlots() {
-    context
-        .read<AppointmentProvider>()
-        .loadSlots(
-          doctorId: widget.bookingDoctorId,
-          doctorProfileId: widget.doctorProfileId,
-          date: _dateString,
-        );
+    context.read<AppointmentProvider>().loadSlots(
+      doctorId: widget.bookingDoctorId,
+      doctorProfileId: widget.doctorProfileId,
+      date: _dateString,
+    );
   }
 
   Future<void> _pickDate() async {
@@ -70,8 +129,8 @@ class _DoctorSlotsScreenState extends State<DoctorSlotsScreen> {
       appBar: AppBar(
         title: const Text('Select Appointment Time'),
         elevation: 0,
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.black87,
+        backgroundColor: AppTheme.transparentColor,
+        foregroundColor: AppTheme.textPrimary,
       ),
       body: Consumer<AppointmentProvider>(
         builder: (context, provider, _) {
@@ -83,35 +142,53 @@ class _DoctorSlotsScreenState extends State<DoctorSlotsScreen> {
                 // Date picker
                 const Text(
                   '1. Select Date',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: AppTheme.fontTitleMedium,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 GestureDetector(
                   onTap: _pickDate,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 16,
+                    ),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppTheme.surfaceColor,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade300),
+                      border: Border.all(color: AppTheme.borderColor),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.02),
+                          color: AppTheme.textPrimary.withValues(alpha: 0.02),
                           blurRadius: 4,
                           offset: const Offset(0, 2),
-                        )
-                      ]
+                        ),
+                      ],
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.calendar_month, color: AppTheme.primaryColor),
+                        const Icon(
+                          Icons.calendar_month,
+                          color: AppTheme.primaryColor,
+                        ),
                         const SizedBox(width: 12),
                         Text(
                           '${_selectedDate.day} / ${_selectedDate.month} / ${_selectedDate.year}',
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                          style: TextStyle(
+                            fontSize: AppTheme.fontTitleMedium,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                         const Spacer(),
-                        const Text('Change', style: TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold)),
+                        const Text(
+                          'Change',
+                          style: TextStyle(
+                            color: AppTheme.primaryColor,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -120,7 +197,10 @@ class _DoctorSlotsScreenState extends State<DoctorSlotsScreen> {
                 const SizedBox(height: 24),
                 const Text(
                   '2. Available Slots',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: AppTheme.fontTitleMedium,
+                  ),
                 ),
                 const SizedBox(height: 12),
 
@@ -139,22 +219,29 @@ class _DoctorSlotsScreenState extends State<DoctorSlotsScreen> {
                 SlotPickerGrid(
                   slots: provider.slots,
                   selectedSlot: _selectedSlot,
-                  onSlotSelected: (slot) => setState(() => _selectedSlot = slot),
+                  onSlotSelected: (slot) =>
+                      setState(() => _selectedSlot = slot),
                   isLoading: provider.slotsLoading,
                 ),
 
-                  if (_selectedSlot != null && _selectedSlot!.isAvailable) ...[
+                if (_selectedSlot != null && _selectedSlot!.isAvailable) ...[
                   const SizedBox(height: 32),
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: AppTheme.primaryColor.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.3)),
+                      border: Border.all(
+                        color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                      ),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.check_circle, color: AppTheme.primaryColor, size: 28),
+                        const Icon(
+                          Icons.check_circle,
+                          color: AppTheme.primaryColor,
+                          size: 28,
+                        ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Column(
@@ -162,11 +249,18 @@ class _DoctorSlotsScreenState extends State<DoctorSlotsScreen> {
                             children: [
                               const Text(
                                 'Selected Time',
-                                style: TextStyle(color: AppTheme.primaryColor, fontSize: 12),
+                                style: TextStyle(
+                                  color: AppTheme.primaryColor,
+                                  fontSize: AppTheme.fontBodySmall,
+                                ),
                               ),
                               Text(
                                 '${_selectedSlot!.slotStart.day}/${_selectedSlot!.slotStart.month}/${_selectedSlot!.slotStart.year} at ${_selectedSlot!.formattedTime}',
-                                style: const TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold, fontSize: 15),
+                                style: TextStyle(
+                                  color: AppTheme.primaryColor,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: AppTheme.fontTitleMedium,
+                                ),
                               ),
                             ],
                           ),
@@ -178,21 +272,31 @@ class _DoctorSlotsScreenState extends State<DoctorSlotsScreen> {
                   SizedBox(
                     width: double.infinity,
                     height: 52,
-                    child: ElevatedButton(
+                    child: FilledButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.primaryColor,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        foregroundColor: AppTheme.surfaceColor,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       onPressed: () => context.push(
                         '/appointments/book',
                         extra: {
                           'doctorId': widget.bookingDoctorId,
-                          'slotStart': ApiDateTime.toUtcIso8601(_selectedSlot!.slotStart),
+                          'slotStart': ApiDateTime.toUtcIso8601(
+                            _selectedSlot!.slotStart,
+                          ),
                           'durationMinutes': _selectedSlot!.durationMinutes,
                         },
                       ),
-                      child: const Text('Continue to Book', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      child: const Text(
+                        'Continue to Book',
+                        style: TextStyle(
+                          fontSize: AppTheme.fontTitleMedium,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
                 ],

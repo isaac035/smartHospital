@@ -22,6 +22,9 @@ public class Appointment
 
     public AppointmentPriority Priority { get; set; } = AppointmentPriority.Normal;
 
+    /// <summary>Patient-selected priority awaiting staff review; queue ordering uses Priority.</summary>
+    public AppointmentPriority? RequestedPriority { get; set; }
+
     /// <summary>Human-readable reference number (e.g. APT-20260924-1234).</summary>
     public string ReferenceNumber { get; set; } = string.Empty;
 

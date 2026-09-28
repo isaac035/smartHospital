@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:smart_hospital/core/theme/app_theme.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import '../../core/theme/app_theme.dart';
 import '../../models/appointments/doctor_summary_model.dart';
 import '../../providers/appointment_provider.dart';
 import '../../widgets/error_message.dart';
+import '../../widgets/app_text_field.dart';
 
 class SearchDoctorsScreen extends StatefulWidget {
   const SearchDoctorsScreen({super.key});
@@ -37,40 +38,36 @@ class _SearchDoctorsScreenState extends State<SearchDoctorsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
         title: const Text('Find a Doctor'),
         elevation: 0,
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
+        backgroundColor: AppTheme.surfaceColor,
+        foregroundColor: AppTheme.textPrimary,
       ),
       body: Column(
         children: [
           Container(
-            color: Colors.white,
+            color: AppTheme.surfaceColor,
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-            child: TextField(
+            child: AppTextField(
+              label: 'Search doctors',
+              hint: 'Search doctor by name...',
               controller: _controller,
               onChanged: _search,
-              decoration: InputDecoration(
-                hintText: 'Search doctor by name...',
-                prefixIcon: const Icon(Icons.search, color: Colors.blue),
-                filled: true,
-                fillColor: Colors.grey.shade100,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding: const EdgeInsets.symmetric(vertical: 0),
-              ),
+              prefixIcon: const Icon(Icons.search),
             ),
           ),
-          
+
           Container(
             height: 1,
             decoration: BoxDecoration(
               boxShadow: [
-                BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2)),
+                BoxShadow(
+                  color: AppTheme.textPrimary.withValues(alpha: 0.05),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
               ],
             ),
           ),
@@ -87,7 +84,11 @@ class _SearchDoctorsScreenState extends State<SearchDoctorsScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
+                        const Icon(
+                          Icons.error_outline,
+                          size: 48,
+                          color: AppTheme.errorColor,
+                        ),
                         const SizedBox(height: 16),
                         ErrorMessage(message: provider.doctorsError),
                       ],
@@ -99,11 +100,19 @@ class _SearchDoctorsScreenState extends State<SearchDoctorsScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.search_off, size: 64, color: Colors.grey.shade300),
+                        Icon(
+                          Icons.search_off,
+                          size: 64,
+                          color: AppTheme.borderColor,
+                        ),
                         const SizedBox(height: 16),
                         Text(
                           'No doctors found.',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey.shade600),
+                          style: TextStyle(
+                            fontSize: AppTheme.fontHeadlineSmall,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.textSecondary,
+                          ),
                         ),
                       ],
                     ),
@@ -112,7 +121,7 @@ class _SearchDoctorsScreenState extends State<SearchDoctorsScreen> {
                 return ListView.separated(
                   padding: const EdgeInsets.all(16),
                   itemCount: provider.doctors.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  separatorBuilder: (_, _) => const SizedBox(height: 12),
                   itemBuilder: (context, index) {
                     return _DoctorTile(doctor: provider.doctors[index]);
                   },
@@ -138,15 +147,19 @@ class _DoctorTile extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-          onTap: () {
-            if (doctor.userId != null) {
-              context.push(
-                '/appointments/doctor/${doctor.id}?userId=${doctor.userId}',
-              );
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Not available for online booking.')));
-            }
-          },
+        onTap: () {
+          if (doctor.userId != null) {
+            context.push(
+              '/appointments/doctor/${doctor.id}?userId=${doctor.userId}',
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Not available for online booking.'),
+              ),
+            );
+          }
+        },
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Row(
@@ -155,9 +168,10 @@ class _DoctorTile extends StatelessWidget {
                 backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
                 child: Text(
                   doctor.firstName.isNotEmpty ? doctor.firstName[0] : 'D',
-                  style: const TextStyle(
-                      color: AppTheme.primaryColor,
-                      fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: AppTheme.primaryColor,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -167,18 +181,27 @@ class _DoctorTile extends StatelessWidget {
                   children: [
                     Text(
                       'Dr. ${doctor.fullName}',
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 15),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: AppTheme.fontTitleMedium,
+                      ),
                     ),
                     if (doctor.specialization != null)
-                      Text(doctor.specialization!,
-                          style: TextStyle(
-                              color: Colors.grey.shade600, fontSize: 13)),
+                      Text(
+                        doctor.specialization!,
+                        style: TextStyle(
+                          color: AppTheme.textSecondary,
+                          fontSize: AppTheme.fontBodyMedium,
+                        ),
+                      ),
                     if (doctor.department != null)
-                      Text(doctor.department!,
-                          style: TextStyle(
-                              color: AppTheme.primaryColor.withValues(alpha: 0.7),
-                              fontSize: 12)),
+                      Text(
+                        doctor.department!,
+                        style: TextStyle(
+                          color: AppTheme.primaryColor.withValues(alpha: 0.7),
+                          fontSize: AppTheme.fontBodySmall,
+                        ),
+                      ),
                   ],
                 ),
               ),
