@@ -16,6 +16,8 @@ import 'providers/doctor_provider.dart';
 import 'routes/app_router.dart';
 import 'services/appointment_service.dart';
 import 'providers/appointment_provider.dart';
+import 'services/emr_service.dart';
+import 'providers/emr_provider.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -79,12 +81,20 @@ class MyApp extends StatelessWidget {
               DoctorProvider(doctorService, scheduleService, leaveService, departmentService, consultationTypeService),
         ),
         ProxyProvider<ApiClient, AppointmentService>(
-          update: (_, apiClient, __) => AppointmentService(apiClient),
+          update: (_, apiClient, _) => AppointmentService(apiClient),
         ),
         ChangeNotifierProxyProvider<AppointmentService, AppointmentProvider>(
           create: (_) => AppointmentProvider(
               AppointmentService(ApiClient(SecureStorageService()))),
           update: (_, svc, previous) => previous ?? AppointmentProvider(svc),
+        ),
+        ProxyProvider<ApiClient, EmrService>(
+          update: (_, apiClient, _) => EmrService(apiClient),
+        ),
+        ChangeNotifierProxyProvider<EmrService, EmrProvider>(
+          create: (_) => EmrProvider(
+              EmrService(ApiClient(SecureStorageService()))),
+          update: (_, svc, previous) => previous ?? EmrProvider(svc),
         ),
       ],
       child: Builder(

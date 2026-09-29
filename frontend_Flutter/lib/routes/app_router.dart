@@ -15,6 +15,7 @@ import '../screens/doctors/doctor_details_screen.dart';
 import '../screens/doctors/doctor_schedule_screen.dart';
 import '../screens/doctors/doctor_availability_screen.dart';
 import '../screens/emr/patient_medical_records_screen.dart';
+import '../screens/emr/patient_clinical_history_screen.dart';
 import '../screens/emr/patient_vitals_screen.dart';
 import '../screens/emr/patient_prescriptions_screen.dart';
 import '../screens/emr/patient_lab_reports_screen.dart';
@@ -117,6 +118,10 @@ class AppRouter {
           path: '/medical-records',
           builder: (context, state) => const PatientMedicalRecordsScreen(),
           routes: [
+            GoRoute(
+              path: 'timeline',
+              builder: (context, state) => const PatientClinicalHistoryScreen(),
+            ),
             GoRoute(
               path: 'vitals',
               builder: (context, state) => const PatientVitalsScreen(),
