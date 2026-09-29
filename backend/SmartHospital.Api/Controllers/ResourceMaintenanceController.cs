@@ -37,9 +37,10 @@ public class ResourceMaintenanceController : ControllerBase
     public async Task<IActionResult> GetMaintenanceRecords(
         [FromQuery] int? bedId = null,
         [FromQuery] int? resourceId = null,
-        [FromQuery] MaintenanceStatus? status = null)
+        [FromQuery] MaintenanceStatus? status = null,
+        [FromQuery] string? search = null)
     {
-        var records = await _maintenanceService.GetMaintenanceRecordsAsync(bedId, resourceId, status);
+        var records = await _maintenanceService.GetMaintenanceRecordsAsync(bedId, resourceId, status, search);
         return Ok(records);
     }
 

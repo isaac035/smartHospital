@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import DashboardLayout from '../../layouts/DashboardLayout'
 import ResourceNavigation from './ResourceNavigation'
 import { useAuth } from '../../hooks/useAuth'
@@ -21,6 +21,20 @@ const TYPE_LABELS = {
   EmergencyRepair: 'Emergency Repair',
 }
 
+// Generate pagination numbers with ellipsis when needed
+function getPageNumbers(current, total) {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1)
+  }
+  if (current <= 4) {
+    return [1, 2, 3, 4, 5, '...', total]
+  }
+  if (current >= total - 3) {
+    return [1, '...', total - 4, total - 3, total - 2, total - 1, total]
+  }
+  return [1, '...', current - 1, current, current + 1, '...', total]
+}
+
 export default function Maintenance() {
   const { user } = useAuth()
   const role = user?.role || 'Staff'
@@ -33,8 +47,26 @@ export default function Maintenance() {
 
   // Filters
   const [searchFilter, setSearchFilter] = useState('')
+  const [debouncedSearchFilter, setDebouncedSearchFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [targetTypeFilter, setTargetTypeFilter] = useState('')
+
+  // 400ms debounce on search input to prevent rapid recalculations and flicker
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchFilter(searchFilter)
+    }, 400)
+    return () => clearTimeout(handler)
+  }, [searchFilter])
+
+  // Pagination states - Default 10 records per page
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+
+  // Reset pagination to page 1 whenever any filter or search changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [statusFilter, targetTypeFilter, debouncedSearchFilter])
 
   // Modals state
   const [showScheduleModal, setShowScheduleModal] = useState(false)
@@ -67,8 +99,10 @@ export default function Maintenance() {
 
   const handleResetFilters = () => {
     setSearchFilter('')
+    setDebouncedSearchFilter('')
     setStatusFilter('')
     setTargetTypeFilter('')
+    setCurrentPage(1)
   }
 
   // Summary KPI Calculations
@@ -77,22 +111,56 @@ export default function Maintenance() {
   const inProgressCount = records.filter((r) => r.status === 'InProgress').length
   const completedCount = records.filter((r) => r.status === 'Completed').length
 
-  // Filtered Records
+  // Filtered Records supporting multi-token human-friendly search
   const filteredRecords = records.filter((rec) => {
     if (statusFilter && rec.status !== statusFilter) return false
     if (targetTypeFilter && rec.targetType !== targetTypeFilter) return false
 
-    if (searchFilter.trim()) {
-      const term = searchFilter.trim().toLowerCase()
-      const codeMatch = rec.maintenanceCode?.toLowerCase().includes(term)
-      const targetMatch = rec.targetName?.toLowerCase().includes(term)
-      const descMatch = rec.description?.toLowerCase().includes(term)
-      const typeMatch = rec.type?.toLowerCase().includes(term)
-      if (!codeMatch && !targetMatch && !descMatch && !typeMatch) return false
+    const query = debouncedSearchFilter.trim().toLowerCase()
+    if (query) {
+      const tokens = query.split(/\s+/).filter(Boolean)
+
+      // Build composite searchable string containing all human-friendly information
+      const searchableFields = [
+        rec.maintenanceCode,
+        rec.targetName,
+        rec.wardName,
+        rec.roomNumber ? `Room ${rec.roomNumber}` : '',
+        rec.roomNumber,
+        rec.bedNumber ? `Bed ${rec.bedNumber}` : '',
+        rec.bedNumber,
+        rec.medicalResourceName,
+        rec.medicalResourceCode,
+        rec.locationDescription,
+        rec.type,
+        TYPE_LABELS[rec.type] || '',
+        rec.description,
+        rec.resolutionNotes,
+      ]
+
+      const searchableText = searchableFields
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+
+      // Every token in the query must match somewhere in the composite text
+      const matchesAllTokens = tokens.every((token) => searchableText.includes(token))
+      if (!matchesAllTokens) return false
     }
 
     return true
   })
+
+  // Pagination calculations applied to currently filtered records dataset
+  const filteredTotalCount = filteredRecords.length
+  const totalPages = Math.max(1, Math.ceil(filteredTotalCount / pageSize))
+  const safePage = Math.min(currentPage, totalPages)
+
+  const startIndex = (safePage - 1) * pageSize
+  const endIndex = Math.min(startIndex + pageSize, filteredTotalCount)
+  const paginatedRecords = useMemo(() => {
+    return filteredRecords.slice(startIndex, endIndex)
+  }, [filteredRecords, startIndex, endIndex])
 
   // Date formatter
   const formatDateTime = (dateStr) => {
@@ -255,14 +323,14 @@ export default function Maintenance() {
           {/* Search */}
           <div>
             <label htmlFor="filter-search-input" className="block text-xs font-semibold mb-1">
-              Search Code / Target / Reason
+              Search Maintenance
             </label>
             <input
               id="filter-search-input"
               type="text"
               value={searchFilter}
               onChange={(e) => setSearchFilter(e.target.value)}
-              placeholder="e.g. MNT-2026 or Ventilator or Bed"
+              placeholder="Search by ward, room, bed, resource, type or reason"
               className="w-full px-3 py-1.5 text-xs border rounded-lg outline-none"
               style={{
                 borderColor: 'color-mix(in srgb, var(--color-secondary) 25%, var(--color-primary))',
@@ -373,7 +441,7 @@ export default function Maintenance() {
                   </td>
                 </tr>
               ) : (
-                filteredRecords.map((rec) => {
+                paginatedRecords.map((rec) => {
                   const isScheduled = rec.status === 'Scheduled'
                   const isInProgress = rec.status === 'InProgress'
 
@@ -395,8 +463,27 @@ export default function Maintenance() {
                           className="text-sm font-semibold leading-snug break-words"
                           style={{ color: 'var(--color-accent)' }}
                         >
-                          {rec.targetName}
+                          {rec.targetType === 'Bed'
+                            ? (rec.targetName?.startsWith('Bed') ? rec.targetName : `Bed ${rec.bedNumber || rec.targetName}`)
+                            : rec.targetName}
                         </div>
+
+                        {rec.targetType === 'Bed' && (rec.wardName || rec.roomNumber) && (
+                          <div className="text-xs font-normal mt-0.5 opacity-80" style={{ color: 'var(--color-secondary)' }}>
+                            {[rec.wardName, rec.roomNumber ? `Room ${rec.roomNumber}` : null]
+                              .filter(Boolean)
+                              .join(' • ')}
+                          </div>
+                        )}
+
+                        {rec.targetType === 'MedicalResource' && (rec.wardName || rec.roomNumber || rec.locationDescription) && (
+                          <div className="text-xs font-normal mt-0.5 opacity-80" style={{ color: 'var(--color-secondary)' }}>
+                            {[rec.wardName, rec.roomNumber ? `Room ${rec.roomNumber}` : null, rec.locationDescription]
+                              .filter(Boolean)
+                              .join(' • ')}
+                          </div>
+                        )}
+
                         <span className="inline-block mt-1 px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
                           {rec.targetType === 'Bed' ? 'Hospital Bed' : 'Medical Equipment'}
                         </span>
@@ -454,6 +541,99 @@ export default function Maintenance() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination & Result Summary Bar */}
+        {filteredTotalCount > 0 && (
+          <div
+            className="flex flex-wrap items-center justify-between gap-3 p-3.5 border-t text-xs transition-opacity duration-150"
+            style={{
+              borderColor: 'color-mix(in srgb, var(--color-secondary) 12%, var(--color-primary))',
+              background: 'color-mix(in srgb, var(--color-accent) 2%, var(--color-primary))',
+              opacity: loading && filteredRecords.length > 0 ? 0.65 : 1,
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <span className="font-medium opacity-75">
+                Showing {startIndex + 1}–{endIndex} of {filteredTotalCount} records
+              </span>
+              <div className="flex items-center gap-1.5 text-xs">
+                <span className="opacity-60">Rows:</span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value))
+                    setCurrentPage(1)
+                  }}
+                  className="px-2 py-1 text-xs border rounded bg-transparent outline-none cursor-pointer"
+                  style={{
+                    borderColor: 'color-mix(in srgb, var(--color-secondary) 25%, var(--color-primary))',
+                    color: 'var(--color-secondary)',
+                  }}
+                  aria-label="Rows per page"
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                disabled={safePage <= 1}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                className="secondary-button text-xs px-2.5 py-1 disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ marginTop: 0 }}
+              >
+                Previous
+              </button>
+
+              <div className="flex items-center gap-1">
+                {getPageNumbers(safePage, totalPages).map((p, idx) =>
+                  p === '...' ? (
+                    <span key={`ellipsis-${idx}`} className="px-1.5 py-1 text-xs opacity-50">
+                      ...
+                    </span>
+                  ) : (
+                    <button
+                      key={`page-${p}`}
+                      type="button"
+                      onClick={() => setCurrentPage(p)}
+                      className="text-xs px-2.5 py-1 rounded font-medium transition-colors cursor-pointer"
+                      style={{
+                        background:
+                          p === safePage
+                            ? 'var(--color-accent)'
+                            : 'transparent',
+                        color:
+                          p === safePage
+                            ? 'var(--color-primary)'
+                            : 'var(--color-secondary)',
+                        border:
+                          p === safePage
+                            ? '1px solid var(--color-accent)'
+                            : '1px solid color-mix(in srgb, var(--color-secondary) 20%, var(--color-primary))',
+                      }}
+                    >
+                      {p}
+                    </button>
+                  )
+                )}
+              </div>
+
+              <button
+                type="button"
+                disabled={safePage >= totalPages}
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                className="secondary-button text-xs px-2.5 py-1 disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ marginTop: 0 }}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Modal: Schedule Maintenance */}

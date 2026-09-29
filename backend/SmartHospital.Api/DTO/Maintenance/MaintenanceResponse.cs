@@ -14,6 +14,16 @@ public class MaintenanceResponse
 
     public string? BedNumber { get; set; }
 
+    public int? WardId { get; set; }
+
+    public string? WardName { get; set; }
+
+    public int? RoomId { get; set; }
+
+    public string? RoomNumber { get; set; }
+
+    public string? LocationDescription { get; set; }
+
     public int? MedicalResourceId { get; set; }
 
     public string? MedicalResourceCode { get; set; }

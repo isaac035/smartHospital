@@ -2,7 +2,7 @@ export const adminNavigation = [
   { label: 'Dashboard', path: '/admin/dashboard' },
   { label: 'User Management', path: '/admin/users' },
   { label: 'Doctor Management', path: '/admin/doctors' },
-  { label: 'Resource Management', path: '/hospital-resources' },
+  { label: 'Admissions & Resources', path: '/hospital-resources' },
   { label: 'Department Management', path: '/admin/departments' },
   { label: 'Consultation Types', path: '/admin/consultation-types' },
   { label: 'Doctor Availability Calendar', path: '/admin/schedules' },
