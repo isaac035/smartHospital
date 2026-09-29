@@ -5,6 +5,7 @@ import { bookAppointment } from '../../services/appointmentService'
 import SlotPicker from '../../components/appointments/SlotPicker'
 import PatientLookupInput from '../../components/appointments/PatientLookupInput'
 import { useAuth } from '../../hooks/useAuth'
+import { useBookableDoctors } from '../../hooks/useBookableDoctors'
 
 const adminNav = ['Dashboard', 'User Management', 'Doctor Management', 'Department Management', 'Appointments', 'Reports', 'Settings']
 const staffNav = ['Dashboard', 'Patients', 'Appointments', 'Queue Management', 'Resources']
@@ -20,11 +21,7 @@ export default function BookAppointment() {
 
   const [patientId, setPatientId] = useState('')
   const [doctorId, setDoctorId] = useState('')
-  // Hardcoding options since Doctor Management is another module's responsibility
-  const doctorOptions = [
-    { id: 2, name: 'Dr. Bob' },
-    { id: 10, name: 'Dr. Smith' }
-  ]
+  const doctorOptions = useBookableDoctors()
 
   const [appointmentType, setAppointmentType] = useState('1') // General
   const [priority, setPriority] = useState('1') // Normal

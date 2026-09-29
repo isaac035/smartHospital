@@ -1,10 +1,12 @@
 import '../../core/constants/api_constants.dart';
 import '../../core/network/api_client.dart';
+import '../../core/network/api_exception.dart';
 import '../models/emr/medical_record_model.dart';
 import '../models/emr/patient_medical_profile_model.dart';
 import '../models/emr/prescription_model.dart';
 import '../models/emr/vital_sign_model.dart';
 import '../models/emr/lab_order_model.dart';
+import '../models/emr/timeline_event_model.dart';
 
 class EmrService {
   final ApiClient _apiClient;
@@ -14,7 +16,15 @@ class EmrService {
   Future<PatientMedicalProfileModel?> getPatientProfile(int patientId) async {
     try {
       final response = await _apiClient.get('${ApiConstants.patientProfiles}/patient/$patientId');
-      return PatientMedicalProfileModel.fromJson(response);
+      if (response is Map<String, dynamic>) {
+        return PatientMedicalProfileModel.fromJson(response);
+      }
+      return null;
+    } on ApiException catch (e) {
+      if (e.statusCode == 404) {
+        return null;
+      }
+      rethrow;
     } catch (_) {
       return null;
     }
@@ -26,6 +36,27 @@ class EmrService {
       return response.map((e) => MedicalRecordModel.fromJson(e)).toList();
     }
     return [];
+  }
+
+  Future<MedicalRecordModel?> getMedicalRecordById(int id) async {
+    try {
+      final response = await _apiClient.get('${ApiConstants.medicalRecords}/$id');
+      if (response is Map<String, dynamic>) {
+        return MedicalRecordModel.fromJson(response);
+      }
+      return null;
+    } on ApiException catch (e) {
+      if (e.statusCode == 404) return null;
+      rethrow;
+    }
+  }
+
+  Future<PatientTimelineModel?> getMedicalTimeline(int patientId) async {
+    final response = await _apiClient.get('${ApiConstants.medicalHistory}/patient/$patientId');
+    if (response is Map<String, dynamic>) {
+      return PatientTimelineModel.fromJson(response);
+    }
+    return null;
   }
 
   Future<List<VitalSignModel>> getVitals(int patientId) async {

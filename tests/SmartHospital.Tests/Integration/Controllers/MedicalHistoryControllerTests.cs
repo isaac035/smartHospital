@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SmartHospital.Api.Controllers;
@@ -154,7 +155,7 @@ public class MedicalHistoryControllerTests
     }
 
     [Fact]
-    public async Task GetPatientTimelineAlias_ReturnsSameResultAsMainEndpoint()
+    public async Task GetPatientTimeline_WhenServiceThrowsArgumentException_ReturnsBadRequest()
     {
         var service = new StubMedicalHistoryService();
         var controller = new MedicalHistoryController(service)
@@ -162,10 +163,30 @@ public class MedicalHistoryControllerTests
             ControllerContext = CreateContext("Doctor", "5")
         };
 
-        var result = await controller.GetPatientTimelineAlias(10);
+        // Negative ID throws ArgumentException in stub
+        var result = await controller.GetPatientTimeline(-1);
 
-        var okResult = Assert.IsType<OkObjectResult>(result);
-        var timeline = Assert.IsType<PatientMedicalTimelineResponse>(okResult.Value);
-        Assert.Equal(10, timeline.PatientId);
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task GetPatientTimelineAlias_WhenUnauthorizedPatient_ReturnsForbid()
+    {
+        var service = new StubMedicalHistoryService();
+        var controller = new MedicalHistoryController(service)
+        {
+            ControllerContext = CreateContext("Patient", "10")
+        };
+
+        var result = await controller.GetPatientTimelineAlias(20);
+
+        Assert.IsType<ForbidResult>(result);
+    }
+
+    [Fact]
+    public void Controller_HasAuthorizeAttribute()
+    {
+        var authAttr = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<AuthorizeAttribute>(typeof(MedicalHistoryController));
+        Assert.NotNull(authAttr);
     }
 }

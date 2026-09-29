@@ -69,3 +69,38 @@ form { display: grid; gap: 9px; } label { font-size: .9rem; font-weight: 650; } 
 .calendar-page .rbc-toolbar button { color: var(--color-secondary); }
 .calendar-page .rbc-event { background: var(--color-accent); }
 .calendar-page .rbc-today { background: color-mix(in srgb, var(--color-accent) 8%, var(--color-primary)); }
+
+/* Badges & Status */
+.badge-primary { color: var(--color-primary); background: var(--color-accent); }
+.badge-secondary { color: #475569; background: color-mix(in srgb, var(--color-secondary) 15%, var(--color-primary)); }
+.badge-danger { color: #b3261e; background: color-mix(in srgb, #b3261e 14%, var(--color-primary)); }
+.badge-warning { color: #a15c00; background: color-mix(in srgb, #a15c00 14%, var(--color-primary)); }
+.badge-success { color: #0f7a3d; background: color-mix(in srgb, #0f7a3d 14%, var(--color-primary)); }
+.badge-info { color: #0284c7; background: color-mix(in srgb, #0284c7 14%, var(--color-primary)); }
+
+/* Clinical Workspace & Patient Banner */
+.patient-banner { background: var(--color-primary); border: 1px solid color-mix(in srgb, var(--color-secondary) 15%, var(--color-primary)); border-radius: 12px; padding: 20px; box-shadow: 0 4px 14px color-mix(in srgb, var(--color-accent) 5%, transparent); }
+.patient-banner-title { font-size: 1.35rem; font-weight: 750; color: var(--color-accent); margin: 0; }
+.allergy-alert { background: #fee2e2; border-left: 4px solid #ef4444; color: #991b1b; padding: 10px 14px; border-radius: 6px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+
+/* Clinical Tabs */
+.clinical-tabs { display: flex; flex-wrap: wrap; gap: 6px; border-bottom: 2px solid color-mix(in srgb, var(--color-secondary) 15%, var(--color-primary)); margin-bottom: 22px; padding-bottom: 2px; }
+.clinical-tab-button { padding: 10px 16px; border: 0; background: transparent; color: color-mix(in srgb, var(--color-secondary) 75%, var(--color-primary)); font-weight: 650; font-size: .92rem; border-radius: 8px 8px 0 0; border-bottom: 3px solid transparent; transition: all .15s ease; cursor: pointer; }
+.clinical-tab-button:hover { color: var(--color-accent); background: color-mix(in srgb, var(--color-accent) 4%, var(--color-primary)); }
+.clinical-tab-button.active { color: var(--color-accent); border-bottom-color: var(--color-accent); background: color-mix(in srgb, var(--color-accent) 6%, var(--color-primary)); }
+
+/* Timeline */
+.timeline-container { position: relative; padding-left: 28px; display: flex; flex-direction: column; gap: 20px; }
+.timeline-container::before { content: ''; position: absolute; left: 10px; top: 8px; bottom: 8px; width: 2px; background: color-mix(in srgb, var(--color-secondary) 18%, var(--color-primary)); }
+.timeline-item { position: relative; }
+.timeline-dot { position: absolute; left: -26px; top: 4px; width: 18px; height: 18px; border-radius: 50%; background: var(--color-accent); border: 3px solid var(--color-primary); box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 25%, transparent); }
+.timeline-card { border: 1px solid color-mix(in srgb, var(--color-secondary) 15%, var(--color-primary)); border-radius: 10px; padding: 14px 18px; background: var(--color-primary); }
+
+/* Vitals Cards */
+.vitals-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; }
+.vitals-card { background: color-mix(in srgb, var(--color-accent) 3%, var(--color-primary)); border: 1px solid color-mix(in srgb, var(--color-secondary) 15%, var(--color-primary)); border-radius: 10px; padding: 12px; text-align: center; }
+.vitals-card .vitals-value { font-size: 1.35rem; font-weight: 750; color: var(--color-accent); margin: 4px 0 2px; }
+.vitals-card .vitals-label { font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; color: color-mix(in srgb, var(--color-secondary) 65%, var(--color-primary)); font-weight: 600; }
+.vitals-card.abnormal { border-color: #f87171; background: #fef2f2; }
+.vitals-card.abnormal .vitals-value { color: #dc2626; }
+

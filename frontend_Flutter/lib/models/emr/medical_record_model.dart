@@ -9,6 +9,11 @@ class MedicalRecordModel {
   final String chiefComplaint;
   final String diagnosis;
   final DateTime? followUpDate;
+  final String? symptoms;
+  final String? examinationNotes;
+  final String? treatmentPlan;
+  final DateTime? createdAt;
+  final int? appointmentId;
 
   MedicalRecordModel({
     required this.id,
@@ -21,6 +26,11 @@ class MedicalRecordModel {
     required this.chiefComplaint,
     required this.diagnosis,
     this.followUpDate,
+    this.symptoms,
+    this.examinationNotes,
+    this.treatmentPlan,
+    this.createdAt,
+    this.appointmentId,
   });
 
   factory MedicalRecordModel.fromJson(Map<String, dynamic> json) {
@@ -39,6 +49,13 @@ class MedicalRecordModel {
       followUpDate: json['followUpDate'] != null
           ? DateTime.tryParse(json['followUpDate'])
           : null,
+      symptoms: json['symptoms'],
+      examinationNotes: json['examinationNotes'],
+      treatmentPlan: json['treatmentPlan'],
+      createdAt: json['createdAt'] != null
+          ? DateTime.tryParse(json['createdAt'])
+          : null,
+      appointmentId: json['appointmentId'],
     );
   }
 }

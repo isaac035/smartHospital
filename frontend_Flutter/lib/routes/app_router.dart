@@ -12,9 +12,9 @@ import '../screens/profile/edit_profile_screen.dart';
 import '../screens/profile/change_password_screen.dart';
 import '../screens/doctors/doctor_directory_screen.dart';
 import '../screens/doctors/doctor_details_screen.dart';
-import '../screens/doctors/doctor_schedule_screen.dart';
 import '../screens/doctors/doctor_availability_screen.dart';
 import '../screens/emr/patient_medical_records_screen.dart';
+import '../screens/emr/patient_clinical_history_screen.dart';
 import '../screens/emr/patient_vitals_screen.dart';
 import '../screens/emr/patient_prescriptions_screen.dart';
 import '../screens/emr/patient_lab_reports_screen.dart';
@@ -210,11 +210,16 @@ class AppRouter {
           ),
           routes: [
             GoRoute(
-              parentNavigatorKey: _rootNavigatorKey,
-              path: 'schedule',
-              builder: (context, state) => DoctorScheduleScreen(
-                doctorId: int.parse(state.pathParameters['doctorId']!),
-              ),
+              path: 'timeline',
+              builder: (context, state) => const PatientClinicalHistoryScreen(),
+            ),
+            GoRoute(
+              path: 'vitals',
+              builder: (context, state) => const PatientVitalsScreen(),
+            ),
+            GoRoute(
+              path: 'prescriptions',
+              builder: (context, state) => const PatientPrescriptionsScreen(),
             ),
             GoRoute(
               parentNavigatorKey: _rootNavigatorKey,
