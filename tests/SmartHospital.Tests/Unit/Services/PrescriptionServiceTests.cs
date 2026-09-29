@@ -504,4 +504,372 @@ public class PrescriptionServiceTests
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.GetByPatientIdAsync(999));
         Assert.Equal("Patient with ID 999 was not found.", ex.Message);
     }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-5)]
+    public async Task GetByIdAsync_WithInvalidId_ReturnsNull(int id)
+    {
+        // Arrange
+        using var context = CreateInMemoryDbContext();
+        var service = new PrescriptionService(context);
+
+        // Act
+        var result = await service.GetByIdAsync(id);
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_WithNonExistentId_ReturnsNull()
+    {
+        // Arrange
+        using var context = CreateInMemoryDbContext();
+        var service = new PrescriptionService(context);
+
+        // Act
+        var result = await service.GetByIdAsync(999);
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_WithExistingPrescription_ReturnsFullResponse()
+    {
+        // Arrange
+        using var context = CreateInMemoryDbContext();
+        var (patient, doctor) = SeedDefaultUsers(context, 10, 20);
+
+        var prescription = new Prescription
+        {
+            Id = 50,
+            PrescriptionNumber = "RX-20260901",
+            PatientId = 10,
+            DoctorId = 20,
+            IssueDate = DateTime.UtcNow,
+            ExpiryDate = DateTime.UtcNow.AddDays(30),
+            Status = PrescriptionStatus.Active,
+            GeneralInstructions = "Take after breakfast",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+            Items = new List<PrescriptionItem>
+            {
+                new()
+                {
+                    MedicineName = "Amoxicillin",
+                    Dosage = "500mg",
+                    Route = "Oral",
+                    Frequency = "TDS",
+                    DurationDays = 7,
+                    SpecialInstructions = "Complete the course"
+                }
+            }
+        };
+        context.Prescriptions.Add(prescription);
+        await context.SaveChangesAsync();
+
+        var service = new PrescriptionService(context);
+
+        // Act
+        var result = await service.GetByIdAsync(50);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(50, result.Id);
+        Assert.Equal("RX-20260901", result.PrescriptionNumber);
+        Assert.Equal(10, result.PatientId);
+        Assert.Equal("Alice Johnson", result.PatientName);
+        Assert.Equal(20, result.DoctorId);
+        Assert.Equal("Dr. Robert Chen", result.DoctorName);
+        Assert.Equal("Active", result.Status);
+        Assert.Single(result.Items);
+        Assert.Equal("Amoxicillin", result.Items[0].MedicineName);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenRequestIsNull_ThrowsArgumentNullException()
+    {
+        // Arrange
+        using var context = CreateInMemoryDbContext();
+        var service = new PrescriptionService(context);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentNullException>(() => service.CreateAsync(20, null!));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public async Task CreateAsync_WhenDoctorIdIsInvalid_ThrowsArgumentException(int doctorId)
+    {
+        // Arrange
+        using var context = CreateInMemoryDbContext();
+        var service = new PrescriptionService(context);
+        var request = new CreatePrescriptionRequest
+        {
+            PatientId = 10,
+            Items = new List<CreatePrescriptionItemRequest> { new() { MedicineName = "Meds", Dosage = "1", Frequency = "1", DurationDays = 1 } }
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentException>(() => service.CreateAsync(doctorId, request));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public async Task CreateAsync_WhenPatientIdIsInvalid_ThrowsArgumentException(int patientId)
+    {
+        // Arrange
+        using var context = CreateInMemoryDbContext();
+        var service = new PrescriptionService(context);
+        var request = new CreatePrescriptionRequest
+        {
+            PatientId = patientId,
+            Items = new List<CreatePrescriptionItemRequest> { new() { MedicineName = "Meds", Dosage = "1", Frequency = "1", DurationDays = 1 } }
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentException>(() => service.CreateAsync(20, request));
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenItemsIsNull_ThrowsArgumentException()
+    {
+        // Arrange
+        using var context = CreateInMemoryDbContext();
+        var service = new PrescriptionService(context);
+        var request = new CreatePrescriptionRequest
+        {
+            PatientId = 10,
+            Items = null!
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentException>(() => service.CreateAsync(20, request));
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenItemsIsEmpty_ThrowsArgumentException()
+    {
+        // Arrange
+        using var context = CreateInMemoryDbContext();
+        var service = new PrescriptionService(context);
+        var request = new CreatePrescriptionRequest
+        {
+            PatientId = 10,
+            Items = new List<CreatePrescriptionItemRequest>()
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentException>(() => service.CreateAsync(20, request));
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenDoctorNotFound_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        using var context = CreateInMemoryDbContext();
+        SeedDefaultUsers(context, 10, 20);
+        await context.SaveChangesAsync();
+
+        var service = new PrescriptionService(context);
+        var request = new CreatePrescriptionRequest
+        {
+            PatientId = 10,
+            Items = new List<CreatePrescriptionItemRequest> { new() { MedicineName = "Meds", Dosage = "1", Frequency = "1", DurationDays = 1 } }
+        };
+
+        // Act & Assert: Doctor 999 does not exist
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(999, request));
+        Assert.Equal("Active doctor not found.", ex.Message);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenPatientNotFound_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        using var context = CreateInMemoryDbContext();
+        SeedDefaultUsers(context, 10, 20);
+        await context.SaveChangesAsync();
+
+        var service = new PrescriptionService(context);
+        var request = new CreatePrescriptionRequest
+        {
+            PatientId = 999, // Does not exist
+            Items = new List<CreatePrescriptionItemRequest> { new() { MedicineName = "Meds", Dosage = "1", Frequency = "1", DurationDays = 1 } }
+        };
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(20, request));
+        Assert.Equal("Active patient not found.", ex.Message);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public async Task CreateAsync_WhenMedicalRecordIdIsZeroOrNegative_ThrowsArgumentException(int medRecordId)
+    {
+        // Arrange
+        using var context = CreateInMemoryDbContext();
+        SeedDefaultUsers(context, 10, 20);
+        await context.SaveChangesAsync();
+
+        var service = new PrescriptionService(context);
+        var request = new CreatePrescriptionRequest
+        {
+            PatientId = 10,
+            MedicalRecordId = medRecordId,
+            Items = new List<CreatePrescriptionItemRequest> { new() { MedicineName = "Meds", Dosage = "1", Frequency = "1", DurationDays = 1 } }
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentException>(() => service.CreateAsync(20, request));
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenMedicalRecordDoesNotExist_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        using var context = CreateInMemoryDbContext();
+        SeedDefaultUsers(context, 10, 20);
+        await context.SaveChangesAsync();
+
+        var service = new PrescriptionService(context);
+        var request = new CreatePrescriptionRequest
+        {
+            PatientId = 10,
+            MedicalRecordId = 999, // Does not exist
+            Items = new List<CreatePrescriptionItemRequest> { new() { MedicineName = "Meds", Dosage = "1", Frequency = "1", DurationDays = 1 } }
+        };
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(20, request));
+        Assert.Equal("Medical record not found.", ex.Message);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenMedicalRecordBelongsToDifferentPatient_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        using var context = CreateInMemoryDbContext();
+        var (patient, doctor) = SeedDefaultUsers(context, 10, 20);
+
+        var otherPatient = new User
+        {
+            Id = 30,
+            FirstName = "Other",
+            LastName = "Patient",
+            Email = "other@example.com",
+            PasswordHash = "hash",
+            Role = UserRole.Patient,
+            Status = UserStatus.Active
+        };
+        context.Users.Add(otherPatient);
+
+        // Medical record belongs to patient 30
+        var record = new MedicalRecord
+        {
+            Id = 88,
+            RecordNumber = "REC-088",
+            PatientId = 30,
+            DoctorId = 20,
+            ChiefComplaint = "Complaint",
+            Diagnosis = "Diagnosis",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        context.MedicalRecords.Add(record);
+        await context.SaveChangesAsync();
+
+        var service = new PrescriptionService(context);
+        var request = new CreatePrescriptionRequest
+        {
+            PatientId = 10, // Requesting for patient 10, but record belongs to 30
+            MedicalRecordId = 88,
+            Items = new List<CreatePrescriptionItemRequest> { new() { MedicineName = "Meds", Dosage = "1", Frequency = "1", DurationDays = 1 } }
+        };
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(20, request));
+        Assert.Equal("Medical record does not belong to the specified patient.", ex.Message);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenExpiryDateMoreThanOneYearInFuture_ThrowsArgumentException()
+    {
+        // Arrange
+        using var context = CreateInMemoryDbContext();
+        SeedDefaultUsers(context, 10, 20);
+        await context.SaveChangesAsync();
+
+        var service = new PrescriptionService(context);
+        var request = new CreatePrescriptionRequest
+        {
+            PatientId = 10,
+            ExpiryDate = DateTime.UtcNow.AddDays(400), // Exceeds 1 year
+            Items = new List<CreatePrescriptionItemRequest> { new() { MedicineName = "Meds", Dosage = "1", Frequency = "1", DurationDays = 1 } }
+        };
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<ArgumentException>(() => service.CreateAsync(20, request));
+        Assert.Contains("Expiry date cannot be more than 1 year in the future.", ex.Message);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenGeneralInstructionsExceeds1000Chars_ThrowsArgumentException()
+    {
+        // Arrange
+        using var context = CreateInMemoryDbContext();
+        SeedDefaultUsers(context, 10, 20);
+        await context.SaveChangesAsync();
+
+        var service = new PrescriptionService(context);
+        var request = new CreatePrescriptionRequest
+        {
+            PatientId = 10,
+            GeneralInstructions = new string('G', 1001),
+            Items = new List<CreatePrescriptionItemRequest> { new() { MedicineName = "Meds", Dosage = "1", Frequency = "1", DurationDays = 1 } }
+        };
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<ArgumentException>(() => service.CreateAsync(20, request));
+        Assert.Contains("General instructions cannot exceed 1000 characters.", ex.Message);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenItemRouteIsEmpty_DefaultsToOral()
+    {
+        // Arrange
+        using var context = CreateInMemoryDbContext();
+        SeedDefaultUsers(context, 10, 20);
+        await context.SaveChangesAsync();
+
+        var service = new PrescriptionService(context);
+        var request = new CreatePrescriptionRequest
+        {
+            PatientId = 10,
+            Items = new List<CreatePrescriptionItemRequest>
+            {
+                new()
+                {
+                    MedicineName = "Paracetamol",
+                    Dosage = "500mg",
+                    Route = "", // Empty route should fallback to "Oral"
+                    Frequency = "TDS",
+                    DurationDays = 5
+                }
+            }
+        };
+
+        // Act
+        var result = await service.CreateAsync(20, request);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Single(result.Items);
+        Assert.Equal("Oral", result.Items[0].Route);
+    }
 }

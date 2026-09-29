@@ -1,3 +1,4 @@
+// ignore_for_file: use_null_aware_elements
 import 'package:intl/intl.dart';
 
 import '../core/constants/api_constants.dart';
@@ -18,7 +19,8 @@ class LeaveService {
       ApiConstants.leaves,
       queryParameters: {
         if (doctorId != null) 'doctorId': doctorId,
-        if (fromDate != null) 'fromDate': DateFormat('yyyy-MM-dd').format(fromDate),
+        if (fromDate != null)
+          'fromDate': DateFormat('yyyy-MM-dd').format(fromDate),
         if (toDate != null) 'toDate': DateFormat('yyyy-MM-dd').format(toDate),
       },
     );

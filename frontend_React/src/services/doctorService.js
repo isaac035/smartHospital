@@ -25,6 +25,11 @@ export async function deactivateDoctor(id) {
   return response.data
 }
 
+export async function activateDoctor(id) {
+  const response = await api.post(`/doctors/${id}/activate`)
+  return response.data
+}
+
 export async function searchAvailableDoctors(criteria = {}) {
   const response = await api.get('/doctors/available', { params: criteria })
   return response.data

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:smart_hospital/core/theme/app_theme.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -13,7 +14,8 @@ class DoctorAvailabilityScreen extends StatefulWidget {
   const DoctorAvailabilityScreen({super.key, required this.doctorId});
 
   @override
-  State<DoctorAvailabilityScreen> createState() => _DoctorAvailabilityScreenState();
+  State<DoctorAvailabilityScreen> createState() =>
+      _DoctorAvailabilityScreenState();
 }
 
 class _DoctorAvailabilityScreenState extends State<DoctorAvailabilityScreen> {
@@ -24,7 +26,10 @@ class _DoctorAvailabilityScreenState extends State<DoctorAvailabilityScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      context.read<DoctorProvider>().checkAvailability(widget.doctorId, _selectedDate);
+      context.read<DoctorProvider>().checkAvailability(
+        widget.doctorId,
+        _selectedDate,
+      );
     });
   }
 
@@ -38,7 +43,10 @@ class _DoctorAvailabilityScreenState extends State<DoctorAvailabilityScreen> {
     if (picked != null) {
       setState(() => _selectedDate = picked);
       if (mounted) {
-        context.read<DoctorProvider>().checkAvailability(widget.doctorId, picked);
+        context.read<DoctorProvider>().checkAvailability(
+          widget.doctorId,
+          picked,
+        );
       }
     }
   }
@@ -55,11 +63,18 @@ class _DoctorAvailabilityScreenState extends State<DoctorAvailabilityScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Card(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: ListTile(
                 leading: const Icon(Icons.calendar_today),
-                title: Text(DateFormat('EEEE, MMM d, yyyy').format(_selectedDate)),
-                trailing: TextButton(onPressed: _pickDate, child: const Text('Change')),
+                title: Text(
+                  DateFormat('EEEE, MMM d, yyyy').format(_selectedDate),
+                ),
+                trailing: TextButton(
+                  onPressed: _pickDate,
+                  child: const Text('Change'),
+                ),
               ),
             ),
             const SizedBox(height: 16),
@@ -100,10 +115,17 @@ class _DoctorAvailabilityScreenState extends State<DoctorAvailabilityScreen> {
                     const SizedBox(height: 12),
                     for (final slot in provider.availabilitySlotsForDate)
                       Card(
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                         child: ListTile(
-                          leading: const Icon(Icons.access_time, color: Colors.green),
-                          title: Text('${formatTimeOfDayString(slot.startTime)} – ${formatTimeOfDayString(slot.endTime)}'),
+                          leading: const Icon(
+                            Icons.access_time,
+                            color: AppTheme.successColor,
+                          ),
+                          title: Text(
+                            '${formatTimeOfDayString(slot.startTime)} – ${formatTimeOfDayString(slot.endTime)}',
+                          ),
                           subtitle: Text(slot.consultationTypeName),
                         ),
                       ),

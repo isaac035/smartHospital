@@ -22,7 +22,6 @@ public class UsersController : ControllerBase
     public async Task<IActionResult> GetAll()
     {
         var users = await _userService.GetAllAsync();
-
         return Ok(users);
     }
 

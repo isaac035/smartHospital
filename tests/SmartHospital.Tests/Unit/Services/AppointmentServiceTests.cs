@@ -24,7 +24,6 @@ public class AppointmentServiceTests
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            // In-memory provider has no transactions; the services still open one
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
         return new AppDbContext(options);
@@ -64,7 +63,7 @@ public class AppointmentServiceTests
     // ── Happy path: booking ───────────────────────────────────────────────────
 
     [Fact]
-    public async Task BookAppointment_ValidSlot_CreatesAppointmentWithReferenceAndQueueNumber()
+    public async Task BookAppointment_ValidRequest_CreatesAppointmentWithoutQueueUntilCheckIn()
     {
         // Arrange
         using var ctx = CreateContext();
@@ -77,8 +76,7 @@ public class AppointmentServiceTests
             DoctorId  = 2,
             AppointmentType = AppointmentType.General,
             ScheduledStart  = DateTime.UtcNow.AddDays(1),
-            EstimatedDurationMinutes = 30,
-            Priority = AppointmentPriority.Normal
+            EstimatedDurationMinutes = 30
         };
 
         // Act
@@ -87,8 +85,169 @@ public class AppointmentServiceTests
         // Assert
         Assert.NotNull(result);
         Assert.StartsWith("APT-", result.ReferenceNumber);
-        Assert.Equal(1, result.QueueNumber);
+        Assert.Null(result.QueueNumber);
+        Assert.Empty(ctx.QueueEntries);
         Assert.Equal("Scheduled", result.Status);
+        Assert.Equal("Normal", result.Priority);
+        Assert.False(result.PriorityNeedsReview);
+    }
+
+    [Fact]
+    public async Task BookAppointment_InvalidPriority_IsRejected()
+    {
+        using var ctx = CreateContext();
+        var (svc, _) = BuildService(ctx);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.BookAppointmentAsync(
+            requestingUserId: 1,
+            new CreateAppointmentRequest { Priority = (AppointmentPriority)99 }));
+    }
+
+    [Theory]
+    [InlineData(AppointmentPriority.Urgent)]
+    [InlineData(AppointmentPriority.Emergency)]
+    public async Task BookAppointment_PatientPriorityIsRecordedAsRequestUntilStaffApproves(AppointmentPriority requestedPriority)
+    {
+        using var ctx = CreateContext();
+        var (svc, _) = BuildService(ctx);
+        await SeedUsersAsync(ctx);
+
+        var result = await svc.BookAppointmentAsync(1, new CreateAppointmentRequest
+        {
+            PatientId = 1,
+            DoctorId = 2,
+            AppointmentType = AppointmentType.General,
+            ScheduledStart = DateTime.UtcNow.AddDays(1),
+            EstimatedDurationMinutes = 30,
+            Priority = requestedPriority
+        });
+        var appointment = await ctx.Appointments.SingleAsync(a => a.Id == result.Id);
+
+        Assert.Equal(requestedPriority.ToString(), result.Priority);
+        Assert.True(result.PriorityNeedsReview);
+        Assert.Equal(AppointmentPriority.Normal, appointment.Priority);
+        Assert.Equal(requestedPriority, appointment.RequestedPriority);
+
+        var filtered = await svc.GetAppointmentsAsync(2, "Admin", new AppointmentQueryFilter
+        {
+            Priority = requestedPriority
+        });
+        Assert.Contains(filtered, item => item.Id == result.Id);
+    }
+
+    [Fact]
+    public async Task GetAppointmentsPage_CombinesDoctorPriorityDatesAndCountsAcrossAllPages()
+    {
+        using var ctx = CreateContext();
+        var (svc, _) = BuildService(ctx);
+        await SeedUsersAsync(ctx);
+        ctx.Users.Add(new User
+        {
+            Id = 3, FirstName = "Other", LastName = "Doctor",
+            Email = "other-doctor@test.com", PasswordHash = "hash",
+            Role = UserRole.Doctor, Status = UserStatus.Active,
+            CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow
+        });
+        var firstDate = DateTime.UtcNow.Date.AddDays(2);
+        var matching = new[]
+        {
+            new Appointment { PatientId = 1, DoctorId = 2, ReferenceNumber = "APT-PAGE-1", ScheduledStart = firstDate.AddHours(9), EstimatedDurationMinutes = 30, Status = AppointmentStatus.Scheduled, Priority = AppointmentPriority.Normal, RequestedPriority = AppointmentPriority.Urgent, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
+            new Appointment { PatientId = 1, DoctorId = 2, ReferenceNumber = "APT-PAGE-2", ScheduledStart = firstDate.AddHours(10), EstimatedDurationMinutes = 30, Status = AppointmentStatus.InProgress, Priority = AppointmentPriority.Urgent, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
+            new Appointment { PatientId = 1, DoctorId = 2, ReferenceNumber = "APT-PAGE-3", ScheduledStart = firstDate.AddHours(11), EstimatedDurationMinutes = 30, Status = AppointmentStatus.Scheduled, Priority = AppointmentPriority.Emergency, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
+            new Appointment { PatientId = 1, DoctorId = 3, ReferenceNumber = "APT-PAGE-4", ScheduledStart = firstDate.AddHours(12), EstimatedDurationMinutes = 30, Status = AppointmentStatus.Scheduled, Priority = AppointmentPriority.Urgent, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
+        };
+        ctx.Appointments.AddRange(matching);
+        await ctx.SaveChangesAsync();
+
+        var result = await svc.GetAppointmentsPageAsync(1, "Admin", new AppointmentQueryFilter
+        {
+            DoctorId = 2,
+            Priority = AppointmentPriority.Urgent,
+            FromDate = firstDate,
+            ToDate = firstDate.AddDays(1),
+            Page = 1,
+            PageSize = 1
+        });
+
+        Assert.Equal(2, result.TotalCount);
+        Assert.Single(result.Appointments);
+        Assert.Equal(2, result.TotalPages);
+        Assert.Equal(1, result.StatusCounts[nameof(AppointmentStatus.Scheduled)]);
+        Assert.Equal(1, result.StatusCounts[nameof(AppointmentStatus.InProgress)]);
+        Assert.Equal(2, result.PriorityCounts[nameof(AppointmentPriority.Urgent)]);
+    }
+
+    [Fact]
+    public async Task UpdateAppointmentPriority_UpdatesAppointmentAndQueueEntry()
+    {
+        using var ctx = CreateContext();
+        var (svc, _) = BuildService(ctx);
+        await SeedUsersAsync(ctx);
+        var appointment = new Appointment
+        {
+            PatientId = 1, DoctorId = 2,
+            ReferenceNumber = "APT-PRIORITY-0001",
+            ScheduledStart = DateTime.UtcNow.AddDays(1),
+            EstimatedDurationMinutes = 30,
+            Status = AppointmentStatus.CheckedIn,
+            Priority = AppointmentPriority.Emergency,
+            CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow
+        };
+        ctx.Appointments.Add(appointment);
+        await ctx.SaveChangesAsync();
+        var queueEntry = new QueueEntry
+        {
+            AppointmentId = appointment.Id,
+            DoctorId = 2,
+            QueueNumber = 1,
+            QueueCode = "Q-TEST-001",
+            QueueDate = DateOnly.FromDateTime(appointment.ScheduledStart),
+            Status = QueueEntryStatus.Waiting,
+            Priority = AppointmentPriority.Emergency
+        };
+        ctx.QueueEntries.Add(queueEntry);
+        await ctx.SaveChangesAsync();
+
+        var result = await svc.UpdateAppointmentPriorityAsync(
+            appointment.Id, AppointmentPriority.Normal, staffUserId: 2);
+
+        Assert.Equal("Normal", result.Priority);
+        Assert.False(result.PriorityNeedsReview);
+        Assert.Equal(AppointmentPriority.Normal, appointment.Priority);
+        Assert.Null(appointment.RequestedPriority);
+        Assert.Equal(AppointmentPriority.Normal, queueEntry.Priority);
+        Assert.True(appointment.UpdatedAt > appointment.CreatedAt);
+    }
+
+    [Fact]
+    public async Task RescheduleAppointment_PreservesPriority()
+    {
+        using var ctx = CreateContext();
+        var (svc, _) = BuildService(ctx);
+        await SeedUsersAsync(ctx);
+        var original = new Appointment
+        {
+            PatientId = 1, DoctorId = 2,
+            ReferenceNumber = "APT-RESCHEDULE-PRIORITY",
+            ScheduledStart = DateTime.UtcNow.AddDays(2),
+            EstimatedDurationMinutes = 30,
+            Status = AppointmentStatus.Scheduled,
+            Priority = AppointmentPriority.Normal,
+            RequestedPriority = AppointmentPriority.Urgent,
+            CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow
+        };
+        ctx.Appointments.Add(original);
+        await ctx.SaveChangesAsync();
+
+        var result = await svc.RescheduleAppointmentAsync(
+            original.Id,
+            new RescheduleAppointmentRequest { NewScheduledStart = DateTime.UtcNow.AddDays(3) },
+            requestingUserId: 1,
+            requestingUserRole: "Patient");
+
+        Assert.Equal("Urgent", result.Priority);
+        Assert.True(result.PriorityNeedsReview);
+        Assert.Equal(AppointmentStatus.Rescheduled, original.Status);
     }
 
     // ── Slot must be in the future ────────────────────────────────────────────
@@ -176,8 +335,8 @@ public class AppointmentServiceTests
 
         Assert.NotNull(r1);
         Assert.NotNull(r2);
-        Assert.Equal(1, r1.QueueNumber);
-        Assert.Equal(2, r2.QueueNumber);
+        Assert.Null(r1.QueueNumber);
+        Assert.Null(r2.QueueNumber);
     }
 
     // ── Invalid patient ───────────────────────────────────────────────────────
@@ -264,6 +423,63 @@ public class AppointmentServiceTests
             () => svc.CancelAppointmentAsync(apt.Id,
                 new CancelAppointmentRequest { Reason = "Test" },
                 requestingUserId: 1, requestingUserRole: "Staff"));
+    }
+
+    [Fact]
+    public async Task ConfirmAppointment_Scheduled_ConfirmsAndAuditsStaffAndTime()
+    {
+        using var ctx = CreateContext();
+        var (svc, _) = BuildService(ctx);
+        await SeedUsersAsync(ctx);
+        var appointment = new Appointment
+        {
+            PatientId = 1, DoctorId = 2,
+            ReferenceNumber = "APT-CONFIRM-0001",
+            ScheduledStart = DateTime.UtcNow.AddDays(1),
+            EstimatedDurationMinutes = 30,
+            Status = AppointmentStatus.Scheduled,
+            Priority = AppointmentPriority.Normal,
+            CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow
+        };
+        ctx.Appointments.Add(appointment);
+        await ctx.SaveChangesAsync();
+
+        var result = await svc.ConfirmAppointmentAsync(appointment.Id, staffUserId: 1);
+
+        Assert.Equal("Confirmed", result.Status);
+        var history = Assert.Single(ctx.AppointmentStatusHistories);
+        Assert.Equal(AppointmentStatus.Scheduled, history.OldStatus);
+        Assert.Equal(AppointmentStatus.Confirmed, history.NewStatus);
+        Assert.Equal(1, history.ChangedBy);
+        Assert.NotEqual(default, history.ChangedAt);
+    }
+
+    [Theory]
+    [InlineData(AppointmentStatus.Confirmed)]
+    [InlineData(AppointmentStatus.Cancelled)]
+    [InlineData(AppointmentStatus.InProgress)]
+    [InlineData(AppointmentStatus.Completed)]
+    public async Task ConfirmAppointment_NonScheduledStatus_IsRejected(AppointmentStatus status)
+    {
+        using var ctx = CreateContext();
+        var (svc, _) = BuildService(ctx);
+        await SeedUsersAsync(ctx);
+        var appointment = new Appointment
+        {
+            PatientId = 1, DoctorId = 2,
+            ReferenceNumber = $"APT-CONFIRM-{status}",
+            ScheduledStart = DateTime.UtcNow.AddDays(1),
+            EstimatedDurationMinutes = 30,
+            Status = status,
+            Priority = AppointmentPriority.Normal,
+            CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow
+        };
+        ctx.Appointments.Add(appointment);
+        await ctx.SaveChangesAsync();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => svc.ConfirmAppointmentAsync(appointment.Id, staffUserId: 1));
+        Assert.Empty(ctx.AppointmentStatusHistories);
     }
 
     // ── Rescheduling to a past slot must fail ─────────────────────────────────

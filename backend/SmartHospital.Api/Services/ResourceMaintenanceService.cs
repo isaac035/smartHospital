@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using SmartHospital.Api.Data;
 using SmartHospital.Api.DTOs.Maintenance;
 using SmartHospital.Api.Models;
@@ -9,10 +10,12 @@ namespace SmartHospital.Api.Services;
 public class ResourceMaintenanceService : IResourceMaintenanceService
 {
     private readonly AppDbContext _context;
+    private readonly ILogger<ResourceMaintenanceService> _logger;
 
-    public ResourceMaintenanceService(AppDbContext context)
+    public ResourceMaintenanceService(AppDbContext context, ILogger<ResourceMaintenanceService> logger)
     {
         _context = context;
+        _logger = logger;
     }
 
     public async Task<MaintenanceResponse> ScheduleMaintenanceAsync(CreateMaintenanceRequest request, int? staffUserId = null)
@@ -266,6 +269,113 @@ public class ResourceMaintenanceService : IResourceMaintenanceService
         await _context.SaveChangesAsync();
 
         return MapToMaintenanceResponse(m, m.Bed, m.MedicalResource, m.PerformedByStaff);
+    }
+
+    public async Task<int> ProcessScheduledMaintenanceAutoStartAsync(CancellationToken cancellationToken = default)
+    {
+        var nowUtc = DateTime.UtcNow;
+
+        // Query maintenance records that are Scheduled and whose ScheduledStart has arrived or passed
+        var dueRecordIds = await _context.ResourceMaintenances
+            .AsNoTracking()
+            .Where(m => m.Status == MaintenanceStatus.Scheduled && m.ScheduledStart <= nowUtc)
+            .OrderBy(m => m.ScheduledStart)
+            .Select(m => new { m.Id, m.MaintenanceCode, m.BedId, m.MedicalResourceId })
+            .ToListAsync(cancellationToken);
+
+        if (dueRecordIds.Count == 0)
+        {
+            return 0;
+        }
+
+        var startedCount = 0;
+
+        foreach (var item in dueRecordIds)
+        {
+            try
+            {
+                _context.ChangeTracker.Clear();
+                using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+
+                // 1. Concurrency safety: Atomically transition status from Scheduled -> InProgress
+                // Only one concurrent process can update the row if status is still Scheduled
+                var rowsUpdated = await _context.ResourceMaintenances
+                    .Where(m => m.Id == item.Id && m.Status == MaintenanceStatus.Scheduled)
+                    .ExecuteUpdateAsync(s => s
+                        .SetProperty(m => m.Status, MaintenanceStatus.InProgress)
+                        .SetProperty(m => m.UpdatedAt, nowUtc),
+                        cancellationToken);
+
+                if (rowsUpdated == 0)
+                {
+                    // Another instance or thread already transitioned or cancelled this record
+                    await transaction.RollbackAsync(cancellationToken);
+                    continue;
+                }
+
+                // 2. Validate target safety rules (identical to StartMaintenanceAsync)
+                if (item.BedId.HasValue)
+                {
+                    var bed = await _context.Beds
+                        .FirstOrDefaultAsync(b => b.Id == item.BedId.Value, cancellationToken);
+
+                    if (bed == null)
+                    {
+                        _logger.LogWarning("Maintenance {Code}: Target bed ID {BedId} not found. Reverting to Scheduled.", item.MaintenanceCode, item.BedId.Value);
+                        await transaction.RollbackAsync(cancellationToken);
+                        continue;
+                    }
+
+                    var hasActiveAlloc = await _context.BedAllocations
+                        .AnyAsync(ba => ba.BedId == bed.Id && ba.Status == BedAllocationStatus.Active, cancellationToken);
+
+                    if (bed.Status == BedStatus.Occupied || hasActiveAlloc)
+                    {
+                        _logger.LogInformation("Maintenance {Code}: Bed {BedNumber} is currently occupied or allocated. Keeping Scheduled until vacated.", item.MaintenanceCode, bed.BedNumber);
+                        await transaction.RollbackAsync(cancellationToken);
+                        continue;
+                    }
+
+                    bed.Status = BedStatus.Maintenance;
+                    bed.UpdatedAt = nowUtc;
+                }
+                else if (item.MedicalResourceId.HasValue)
+                {
+                    var resource = await _context.MedicalResources
+                        .FirstOrDefaultAsync(r => r.Id == item.MedicalResourceId.Value, cancellationToken);
+
+                    if (resource == null)
+                    {
+                        _logger.LogWarning("Maintenance {Code}: Target medical resource ID {ResId} not found. Reverting to Scheduled.", item.MaintenanceCode, item.MedicalResourceId.Value);
+                        await transaction.RollbackAsync(cancellationToken);
+                        continue;
+                    }
+
+                    if (resource.Status == ResourceStatus.InUse)
+                    {
+                        _logger.LogInformation("Maintenance {Code}: Medical resource {Name} ({Code}) is currently InUse. Keeping Scheduled until released.", item.MaintenanceCode, resource.Name, resource.ResourceCode);
+                        await transaction.RollbackAsync(cancellationToken);
+                        continue;
+                    }
+
+                    resource.Status = ResourceStatus.Maintenance;
+                    resource.UpdatedAt = nowUtc;
+                }
+
+                // 3. Save target status change and commit transaction
+                await _context.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+
+                startedCount++;
+                _logger.LogInformation("Maintenance {Code} automatically transitioned to InProgress. Target asset marked Maintenance.", item.MaintenanceCode);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error auto-starting maintenance record ID {Id} ({Code}).", item.Id, item.MaintenanceCode);
+            }
+        }
+
+        return startedCount;
     }
 
     private static MaintenanceResponse MapToMaintenanceResponse(

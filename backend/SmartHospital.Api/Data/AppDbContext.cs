@@ -18,6 +18,10 @@ public class AppDbContext : DbContext
     public DbSet<PrescriptionItem> PrescriptionItems => Set<PrescriptionItem>();
     public DbSet<LabOrder> LabOrders => Set<LabOrder>();
     public DbSet<LabReport> LabReports => Set<LabReport>();
+    public DbSet<ClinicalDiagnosis> ClinicalDiagnoses => Set<ClinicalDiagnosis>();
+    public DbSet<ClinicalTreatmentPlan> ClinicalTreatmentPlans => Set<ClinicalTreatmentPlan>();
+    public DbSet<MedicalRecordVersion> MedicalRecordVersions => Set<MedicalRecordVersion>();
+    public DbSet<EmrAuditLog> EmrAuditLogs => Set<EmrAuditLog>();
 
     // ── Smart Appointment & Queue Management ──────────────────────────────────
     public DbSet<Department>               Departments                => Set<Department>();
@@ -184,6 +188,21 @@ public class AppDbContext : DbContext
                 .WithOne(l => l.MedicalRecord)
                 .HasForeignKey(l => l.MedicalRecordId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasMany(m => m.Diagnoses)
+                .WithOne(d => d.MedicalRecord)
+                .HasForeignKey(d => d.MedicalRecordId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(m => m.TreatmentPlans)
+                .WithOne(t => t.MedicalRecord)
+                .HasForeignKey(t => t.MedicalRecordId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(m => m.Versions)
+                .WithOne(v => v.MedicalRecord)
+                .HasForeignKey(v => v.MedicalRecordId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         // --------------------------------------------------
@@ -381,6 +400,204 @@ public class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
+        // --------------------------------------------------
+        // EMR: ClinicalDiagnosis Configuration
+        // --------------------------------------------------
+        modelBuilder.Entity<ClinicalDiagnosis>(entity =>
+        {
+            entity.HasKey(d => d.Id);
+
+            entity.Property(d => d.Description)
+                .IsRequired()
+                .HasMaxLength(500);
+
+            entity.Property(d => d.Code)
+                .HasMaxLength(50);
+
+            entity.Property(d => d.Notes)
+                .HasMaxLength(2000);
+
+            entity.Property(d => d.Type)
+                .IsRequired();
+
+            entity.Property(d => d.Status)
+                .IsRequired();
+
+            entity.Property(d => d.Severity)
+                .IsRequired();
+
+            entity.Property(d => d.DiagnosedAt)
+                .IsRequired();
+
+            entity.Property(d => d.CreatedAt)
+                .IsRequired();
+
+            entity.Property(d => d.UpdatedAt)
+                .IsRequired();
+
+            entity.HasOne(d => d.MedicalRecord)
+                .WithMany(m => m.Diagnoses)
+                .HasForeignKey(d => d.MedicalRecordId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(d => d.Patient)
+                .WithMany()
+                .HasForeignKey(d => d.PatientId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(d => d.Doctor)
+                .WithMany()
+                .HasForeignKey(d => d.DoctorId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // --------------------------------------------------
+        // EMR: ClinicalTreatmentPlan Configuration
+        // --------------------------------------------------
+        modelBuilder.Entity<ClinicalTreatmentPlan>(entity =>
+        {
+            entity.HasKey(t => t.Id);
+
+            entity.Property(t => t.Title)
+                .IsRequired()
+                .HasMaxLength(200);
+
+            entity.Property(t => t.Description)
+                .IsRequired()
+                .HasMaxLength(2000);
+
+            entity.Property(t => t.Category)
+                .IsRequired();
+
+            entity.Property(t => t.Goals)
+                .HasMaxLength(1000);
+
+            entity.Property(t => t.Interventions)
+                .HasMaxLength(2000);
+
+            entity.Property(t => t.Status)
+                .IsRequired();
+
+            entity.Property(t => t.StartDate)
+                .IsRequired();
+
+            entity.Property(t => t.CreatedAt)
+                .IsRequired();
+
+            entity.Property(t => t.UpdatedAt)
+                .IsRequired();
+
+            entity.HasOne(t => t.MedicalRecord)
+                .WithMany(m => m.TreatmentPlans)
+                .HasForeignKey(t => t.MedicalRecordId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(t => t.Patient)
+                .WithMany()
+                .HasForeignKey(t => t.PatientId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(t => t.Doctor)
+                .WithMany()
+                .HasForeignKey(t => t.DoctorId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // --------------------------------------------------
+        // EMR: MedicalRecordVersion Configuration
+        // --------------------------------------------------
+        modelBuilder.Entity<MedicalRecordVersion>(entity =>
+        {
+            entity.HasKey(v => v.Id);
+
+            entity.Property(v => v.ChangeType)
+                .IsRequired()
+                .HasMaxLength(50);
+
+            entity.Property(v => v.ChangeSummary)
+                .HasMaxLength(1000);
+
+            entity.Property(v => v.ChiefComplaint)
+                .IsRequired()
+                .HasMaxLength(500);
+
+            entity.Property(v => v.Symptoms)
+                .HasMaxLength(1000);
+
+            entity.Property(v => v.ExaminationNotes)
+                .HasMaxLength(2000);
+
+            entity.Property(v => v.Diagnosis)
+                .IsRequired()
+                .HasMaxLength(500);
+
+            entity.Property(v => v.TreatmentPlan)
+                .HasMaxLength(2000);
+
+            entity.Property(v => v.PreviousChiefComplaint)
+                .HasMaxLength(500);
+
+            entity.Property(v => v.PreviousSymptoms)
+                .HasMaxLength(1000);
+
+            entity.Property(v => v.PreviousExaminationNotes)
+                .HasMaxLength(2000);
+
+            entity.Property(v => v.PreviousDiagnosis)
+                .HasMaxLength(500);
+
+            entity.Property(v => v.PreviousTreatmentPlan)
+                .HasMaxLength(2000);
+
+            entity.HasIndex(v => new { v.MedicalRecordId, v.VersionNumber })
+                .IsUnique();
+
+            entity.HasOne(v => v.MedicalRecord)
+                .WithMany(m => m.Versions)
+                .HasForeignKey(v => v.MedicalRecordId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(v => v.ChangedByUser)
+                .WithMany()
+                .HasForeignKey(v => v.ChangedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // --------------------------------------------------
+        // EMR: EmrAuditLog Configuration
+        // --------------------------------------------------
+        modelBuilder.Entity<EmrAuditLog>(entity =>
+        {
+            entity.HasKey(a => a.Id);
+
+            entity.Property(a => a.Action)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(a => a.EntityType)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(a => a.Metadata)
+                .HasMaxLength(1000);
+
+            entity.Property(a => a.Timestamp)
+                .IsRequired();
+
+            entity.Property(a => a.IsSuccess)
+                .IsRequired();
+
+            entity.HasIndex(a => new { a.EntityType, a.EntityId });
+            entity.HasIndex(a => a.Timestamp);
+            entity.HasIndex(a => a.PatientId);
+            entity.HasIndex(a => a.UserId);
+
+            entity.HasOne(a => a.User)
+                .WithMany()
+                .HasForeignKey(a => a.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
         // ── Smart Appointment & Queue Management ──────────────────────────────
         // Department and DoctorSchedule are configured below, under
         // "Doctor & Clinical Schedule Management Configuration" — that module owns them.
@@ -443,6 +660,9 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<QueueEntry>(entity =>
         {
             entity.HasKey(q => q.Id);
+
+            entity.Property(q => q.QueueCode).HasMaxLength(20).IsRequired();
+            entity.HasIndex(q => new { q.DoctorId, q.QueueDate, q.QueueNumber }).IsUnique();
 
             entity.HasOne(q => q.Doctor)
                 .WithMany()
@@ -920,6 +1140,8 @@ public class AppDbContext : DbContext
             entity.Property(s => s.DayOfWeek)
                 .IsRequired();
 
+            entity.Property(s => s.SpecificDate);
+
             entity.Property(s => s.StartTime)
                 .IsRequired();
 
@@ -938,6 +1160,7 @@ public class AppDbContext : DbContext
                 .IsRequired();
 
             entity.HasIndex(s => new { s.DoctorId, s.DayOfWeek });
+            entity.HasIndex(s => new { s.DoctorId, s.SpecificDate });
 
             entity.HasOne(s => s.Doctor)
                 .WithMany()

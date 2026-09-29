@@ -1,9 +1,12 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:smart_hospital/core/theme/app_theme.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import '../../core/theme/app_theme.dart';
 import '../../providers/appointment_provider.dart';
 import '../../widgets/error_message.dart';
+import '../../widgets/app_ui.dart' show AppDialog;
+import '../../widgets/app_text_field.dart';
 import 'widgets/appointment_status_badge.dart';
 import 'widgets/priority_badge.dart';
 
@@ -18,36 +21,54 @@ class AppointmentDetailsScreen extends StatefulWidget {
 }
 
 class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
+  Timer? _refreshTimer;
+  bool _refreshInProgress = false;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AppointmentProvider>().loadAppointmentDetail(
+        widget.appointmentId,
+      );
+    });
+    _refreshTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (!mounted || _refreshInProgress) return;
+      _refreshInProgress = true;
       context
           .read<AppointmentProvider>()
-          .loadAppointmentDetail(widget.appointmentId);
+          .loadAppointmentDetail(widget.appointmentId, showLoading: false)
+          .whenComplete(() => _refreshInProgress = false);
     });
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _showCancelDialog() async {
     final controller = TextEditingController();
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => AppDialog(
         title: const Text('Cancel Appointment'),
-        content: TextField(
+        content: AppTextField(
+          label: 'Reason for cancellation',
           controller: controller,
           maxLines: 3,
-          decoration: const InputDecoration(
-            hintText: 'Reason for cancellation...',
-          ),
+          hint: 'Enter a reason',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             child: const Text('Back'),
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.errorColor),
+          FilledButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.errorColor,
+            ),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Confirm Cancel'),
           ),
@@ -57,19 +78,19 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
     if (confirmed == true && controller.text.trim().isNotEmpty) {
       if (!mounted) return;
       final ok = await context.read<AppointmentProvider>().cancelAppointment(
-            widget.appointmentId,
-            controller.text.trim(),
-          );
+        widget.appointmentId,
+        controller.text.trim(),
+      );
       if (!mounted) return;
       if (ok) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Appointment cancelled.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Appointment cancelled.')));
       } else {
         final err = context.read<AppointmentProvider>().actionError;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(err ?? 'Cancellation failed.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(err ?? 'Cancellation failed.')));
       }
     }
   }
@@ -77,25 +98,38 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Appointment Details')),
+      backgroundColor: AppTheme.backgroundColor,
+      appBar: AppBar(
+        title: const Text('Appointment Details'),
+        elevation: 0,
+        backgroundColor: AppTheme.surfaceColor,
+        foregroundColor: AppTheme.textPrimary,
+      ),
       body: Consumer<AppointmentProvider>(
         builder: (context, provider, _) {
           if (provider.detailLoading) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (provider.detailError != null || provider.selectedAppointment == null) {
+          if (provider.detailError != null ||
+              provider.selectedAppointment == null) {
             return Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(24),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  ErrorMessage(
-                      message: provider.detailError ?? 'Not found.'),
-                  const SizedBox(height: 12),
-                  ElevatedButton(
-                    onPressed: () => provider
-                        .loadAppointmentDetail(widget.appointmentId),
-                    child: const Text('Retry'),
+                  const Icon(
+                    Icons.error_outline,
+                    size: 48,
+                    color: AppTheme.errorColor,
+                  ),
+                  const SizedBox(height: 16),
+                  ErrorMessage(message: provider.detailError ?? 'Not found.'),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: () =>
+                        provider.loadAppointmentDetail(widget.appointmentId),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Retry'),
                   ),
                 ],
               ),
@@ -108,105 +142,236 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // Check-in Reference Card
+                if (apt.referenceNumber.isNotEmpty &&
+                    (apt.status == 1 || apt.status == 2))
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 20),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 20,
+                      horizontal: 24,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [AppTheme.primaryColor, AppTheme.primaryColor],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        const Text(
+                          'CHECK-IN REFERENCE',
+                          style: TextStyle(
+                            color: AppTheme.onPrimary,
+                            fontSize: AppTheme.fontBodySmall,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.5,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          apt.referenceNumber,
+                          style: TextStyle(
+                            color: AppTheme.surfaceColor,
+                            fontSize: AppTheme.fontDisplaySmall,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 2,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Show this at the reception kiosk to check in.',
+                          style: TextStyle(
+                            color: AppTheme.surfaceColor,
+                            fontSize: AppTheme.fontBodyMedium,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+
                 // Header card
-                _InfoCard(children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(apt.doctorName ?? 'Unassigned',
-                                style: const TextStyle(
-                                    fontSize: 18, fontWeight: FontWeight.bold)),
-                            if (apt.departmentName != null)
-                              Text(apt.departmentName!,
+                _InfoCard(
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.person,
+                            color: AppTheme.primaryColor,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                apt.doctorName ?? 'Unassigned',
+                                style: TextStyle(
+                                  fontSize: AppTheme.fontHeadlineSmall,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              if (apt.departmentName != null)
+                                Text(
+                                  apt.departmentName!,
                                   style: TextStyle(
-                                      color: Colors.grey.shade600,
-                                      fontSize: 13)),
+                                    color: AppTheme.textSecondary,
+                                    fontSize: AppTheme.fontBodyMedium,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            AppointmentStatusBadge(status: apt.status),
+                            const SizedBox(height: 6),
+                            PriorityBadge(priority: apt.priority),
+                            if (apt.priorityNeedsReview) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                'Requested',
+                                style: TextStyle(
+                                  fontSize: AppTheme.fontTitleMedium,
+                                  color: AppTheme.textSecondary,
+                                ),
+                              ),
+                            ],
                           ],
                         ),
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          AppointmentStatusBadge(status: apt.status),
-                          const SizedBox(height: 4),
-                          PriorityBadge(priority: apt.priority),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const Divider(height: 20),
-                  _DetailRow(
-                      icon: Icons.calendar_today,
+                      ],
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: Divider(height: 1),
+                    ),
+                    _DetailRow(
+                      icon: Icons.calendar_month,
                       label: 'Date & Time',
-                      value: _fmt(apt.scheduledStart)),
-                  _DetailRow(
+                      value: _fmt(apt.scheduledStart),
+                    ),
+                    _DetailRow(
                       icon: Icons.schedule,
                       label: 'Duration',
-                      value: '${apt.estimatedDurationMinutes} minutes'),
-                  _DetailRow(
+                      value: '${apt.estimatedDurationMinutes} minutes',
+                    ),
+                    _DetailRow(
                       icon: Icons.medical_services,
-                      label: 'Type',
-                      value: apt.typeLabel),
-                  if (apt.referenceNumber.isNotEmpty)
-                    _DetailRow(
-                        icon: Icons.tag,
-                        label: 'Reference',
-                        value: apt.referenceNumber),
-                  if (apt.notes != null && apt.notes!.isNotEmpty)
-                    _DetailRow(
-                        icon: Icons.notes, label: 'Notes', value: apt.notes!),
-                  if (apt.cancelledReason != null)
-                    _DetailRow(
+                      label: 'Visit Type',
+                      value: apt.typeLabel,
+                    ),
+                    if (apt.notes != null && apt.notes!.isNotEmpty)
+                      _DetailRow(
+                        icon: Icons.notes,
+                        label: 'Patient Notes',
+                        value: apt.notes!,
+                      ),
+                    if (apt.cancelledReason != null)
+                      _DetailRow(
                         icon: Icons.cancel,
                         label: 'Cancellation Reason',
                         value: apt.cancelledReason!,
-                        valueColor: AppTheme.errorColor),
-                ]),
+                        valueColor: AppTheme.errorColor,
+                      ),
+                  ],
+                ),
 
-                // History
+                // History Timeline
                 if (history.isNotEmpty) ...[
-                  const SizedBox(height: 20),
-                  const Text('Status History',
-                      style: TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 10),
-                  ...history.map((h) => _HistoryTile(h: h)),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Appointment History',
+                    style: TextStyle(
+                      fontSize: AppTheme.fontTitleMedium,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _InfoCard(
+                    children: history.map((h) => _HistoryTile(h: h)).toList(),
+                  ),
                 ],
 
                 // Actions
                 if (apt.isReschedulable || apt.isCancellable) ...[
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 32),
                   if (apt.isReschedulable)
                     SizedBox(
-                      width: double.infinity,
+                      height: 50,
                       child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: AppTheme.primaryColor),
+                          foregroundColor: AppTheme.primaryColor,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
                         icon: const Icon(Icons.edit_calendar),
-                        label: const Text('Reschedule'),
-                        onPressed: () => context.push(
-                            '/appointments/${apt.id}/reschedule'),
+                        label: const Text(
+                          'Reschedule Appointment',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: AppTheme.fontTitleMedium,
+                          ),
+                        ),
+                        onPressed: () =>
+                            context.push('/appointments/${apt.id}/reschedule'),
                       ),
                     ),
                   if (apt.isCancellable) ...[
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 12),
                     SizedBox(
-                      width: double.infinity,
+                      height: 50,
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.errorColor),
+                          backgroundColor: AppTheme.surfaceColor,
+                          foregroundColor: AppTheme.errorColor,
+                          elevation: 0,
+                          side: BorderSide(
+                            color: AppTheme.errorColor.withValues(alpha: 0.3),
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
                         icon: const Icon(Icons.cancel_outlined),
                         label: provider.actionLoading
                             ? const SizedBox(
-                                width: 18,
-                                height: 18,
+                                width: 20,
+                                height: 20,
                                 child: CircularProgressIndicator(
-                                    strokeWidth: 2, color: Colors.white))
-                            : const Text('Cancel Appointment'),
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text(
+                                'Cancel Appointment',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: AppTheme.fontBodySmall,
+                                ),
+                              ),
                         onPressed: provider.actionLoading
                             ? null
                             : _showCancelDialog,
@@ -214,7 +379,7 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
                     ),
                   ],
                 ],
-                const SizedBox(height: 32),
+                const SizedBox(height: 40),
               ],
             ),
           );
@@ -224,7 +389,20 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
   }
 
   String _fmt(DateTime dt) {
-    final months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     final h = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
     final m = dt.minute.toString().padLeft(2, '0');
     final period = dt.hour >= 12 ? 'PM' : 'AM';
@@ -243,7 +421,10 @@ class _InfoCard extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: children,
+        ),
       ),
     );
   }
@@ -255,11 +436,12 @@ class _DetailRow extends StatelessWidget {
   final String value;
   final Color? valueColor;
 
-  const _DetailRow(
-      {required this.icon,
-      required this.label,
-      required this.value,
-      this.valueColor});
+  const _DetailRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.valueColor,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -271,17 +453,26 @@ class _DetailRow extends StatelessWidget {
           Icon(icon, size: 16, color: AppTheme.primaryColor),
           const SizedBox(width: 10),
           Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(label,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
                   style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.grey.shade500,
-                      fontWeight: FontWeight.w600)),
-              Text(value,
+                    fontSize: AppTheme.fontBodyMedium,
+                    color: AppTheme.onPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  value,
                   style: TextStyle(
-                      fontSize: 14,
-                      color: valueColor ?? AppTheme.secondaryColor)),
-            ]),
+                    fontSize: AppTheme.fontBodySmall,
+                    color: valueColor ?? AppTheme.secondaryColor,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -298,32 +489,47 @@ class _HistoryTile extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Column(children: [
-          Container(
-            width: 10,
-            height: 10,
-            decoration: const BoxDecoration(
-              color: AppTheme.primaryColor,
-              shape: BoxShape.circle,
+        Column(
+          children: [
+            Container(
+              width: 10,
+              height: 10,
+              decoration: const BoxDecoration(
+                color: AppTheme.primaryColor,
+                shape: BoxShape.circle,
+              ),
             ),
-          ),
-          Container(width: 2, height: 36, color: Colors.grey.shade300),
-        ]),
+            Container(width: 2, height: 36, color: AppTheme.borderColor),
+          ],
+        ),
         const SizedBox(width: 12),
         Expanded(
           child: Padding(
             padding: const EdgeInsets.only(bottom: 12),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(h.newStatus,
-                  style: const TextStyle(fontWeight: FontWeight.bold)),
-              Text(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  h.newStatus,
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Text(
                   '${_fmtDate(h.changedAt)}  ·  ${h.changedByName}',
-                  style:
-                      TextStyle(fontSize: 12, color: Colors.grey.shade500)),
-              if (h.reason != null)
-                Text(h.reason!,
-                    style: const TextStyle(fontSize: 13, fontStyle: FontStyle.italic)),
-            ]),
+                  style: TextStyle(
+                    fontSize: AppTheme.fontBodyMedium,
+                    color: AppTheme.onPrimary,
+                  ),
+                ),
+                if (h.reason != null)
+                  Text(
+                    h.reason!,
+                    style: TextStyle(
+                      fontSize: AppTheme.fontBodySmall,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ],
@@ -331,7 +537,20 @@ class _HistoryTile extends StatelessWidget {
   }
 
   String _fmtDate(DateTime dt) {
-    final months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     return '${dt.day} ${months[dt.month - 1]}  ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
   }
 }

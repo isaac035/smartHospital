@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using SmartHospital.Api.BackgroundServices;
 using SmartHospital.Api.Configuration;
 using SmartHospital.Api.Data;
 using SmartHospital.Api.Services;
@@ -24,6 +25,7 @@ builder.Services
     {
         options.JsonSerializerOptions.Converters.Add(new UtcDateTimeJsonConverter());
     });
+builder.Services.AddSignalR();
 
 
 // --------------------------------------------------
@@ -68,6 +70,16 @@ builder.Services.AddAuthentication(
 )
 .AddJwtBearer(options =>
 {
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var token = context.Request.Query["access_token"];
+            if (!string.IsNullOrEmpty(token) && context.HttpContext.Request.Path.StartsWithSegments("/hubs/hospital"))
+                context.Token = token;
+            return Task.CompletedTask;
+        }
+    };
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
@@ -106,6 +118,8 @@ builder.Services.AddScoped<IMedicalRecordService, MedicalRecordService>();
 builder.Services.AddScoped<IVitalSignService, VitalSignService>();
 builder.Services.AddScoped<IPrescriptionService, PrescriptionService>();
 builder.Services.AddScoped<ILabOrderService, LabOrderService>();
+builder.Services.AddScoped<IMedicalHistoryService, MedicalHistoryService>();
+builder.Services.AddScoped<IEmrAuditService, EmrAuditService>();
 
 // Hospital Resource & Bed Management Services
 builder.Services.AddScoped<IWardService, WardService>();
@@ -115,6 +129,7 @@ builder.Services.AddScoped<IAdmissionService, AdmissionService>();
 builder.Services.AddScoped<IMedicalResourceService, MedicalResourceService>();
 builder.Services.AddScoped<IResourceMaintenanceService, ResourceMaintenanceService>();
 builder.Services.AddScoped<IOccupancyService, OccupancyService>();
+builder.Services.AddHostedService<MaintenanceAutoStartBackgroundService>();
 
 // Doctor & Clinical Schedule Management Services
 builder.Services.AddScoped<IDepartmentService, DepartmentService>();
@@ -221,12 +236,15 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<SmartHospital.Api.Hubs.HospitalHub>("/hubs/hospital");
 
 using (var scope = app.Services.CreateScope())
 {
     var dbContext =
         scope.ServiceProvider
             .GetRequiredService<AppDbContext>();
+
+    await dbContext.Database.MigrateAsync();
 
     await DbSeeder.SeedAsync(dbContext);
 

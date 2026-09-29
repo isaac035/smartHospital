@@ -10,6 +10,11 @@ public class QueueEntry
 
     public int QueueNumber { get; set; }
 
+    /// <summary>Stable, human-readable queue identifier assigned once at check-in.</summary>
+    public string QueueCode { get; set; } = string.Empty;
+
+    public DateOnly QueueDate { get; set; }
+
     public QueueEntryStatus Status { get; set; } = QueueEntryStatus.Waiting;
 
     public AppointmentPriority Priority { get; set; } = AppointmentPriority.Normal;
@@ -20,6 +25,8 @@ public class QueueEntry
     public DateTime? CheckedInAt { get; set; }
 
     public DateTime? CalledAt { get; set; }
+
+    public DateTime? StartedAt { get; set; }
 
     public DateTime? CompletedAt { get; set; }
 

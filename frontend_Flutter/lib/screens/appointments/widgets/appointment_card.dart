@@ -1,14 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:smart_hospital/core/theme/app_theme.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/theme/app_theme.dart';
 import '../../../models/appointments/appointment_model.dart';
 import 'appointment_status_badge.dart';
 import 'priority_badge.dart';
 
 class AppointmentCard extends StatelessWidget {
   final AppointmentModel appointment;
+  final VoidCallback? onCheckIn;
+  final bool checkingIn;
 
-  const AppointmentCard({super.key, required this.appointment});
+  const AppointmentCard({
+    super.key,
+    required this.appointment,
+    this.onCheckIn,
+    this.checkingIn = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -30,9 +37,9 @@ class AppointmentCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       apt.doctorName ?? 'Unassigned Doctor',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                        fontSize: AppTheme.fontTitleMedium,
                       ),
                     ),
                   ),
@@ -43,26 +50,35 @@ class AppointmentCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   apt.departmentName!,
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                  style: TextStyle(
+                    color: AppTheme.textSecondary,
+                    fontSize: AppTheme.fontBodyMedium,
+                  ),
                 ),
               ],
               const SizedBox(height: 10),
               Row(
                 children: [
-                  const Icon(Icons.calendar_today,
-                      size: 14, color: AppTheme.primaryColor),
+                  const Icon(
+                    Icons.calendar_today,
+                    size: 14,
+                    color: AppTheme.primaryColor,
+                  ),
                   const SizedBox(width: 6),
                   Text(
                     _formatDateTime(apt.scheduledStart),
-                    style: const TextStyle(fontSize: 13),
+                    style: TextStyle(fontSize: AppTheme.fontBodyMedium),
                   ),
                   const SizedBox(width: 12),
-                  const Icon(Icons.schedule,
-                      size: 14, color: AppTheme.primaryColor),
+                  const Icon(
+                    Icons.schedule,
+                    size: 14,
+                    color: AppTheme.primaryColor,
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     '${apt.estimatedDurationMinutes} min',
-                    style: const TextStyle(fontSize: 13),
+                    style: TextStyle(fontSize: AppTheme.fontBodyMedium),
                   ),
                 ],
               ),
@@ -72,19 +88,48 @@ class AppointmentCard extends StatelessWidget {
                   Text(
                     apt.typeLabel,
                     style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
-                        fontStyle: FontStyle.italic),
+                      fontSize: AppTheme.fontBodySmall,
+                      color: AppTheme.textSecondary,
+                      fontStyle: FontStyle.italic,
+                    ),
                   ),
                   const SizedBox(width: 8),
                   PriorityBadge(priority: apt.priority),
+                  if (apt.priorityNeedsReview)
+                    Text(
+                      'Requested',
+                      style: TextStyle(
+                        fontSize: AppTheme.fontBodySmall,
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
                 ],
               ),
               if (apt.referenceNumber.isNotEmpty) ...[
                 const SizedBox(height: 6),
                 Text(
                   'Ref: ${apt.referenceNumber}',
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                  style: TextStyle(
+                    fontSize: AppTheme.fontBodySmall,
+                    color: AppTheme.onPrimary,
+                  ),
+                ),
+              ],
+              if (onCheckIn != null) ...[
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: FilledButton.icon(
+                    onPressed: checkingIn ? null : onCheckIn,
+                    icon: checkingIn
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.how_to_reg),
+                    label: Text(checkingIn ? 'Checking in...' : 'Check In'),
+                  ),
                 ),
               ],
             ],
@@ -96,8 +141,18 @@ class AppointmentCard extends StatelessWidget {
 
   String _formatDateTime(DateTime dt) {
     final months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     final h = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
     final m = dt.minute.toString().padLeft(2, '0');

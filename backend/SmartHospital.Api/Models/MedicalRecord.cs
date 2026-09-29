@@ -56,4 +56,10 @@ public class MedicalRecord
     public ICollection<VitalSign> VitalSigns { get; set; } = new List<VitalSign>();
 
     public ICollection<LabOrder> LabOrders { get; set; } = new List<LabOrder>();
+
+    public ICollection<ClinicalDiagnosis> Diagnoses { get; set; } = new List<ClinicalDiagnosis>();
+
+    public ICollection<ClinicalTreatmentPlan> TreatmentPlans { get; set; } = new List<ClinicalTreatmentPlan>();
+
+    public ICollection<MedicalRecordVersion> Versions { get; set; } = new List<MedicalRecordVersion>();
 }

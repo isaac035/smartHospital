@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:smart_hospital/core/theme/app_theme.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
-import '../../core/theme/app_theme.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -21,9 +21,9 @@ class _SplashScreenState extends State<SplashScreen> {
   Future<void> _checkAuth() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     await authProvider.initialize();
-    
+
     if (!mounted) return;
-    
+
     if (authProvider.isAuthenticated) {
       context.go('/home');
     } else {
@@ -39,23 +39,19 @@ class _SplashScreenState extends State<SplashScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: const [
-            Icon(
-              Icons.local_hospital,
-              size: 80,
-              color: Colors.white,
-            ),
+            Icon(Icons.local_hospital, size: 80, color: AppTheme.surfaceColor),
             SizedBox(height: 24),
             Text(
               'Smart Hospital',
               style: TextStyle(
-                fontSize: 32,
+                fontSize: AppTheme.fontDisplaySmall,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: AppTheme.surfaceColor,
               ),
             ),
             SizedBox(height: 48),
             CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              valueColor: AlwaysStoppedAnimation<Color>(AppTheme.surfaceColor),
             ),
           ],
         ),

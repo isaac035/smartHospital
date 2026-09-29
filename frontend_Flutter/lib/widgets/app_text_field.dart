@@ -8,9 +8,11 @@ class AppTextField extends StatelessWidget {
   final String? Function(String?)? validator;
   final bool obscureText;
   final Widget? suffixIcon;
+  final Widget? prefixIcon;
   final bool readOnly;
   final ValueChanged<String>? onChanged;
   final bool enabled;
+  final int? maxLines;
 
   const AppTextField({
     super.key,
@@ -21,9 +23,11 @@ class AppTextField extends StatelessWidget {
     this.validator,
     this.obscureText = false,
     this.suffixIcon,
+    this.prefixIcon,
     this.readOnly = false,
     this.onChanged,
     this.enabled = true,
+    this.maxLines = 1,
   });
 
   @override
@@ -33,13 +37,7 @@ class AppTextField extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
-            ),
-          ),
+          Text(label, style: Theme.of(context).textTheme.labelLarge),
           const SizedBox(height: 8),
           TextFormField(
             controller: controller,
@@ -49,9 +47,11 @@ class AppTextField extends StatelessWidget {
             readOnly: readOnly,
             onChanged: onChanged,
             enabled: enabled,
+            maxLines: maxLines,
             decoration: InputDecoration(
               hintText: hint,
               suffixIcon: suffixIcon,
+              prefixIcon: prefixIcon,
             ),
           ),
         ],

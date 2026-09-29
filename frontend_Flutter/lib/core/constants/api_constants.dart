@@ -10,7 +10,7 @@ class ApiConstants {
       if (Platform.isAndroid) {
         // Since you are running on a PHYSICAL device, 10.0.2.2 (Emulator IP)
         // will NOT work. We must use your PC's local Wi-Fi IP.
-        return 'http://192.168.8.180:5100/api';
+        return 'http://172.20.10.2:5100/api';
       }
     } catch (_) {}
     return 'http://localhost:5100/api'; // Windows, iOS Simulator, Web
@@ -45,4 +45,5 @@ class ApiConstants {
   static const String prescriptions = '/Prescriptions';
   static const String labOrders = '/LabOrders';
   static const String patientProfiles = '/PatientProfiles';
+  static const String medicalHistory = '/MedicalHistory';
 }

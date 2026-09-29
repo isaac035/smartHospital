@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:smart_hospital/core/theme/app_theme.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import '../../core/theme/app_theme.dart';
 import '../../models/appointments/doctor_summary_model.dart';
 import '../../providers/appointment_provider.dart';
 import '../../widgets/error_message.dart';
+import '../../widgets/app_text_field.dart';
 
 class SearchDoctorsScreen extends StatefulWidget {
   const SearchDoctorsScreen({super.key});
@@ -37,21 +38,40 @@ class _SearchDoctorsScreenState extends State<SearchDoctorsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Find a Doctor')),
+      backgroundColor: AppTheme.backgroundColor,
+      appBar: AppBar(
+        title: const Text('Find a Doctor'),
+        elevation: 0,
+        backgroundColor: AppTheme.surfaceColor,
+        foregroundColor: AppTheme.textPrimary,
+      ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: TextField(
+          Container(
+            color: AppTheme.surfaceColor,
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            child: AppTextField(
+              label: 'Search doctors',
+              hint: 'Search doctor by name...',
               controller: _controller,
               onChanged: _search,
-              decoration: const InputDecoration(
-                hintText: 'Search by name or specialization...',
-                prefixIcon: Icon(Icons.search),
-              ),
+              prefixIcon: const Icon(Icons.search),
             ),
           ),
-          const SizedBox(height: 8),
+
+          Container(
+            height: 1,
+            decoration: BoxDecoration(
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.textPrimary.withValues(alpha: 0.05),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+          ),
+
           Expanded(
             child: Consumer<AppointmentProvider>(
               builder: (context, provider, _) {
@@ -60,22 +80,48 @@ class _SearchDoctorsScreenState extends State<SearchDoctorsScreen> {
                 }
                 if (provider.doctorsError != null) {
                   return Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: ErrorMessage(message: provider.doctorsError),
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.error_outline,
+                          size: 48,
+                          color: AppTheme.errorColor,
+                        ),
+                        const SizedBox(height: 16),
+                        ErrorMessage(message: provider.doctorsError),
+                      ],
+                    ),
                   );
                 }
                 if (provider.doctors.isEmpty) {
                   return Center(
-                    child: Text(
-                      'No doctors found.',
-                      style: TextStyle(color: Colors.grey.shade600),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.search_off,
+                          size: 64,
+                          color: AppTheme.borderColor,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No doctors found.',
+                          style: TextStyle(
+                            fontSize: AppTheme.fontHeadlineSmall,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.textSecondary,
+                          ),
+                        ),
+                      ],
                     ),
                   );
                 }
                 return ListView.separated(
                   padding: const EdgeInsets.all(16),
                   itemCount: provider.doctors.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                  separatorBuilder: (_, _) => const SizedBox(height: 12),
                   itemBuilder: (context, index) {
                     return _DoctorTile(doctor: provider.doctors[index]);
                   },
@@ -101,7 +147,19 @@ class _DoctorTile extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: () => context.push('/appointments/doctor/${doctor.id}'),
+        onTap: () {
+          if (doctor.userId != null) {
+            context.push(
+              '/appointments/doctor/${doctor.id}?userId=${doctor.userId}',
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Not available for online booking.'),
+              ),
+            );
+          }
+        },
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Row(
@@ -110,9 +168,10 @@ class _DoctorTile extends StatelessWidget {
                 backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
                 child: Text(
                   doctor.firstName.isNotEmpty ? doctor.firstName[0] : 'D',
-                  style: const TextStyle(
-                      color: AppTheme.primaryColor,
-                      fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: AppTheme.primaryColor,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -122,18 +181,27 @@ class _DoctorTile extends StatelessWidget {
                   children: [
                     Text(
                       'Dr. ${doctor.fullName}',
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 15),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: AppTheme.fontTitleMedium,
+                      ),
                     ),
                     if (doctor.specialization != null)
-                      Text(doctor.specialization!,
-                          style: TextStyle(
-                              color: Colors.grey.shade600, fontSize: 13)),
+                      Text(
+                        doctor.specialization!,
+                        style: TextStyle(
+                          color: AppTheme.textSecondary,
+                          fontSize: AppTheme.fontBodyMedium,
+                        ),
+                      ),
                     if (doctor.department != null)
-                      Text(doctor.department!,
-                          style: TextStyle(
-                              color: AppTheme.primaryColor.withValues(alpha: 0.7),
-                              fontSize: 12)),
+                      Text(
+                        doctor.department!,
+                        style: TextStyle(
+                          color: AppTheme.primaryColor.withValues(alpha: 0.7),
+                          fontSize: AppTheme.fontBodySmall,
+                        ),
+                      ),
                   ],
                 ),
               ),

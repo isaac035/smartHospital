@@ -3,14 +3,14 @@ import DashboardLayout from '../../layouts/DashboardLayout'
 import ResourceNavigation from './ResourceNavigation'
 import { getOccupancyOverview, getWardOccupancies } from '../../services/hospitalResourceService'
 import { useAuth } from '../../hooks/useAuth'
+import { adminNavigation } from '../admin/adminNavigation'
 
-const adminNav = ['Dashboard', 'User Management', 'Doctor Management', 'Department Management', 'Appointments', 'Reports', 'Settings']
 const staffNav = ['Dashboard', 'Patients', 'Appointments', 'Queue Management', 'Resources']
 
 export default function ResourceDashboard() {
   const { user } = useAuth()
   const role = user?.role || 'Staff'
-  const navigation = role === 'Admin' ? adminNav : staffNav
+  const navigation = role === 'Admin' ? adminNavigation : staffNav
 
   const [overview, setOverview] = useState(null)
   const [wards, setWards] = useState([])

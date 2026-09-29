@@ -9,6 +9,7 @@ namespace SmartHospital.Api.Services;
 public class AvailabilityService : IAvailabilityService
 {
     private readonly AppDbContext _context;
+    private static readonly TimeZoneInfo HospitalTimeZone = ResolveHospitalTimeZone();
 
     public AvailabilityService(AppDbContext context)
     {
@@ -20,12 +21,18 @@ public class AvailabilityService : IAvailabilityService
     public async Task<List<AvailableSlotResponse>> GetAvailableSlotsAsync(
         int? doctorId,
         int? departmentId,
-        DateTime date)
+        DateTime date,
+        int? doctorProfileId = null)
     {
         // Models.DayOfWeek uses Monday=1..Sunday=7, unlike System.DayOfWeek's Sunday=0..Saturday=6.
         var systemDayOfWeek = (int)date.DayOfWeek;
         var dayOfWeek = (Models.DayOfWeek)(systemDayOfWeek == 0 ? 7 : systemDayOfWeek);
-        var dateOnly  = date.Date;
+        // Schedule dates/times are hospital-local wall time; appointment instants are UTC.
+        var dateOnlyValue = DateOnly.FromDateTime(date);
+        var localStartOfDay = dateOnlyValue.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified);
+        var localEndOfDay = localStartOfDay.AddDays(1);
+        var utcStartOfDay = TimeZoneInfo.ConvertTimeToUtc(localStartOfDay, HospitalTimeZone);
+        var utcEndOfDay = TimeZoneInfo.ConvertTimeToUtc(localEndOfDay, HospitalTimeZone);
 
         // Load active schedules matching the filters.
         // NOTE: DoctorSchedule.DoctorId references Doctors.Id (the Doctor & Clinical
@@ -39,16 +46,41 @@ public class AvailabilityService : IAvailabilityService
             .Where(s => s.Status == ScheduleStatus.Active
                      && s.DayOfWeek == dayOfWeek
                      && s.Doctor != null
+                     && s.Doctor.Status == DoctorStatus.Active
                      && s.Doctor.UserId != null);
 
-        if (doctorId.HasValue)     schedulesQuery = schedulesQuery.Where(s => s.Doctor!.UserId     == doctorId);
+        // A one-date session overrides the doctor's weekly template for that
+        // date. If no one-date session exists, use the recurring weekly rows.
+        schedulesQuery = schedulesQuery.Where(s =>
+            s.SpecificDate == dateOnlyValue ||
+            (s.SpecificDate == null && !_context.DoctorSchedules.Any(dateSchedule =>
+                dateSchedule.DoctorId == s.DoctorId &&
+                dateSchedule.SpecificDate == dateOnlyValue &&
+                dateSchedule.Status == ScheduleStatus.Active)));
+
+        if (doctorProfileId.HasValue)
+            schedulesQuery = schedulesQuery.Where(s => s.DoctorId == doctorProfileId.Value);
+        if (doctorId.HasValue)
+            schedulesQuery = schedulesQuery.Where(s => s.Doctor!.UserId == doctorId.Value);
         if (departmentId.HasValue) schedulesQuery = schedulesQuery.Where(s => s.Doctor!.DepartmentId == departmentId);
 
         var schedules = await schedulesQuery.ToListAsync();
 
+        // Approved leave blocks all schedules for that doctor on the selected date.
+        var doctorIds = schedules.Select(s => s.DoctorId).Distinct().ToList();
+        var doctorsOnLeave = await _context.DoctorLeaves
+            .Where(l => doctorIds.Contains(l.DoctorId)
+                     && l.Status == LeaveStatus.Approved
+                     && l.StartDate <= dateOnlyValue
+                     && l.EndDate >= dateOnlyValue)
+            .Select(l => l.DoctorId)
+            .Distinct()
+            .ToListAsync();
+        var doctorsOnLeaveSet = doctorsOnLeave.ToHashSet();
+
         // Load all appointments for that day that are still active (not cancelled/rescheduled)
         var existingAppointments = await _context.Appointments
-            .Where(a => a.ScheduledStart.Date == dateOnly
+            .Where(a => a.ScheduledStart >= utcStartOfDay && a.ScheduledStart < utcEndOfDay
                      && a.Status != AppointmentStatus.Cancelled
                      && a.Status != AppointmentStatus.Rescheduled)
             .ToListAsync();
@@ -57,13 +89,18 @@ public class AvailabilityService : IAvailabilityService
 
         foreach (var schedule in schedules)
         {
-            var slotStart = dateOnly + schedule.StartTime.ToTimeSpan();
-            var schedEnd  = dateOnly + schedule.EndTime.ToTimeSpan();
+            if (doctorsOnLeaveSet.Contains(schedule.DoctorId))
+                continue;
+
+            var slotStartLocal = dateOnlyValue.ToDateTime(schedule.StartTime, DateTimeKind.Unspecified);
+            var schedEndLocal = dateOnlyValue.ToDateTime(schedule.EndTime, DateTimeKind.Unspecified);
             int duration  = schedule.SlotDurationMinutes;
 
-            while (slotStart.AddMinutes(duration) <= schedEnd)
+            while (slotStartLocal.AddMinutes(duration) <= schedEndLocal)
             {
-                var slotEnd = slotStart.AddMinutes(duration);
+                var slotEndLocal = slotStartLocal.AddMinutes(duration);
+                var slotStart = TimeZoneInfo.ConvertTimeToUtc(slotStartLocal, HospitalTimeZone);
+                var slotEnd = TimeZoneInfo.ConvertTimeToUtc(slotEndLocal, HospitalTimeZone);
 
                 // Check overlap with any existing appointment for this doctor
                 var scheduleDoctorUserId = schedule.Doctor!.UserId!.Value;
@@ -72,25 +109,40 @@ public class AvailabilityService : IAvailabilityService
                     a.ScheduledStart < slotEnd &&
                     a.ScheduledStart.AddMinutes(a.EstimatedDurationMinutes) > slotStart);
 
-                if (!overlaps && slotStart > DateTime.UtcNow)
+                if (slotStart > DateTime.UtcNow)
                 {
                     result.Add(new AvailableSlotResponse
                     {
                         DoctorId       = scheduleDoctorUserId,
+                        DoctorProfileId = schedule.DoctorId,
                         DoctorName     = $"{schedule.Doctor.FirstName} {schedule.Doctor.LastName}",
                         DepartmentId   = schedule.Doctor.DepartmentId,
                         DepartmentName = schedule.Doctor.Department?.Name,
                         SlotStart      = slotStart,
                         SlotEnd        = slotEnd,
-                        DurationMinutes = duration
+                        DurationMinutes = duration,
+                        Status = overlaps ? "Booked" : "Available"
                     });
                 }
 
-                slotStart = slotEnd;
+                slotStartLocal = slotEndLocal;
             }
         }
 
-        return result.OrderBy(s => s.DoctorId).ThenBy(s => s.SlotStart).ToList();
+        // Historical/imported data can contain overlapping schedule rows even though
+        // ScheduleService prevents creating them. A slot is identified by profile + start.
+        return result
+            .GroupBy(s => new { s.DoctorId, s.SlotStart })
+            .Select(group => group.First())
+            .OrderBy(s => s.DoctorId)
+            .ThenBy(s => s.SlotStart)
+            .ToList();
+    }
+
+    private static TimeZoneInfo ResolveHospitalTimeZone()
+    {
+        try { return TimeZoneInfo.FindSystemTimeZoneById("Asia/Colombo"); }
+        catch (TimeZoneNotFoundException) { return TimeZoneInfo.FindSystemTimeZoneById("Sri Lanka Standard Time"); }
     }
 
     // ── Conflict detection ────────────────────────────────────────────────────
@@ -160,9 +212,14 @@ public class AvailabilityService : IAvailabilityService
 
     public async Task<bool> IsDailyCapacityReachedAsync(int doctorId, DateTime date)
     {
+        var localDateTime = TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(date, DateTimeKind.Utc), HospitalTimeZone);
+        var localDate = DateOnly.FromDateTime(localDateTime);
+        var localDayStart = localDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified);
+        var utcDayStart = TimeZoneInfo.ConvertTimeToUtc(localDayStart, HospitalTimeZone);
+        var utcDayEnd = TimeZoneInfo.ConvertTimeToUtc(localDayStart.AddDays(1), HospitalTimeZone);
         // Get the schedule for this day to know MaxPatientsPerDay.
         // doctorId here is a Users.Id (Appointment convention) — bridge via Doctor.UserId.
-        var systemDayOfWeek = (int)date.DayOfWeek;
+        var systemDayOfWeek = (int)localDateTime.DayOfWeek;
         var dayOfWeek = (Models.DayOfWeek)(systemDayOfWeek == 0 ? 7 : systemDayOfWeek);
         var schedule = await _context.DoctorSchedules
             .Include(s => s.Doctor)
@@ -176,7 +233,7 @@ public class AvailabilityService : IAvailabilityService
 
         var activeCount = await _context.Appointments
             .CountAsync(a => a.DoctorId == doctorId
-                          && a.ScheduledStart.Date == date.Date
+                          && a.ScheduledStart >= utcDayStart && a.ScheduledStart < utcDayEnd
                           && a.Status != AppointmentStatus.Cancelled
                           && a.Status != AppointmentStatus.Rescheduled);
 

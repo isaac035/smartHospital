@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:smart_hospital/core/theme/app_theme.dart';
 
 class FilterDropdown<T> extends StatelessWidget {
   final String label;
@@ -25,7 +26,10 @@ class FilterDropdown<T> extends StatelessWidget {
         children: [
           Text(
             label,
-            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: AppTheme.fontBodyMedium,
+            ),
           ),
           const SizedBox(height: 8),
           DropdownButtonFormField<T>(

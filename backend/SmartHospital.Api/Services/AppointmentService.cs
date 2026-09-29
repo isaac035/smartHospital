@@ -8,6 +8,7 @@ namespace SmartHospital.Api.Services;
 
 public class AppointmentService : IAppointmentService
 {
+    private static readonly TimeZoneInfo HospitalTimeZone = ResolveHospitalTimeZone();
     private readonly AppDbContext _context;
     private readonly IAvailabilityService _availabilityService;
     private readonly INotificationService _notificationService;
@@ -45,6 +46,9 @@ public class AppointmentService : IAppointmentService
         int requestingUserId,
         CreateAppointmentRequest request)
     {
+        if (!Enum.IsDefined(typeof(AppointmentPriority), request.Priority))
+            throw new InvalidOperationException("Priority must be Normal, Urgent, or Emergency.");
+
         // 1. Validate patient
         var patient = await _context.Users
             .FirstOrDefaultAsync(u => u.Id == request.PatientId && u.Role == UserRole.Patient && u.Status == UserStatus.Active)
@@ -54,6 +58,12 @@ public class AppointmentService : IAppointmentService
         var doctor = await _context.Users
             .FirstOrDefaultAsync(u => u.Id == request.DoctorId && u.Role == UserRole.Doctor && u.Status == UserStatus.Active)
             ?? throw new InvalidOperationException("Active doctor not found.");
+
+        if (await _context.Doctors.AnyAsync(d =>
+                d.UserId == request.DoctorId && d.Status == DoctorStatus.Inactive))
+        {
+            throw new InvalidOperationException("Inactive doctors cannot be booked.");
+        }
 
         // 3. Validate department (if provided)
         if (request.DepartmentId.HasValue)
@@ -72,9 +82,25 @@ public class AppointmentService : IAppointmentService
             throw new InvalidOperationException("Doctor has reached maximum patient capacity for this day.");
 
         // 6. Double-booking prevention — atomic via EF transaction
-        await using var transaction = await _context.Database.BeginTransactionAsync();
+        await using var transaction = _context.Database.ProviderName == "Npgsql.EntityFrameworkCore.PostgreSQL"
+            ? await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable)
+            : null;
         try
         {
+            if (_context.Database.ProviderName == "Npgsql.EntityFrameworkCore.PostgreSQL")
+            {
+                var scheduledUtc = DateTime.SpecifyKind(request.ScheduledStart, DateTimeKind.Utc);
+                var localSlotDate = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(scheduledUtc, HospitalTimeZone));
+                var configuredSlots = await _availabilityService.GetAvailableSlotsAsync(
+                    request.DoctorId, null, localSlotDate.ToDateTime(TimeOnly.MinValue));
+                var isConfiguredAvailable = configuredSlots.Any(slot =>
+                    slot.SlotStart == scheduledUtc &&
+                    slot.DurationMinutes == request.EstimatedDurationMinutes &&
+                    slot.Status == "Available");
+                if (!isConfiguredAvailable)
+                    throw new InvalidOperationException("This appointment slot is no longer available.");
+            }
+
             var slotFree = await _availabilityService.IsSlotAvailableAsync(
                 request.DoctorId,
                 request.ScheduledStart,
@@ -91,16 +117,6 @@ public class AppointmentService : IAppointmentService
                 referenceNumber = $"APT-{request.ScheduledStart:yyyyMMdd}-{Random.Shared.Next(1000, 9999)}";
             } while (await _context.Appointments.AnyAsync(a => a.ReferenceNumber == referenceNumber));
 
-            // 8. Generate daily queue number for this doctor
-            var date = request.ScheduledStart.Date;
-            var maxQueue = await _context.Appointments
-                .Where(a => a.DoctorId == request.DoctorId
-                         && a.ScheduledStart.Date == date
-                         && a.Status != AppointmentStatus.Cancelled
-                         && a.Status != AppointmentStatus.Rescheduled)
-                .MaxAsync(a => (int?)a.QueueNumber) ?? 0;
-            var queueNumber = maxQueue + 1;
-
             var now = DateTime.UtcNow;
 
             var appointment = new Appointment
@@ -112,9 +128,14 @@ public class AppointmentService : IAppointmentService
                 ScheduledStart          = request.ScheduledStart,
                 EstimatedDurationMinutes = request.EstimatedDurationMinutes,
                 Status                  = AppointmentStatus.Scheduled,
-                Priority                = request.Priority,
+                Priority                = requestingUserId == request.PatientId && request.Priority != AppointmentPriority.Normal
+                    ? AppointmentPriority.Normal
+                    : request.Priority,
+                RequestedPriority       = requestingUserId == request.PatientId && request.Priority != AppointmentPriority.Normal
+                    ? request.Priority
+                    : null,
                 ReferenceNumber         = referenceNumber,
-                QueueNumber             = queueNumber,
+                QueueNumber             = null,
                 Notes                   = request.Notes?.Trim(),
                 EmergencyConfirmed      = false,
                 CreatedAt               = now,
@@ -124,18 +145,8 @@ public class AppointmentService : IAppointmentService
             _context.Appointments.Add(appointment);
             await _context.SaveChangesAsync();
 
-            // 9. Create queue entry
-            var queueEntry = new QueueEntry
-            {
-                AppointmentId = appointment.Id,
-                DoctorId      = request.DoctorId,
-                QueueNumber   = queueNumber,
-                Status        = QueueEntryStatus.Waiting,
-                Priority      = request.Priority
-            };
-            _context.QueueEntries.Add(queueEntry);
-
-            // 10. Initial status history
+            // A queue entry is created at check-in, once the patient arrives.
+            // 9. Initial status history
             _context.AppointmentStatusHistories.Add(new AppointmentStatusHistory
             {
                 AppointmentId = appointment.Id,
@@ -147,7 +158,7 @@ public class AppointmentService : IAppointmentService
             });
 
             await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
+            if (transaction != null) await transaction.CommitAsync();
 
             _logger.LogInformation(
                 "Appointment {RefNum} booked for patient {PatientId} with doctor {DoctorId}.",
@@ -158,14 +169,14 @@ public class AppointmentService : IAppointmentService
                 request.PatientId,
                 appointment.Id,
                 "Appointment Confirmed",
-                $"Your appointment {referenceNumber} has been scheduled for {request.ScheduledStart:f} UTC. Queue #{queueNumber}.");
+                $"Your appointment {referenceNumber} has been scheduled for {request.ScheduledStart:f} UTC.");
 
             return await GetResponseAsync(appointment.Id)
                    ?? throw new InvalidOperationException("Appointment not found after creation.");
         }
         catch
         {
-            await transaction.RollbackAsync();
+            if (transaction != null) await transaction.RollbackAsync();
             throw;
         }
     }
@@ -173,6 +184,55 @@ public class AppointmentService : IAppointmentService
     // ── Queries ───────────────────────────────────────────────────────────────
 
     public async Task<List<AppointmentResponse>> GetAppointmentsAsync(
+        int requestingUserId,
+        string requestingUserRole,
+        AppointmentQueryFilter filter)
+    {
+        var appointments = await BuildAppointmentsQuery(requestingUserId, requestingUserRole, filter)
+            .OrderBy(a => a.ScheduledStart)
+            .ToListAsync();
+        return appointments.Select(MapToResponse).ToList();
+    }
+
+    public async Task<AppointmentListPageResponse> GetAppointmentsPageAsync(
+        int requestingUserId,
+        string requestingUserRole,
+        AppointmentQueryFilter filter)
+    {
+        var query = BuildAppointmentsQuery(requestingUserId, requestingUserRole, filter);
+        var totalCount = await query.CountAsync();
+        var pageSize = Math.Clamp(filter.PageSize ?? 20, 1, 100);
+        var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+        var page = Math.Clamp(filter.Page ?? 1, 1, Math.Max(totalPages, 1));
+
+        var statusGroups = await query
+            .GroupBy(a => a.Status)
+            .Select(group => new { Status = group.Key, Count = group.Count() })
+            .ToListAsync();
+        var priorityGroups = await query
+            .GroupBy(a => a.RequestedPriority ?? a.Priority)
+            .Select(group => new { Priority = group.Key, Count = group.Count() })
+            .ToListAsync();
+        var pageAppointments = await query
+            .OrderBy(a => a.ScheduledStart)
+            .ThenBy(a => a.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return new AppointmentListPageResponse
+        {
+            Appointments = pageAppointments.Select(MapToResponse).ToList(),
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize,
+            TotalPages = totalPages,
+            StatusCounts = statusGroups.ToDictionary(group => group.Status.ToString(), group => group.Count),
+            PriorityCounts = priorityGroups.ToDictionary(group => group.Priority.ToString(), group => group.Count)
+        };
+    }
+
+    private IQueryable<Appointment> BuildAppointmentsQuery(
         int requestingUserId,
         string requestingUserRole,
         AppointmentQueryFilter filter)
@@ -186,6 +246,8 @@ public class AppointmentService : IAppointmentService
         // Patients can only see their own appointments
         if (requestingUserRole == nameof(UserRole.Patient))
             query = query.Where(a => a.PatientId == requestingUserId);
+        else if (requestingUserRole == nameof(UserRole.Doctor))
+            query = query.Where(a => a.DoctorId == requestingUserId);
         else
         {
             if (filter.PatientId.HasValue) query = query.Where(a => a.PatientId == filter.PatientId);
@@ -194,12 +256,10 @@ public class AppointmentService : IAppointmentService
 
         if (filter.DepartmentId.HasValue) query = query.Where(a => a.DepartmentId == filter.DepartmentId);
         if (filter.Status.HasValue)        query = query.Where(a => a.Status   == filter.Status);
-        if (filter.Priority.HasValue)      query = query.Where(a => a.Priority == filter.Priority);
+        if (filter.Priority.HasValue)      query = query.Where(a => (a.RequestedPriority ?? a.Priority) == filter.Priority);
         if (filter.FromDate.HasValue)      query = query.Where(a => a.ScheduledStart >= filter.FromDate);
         if (filter.ToDate.HasValue)        query = query.Where(a => a.ScheduledStart <= filter.ToDate);
-
-        var appointments = await query.OrderBy(a => a.ScheduledStart).ToListAsync();
-        return appointments.Select(MapToResponse).ToList();
+        return query;
     }
 
     public async Task<AppointmentResponse?> GetAppointmentByIdAsync(
@@ -218,6 +278,8 @@ public class AppointmentService : IAppointmentService
         // Patients can only view their own appointments
         if (requestingUserRole == nameof(UserRole.Patient) && appointment.PatientId != requestingUserId)
             throw new UnauthorizedAccessException("You are not authorised to view this appointment.");
+        if (requestingUserRole == nameof(UserRole.Doctor) && appointment.DoctorId != requestingUserId)
+            throw new UnauthorizedAccessException("Doctors can only view their own appointments.");
 
         return MapToResponse(appointment);
     }
@@ -242,6 +304,8 @@ public class AppointmentService : IAppointmentService
 
         if (requestingUserRole == nameof(UserRole.Patient) && appointment.PatientId != requestingUserId)
             throw new UnauthorizedAccessException("You are not authorised to update this appointment.");
+        if (requestingUserRole == nameof(UserRole.Doctor) && appointment.DoctorId != requestingUserId)
+            throw new UnauthorizedAccessException("Doctors can only update their own appointments.");
 
         if (request.AppointmentType.HasValue)     appointment.AppointmentType = request.AppointmentType.Value;
         if (request.EstimatedDurationMinutes.HasValue) appointment.EstimatedDurationMinutes = request.EstimatedDurationMinutes.Value;
@@ -250,6 +314,37 @@ public class AppointmentService : IAppointmentService
         appointment.UpdatedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
 
+        return MapToResponse(appointment);
+    }
+
+    public async Task<AppointmentResponse> UpdateAppointmentPriorityAsync(
+        int id,
+        AppointmentPriority priority,
+        int staffUserId)
+    {
+        if (!Enum.IsDefined(typeof(AppointmentPriority), priority))
+            throw new InvalidOperationException("Priority must be Normal, Urgent, or Emergency.");
+
+        var appointment = await _context.Appointments
+            .Include(a => a.Patient)
+            .Include(a => a.Doctor)
+            .Include(a => a.Department)
+            .Include(a => a.QueueEntry)
+            .FirstOrDefaultAsync(a => a.Id == id)
+            ?? throw new KeyNotFoundException("Appointment not found.");
+
+        var previousPriority = appointment.Priority;
+        var changedAt = DateTime.UtcNow;
+        appointment.Priority = priority;
+        appointment.RequestedPriority = null;
+        appointment.UpdatedAt = changedAt;
+        if (appointment.QueueEntry != null)
+            appointment.QueueEntry.Priority = priority;
+
+        await _context.SaveChangesAsync();
+        _logger.LogInformation(
+            "Appointment {AppointmentId} priority changed from {OldPriority} to {NewPriority} by staff {StaffUserId} at {ChangedAt}.",
+            id, previousPriority, priority, staffUserId, changedAt);
         return MapToResponse(appointment);
     }
 
@@ -271,6 +366,8 @@ public class AppointmentService : IAppointmentService
 
         if (requestingUserRole == nameof(UserRole.Patient) && appointment.PatientId != requestingUserId)
             throw new UnauthorizedAccessException("You are not authorised to cancel this appointment.");
+        if (requestingUserRole == nameof(UserRole.Doctor) && appointment.DoctorId != requestingUserId)
+            throw new UnauthorizedAccessException("Doctors can only cancel their own appointments.");
 
         ValidateTransition(appointment.Status, AppointmentStatus.Cancelled);
 
@@ -326,6 +423,8 @@ public class AppointmentService : IAppointmentService
 
         if (requestingUserRole == nameof(UserRole.Patient) && old.PatientId != requestingUserId)
             throw new UnauthorizedAccessException("You are not authorised to reschedule this appointment.");
+        if (requestingUserRole == nameof(UserRole.Doctor) && old.DoctorId != requestingUserId)
+            throw new UnauthorizedAccessException("Doctors can only reschedule their own appointments.");
 
         ValidateTransition(old.Status, AppointmentStatus.Rescheduled);
 
@@ -334,7 +433,9 @@ public class AppointmentService : IAppointmentService
 
         int newDuration = request.NewEstimatedDurationMinutes ?? old.EstimatedDurationMinutes;
 
-        await using var transaction = await _context.Database.BeginTransactionAsync();
+        await using var transaction = _context.Database.ProviderName == "Npgsql.EntityFrameworkCore.PostgreSQL"
+            ? await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable)
+            : null;
         try
         {
             var slotFree = await _availabilityService.IsSlotAvailableAsync(
@@ -373,14 +474,6 @@ public class AppointmentService : IAppointmentService
                 referenceNumber = $"APT-{request.NewScheduledStart:yyyyMMdd}-{Random.Shared.Next(1000, 9999)}";
             } while (await _context.Appointments.AnyAsync(a => a.ReferenceNumber == referenceNumber));
 
-            var date        = request.NewScheduledStart.Date;
-            var maxQueue    = await _context.Appointments
-                .Where(a => a.DoctorId == old.DoctorId
-                         && a.ScheduledStart.Date == date
-                         && a.Status != AppointmentStatus.Cancelled
-                         && a.Status != AppointmentStatus.Rescheduled)
-                .MaxAsync(a => (int?)a.QueueNumber) ?? 0;
-
             var newAppointment = new Appointment
             {
                 PatientId                = old.PatientId,
@@ -391,8 +484,9 @@ public class AppointmentService : IAppointmentService
                 EstimatedDurationMinutes = newDuration,
                 Status                   = AppointmentStatus.Scheduled,
                 Priority                 = old.Priority,
+                RequestedPriority        = old.RequestedPriority,
                 ReferenceNumber          = referenceNumber,
-                QueueNumber              = maxQueue + 1,
+                QueueNumber              = null,
                 Notes                    = old.Notes,
                 RescheduledFromId        = old.Id,
                 EmergencyConfirmed       = false,
@@ -402,15 +496,6 @@ public class AppointmentService : IAppointmentService
 
             _context.Appointments.Add(newAppointment);
             await _context.SaveChangesAsync();
-
-            _context.QueueEntries.Add(new QueueEntry
-            {
-                AppointmentId = newAppointment.Id,
-                DoctorId      = old.DoctorId,
-                QueueNumber   = maxQueue + 1,
-                Status        = QueueEntryStatus.Waiting,
-                Priority      = old.Priority
-            });
 
             _context.AppointmentStatusHistories.Add(new AppointmentStatusHistory
             {
@@ -423,7 +508,7 @@ public class AppointmentService : IAppointmentService
             });
 
             await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
+            if (transaction != null) await transaction.CommitAsync();
 
             _logger.LogInformation(
                 "Appointment {OldRef} rescheduled → {NewRef} by user {UserId}.",
@@ -440,7 +525,7 @@ public class AppointmentService : IAppointmentService
         }
         catch
         {
-            await transaction.RollbackAsync();
+            if (transaction != null) await transaction.RollbackAsync();
             throw;
         }
     }
@@ -470,6 +555,38 @@ public class AppointmentService : IAppointmentService
     }
 
     // ── Emergency confirmation ────────────────────────────────────────────────
+
+    public async Task<AppointmentResponse> ConfirmAppointmentAsync(int id, int staffUserId)
+    {
+        var appointment = await _context.Appointments
+            .Include(a => a.Patient)
+            .Include(a => a.Doctor)
+            .Include(a => a.Department)
+            .FirstOrDefaultAsync(a => a.Id == id)
+            ?? throw new KeyNotFoundException("Appointment not found.");
+
+        // Enforce the exact transition at the service boundary so stale details
+        // cannot overwrite a cancellation or another status change.
+        ValidateTransition(appointment.Status, AppointmentStatus.Confirmed);
+
+        var now = DateTime.UtcNow;
+        var oldStatus = appointment.Status;
+        appointment.Status = AppointmentStatus.Confirmed;
+        appointment.UpdatedAt = now;
+        _context.AppointmentStatusHistories.Add(new AppointmentStatusHistory
+        {
+            AppointmentId = appointment.Id,
+            OldStatus = oldStatus,
+            NewStatus = AppointmentStatus.Confirmed,
+            ChangedBy = staffUserId,
+            ChangedAt = now,
+            Reason = "Appointment confirmed by staff."
+        });
+
+        await _context.SaveChangesAsync();
+        _logger.LogInformation("Appointment {Id} confirmed by staff {StaffId}.", id, staffUserId);
+        return MapToResponse(appointment);
+    }
 
     public async Task<AppointmentResponse> ConfirmEmergencyAsync(int id, int staffUserId)
     {
@@ -540,7 +657,8 @@ public class AppointmentService : IAppointmentService
         ScheduledStart           = a.ScheduledStart,
         EstimatedDurationMinutes = a.EstimatedDurationMinutes,
         Status                   = a.Status.ToString(),
-        Priority                 = a.Priority.ToString(),
+        Priority                 = (a.RequestedPriority ?? a.Priority).ToString(),
+        PriorityNeedsReview      = a.RequestedPriority.HasValue,
         QueueNumber              = a.QueueNumber,
         Notes                    = a.Notes,
         CancelledReason          = a.CancelledReason,
@@ -567,4 +685,10 @@ public class AppointmentService : IAppointmentService
         status is QueueEntryStatus.Completed
                or QueueEntryStatus.NoShow
                or QueueEntryStatus.Skipped;
+
+    private static TimeZoneInfo ResolveHospitalTimeZone()
+    {
+        try { return TimeZoneInfo.FindSystemTimeZoneById("Asia/Colombo"); }
+        catch (TimeZoneNotFoundException) { return TimeZoneInfo.FindSystemTimeZoneById("Sri Lanka Standard Time"); }
+    }
 }

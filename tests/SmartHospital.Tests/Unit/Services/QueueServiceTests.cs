@@ -73,7 +73,7 @@ public class QueueServiceTests
         {
             PatientId = patientId, DoctorId = doctorId,
             ReferenceNumber = $"APT-{queueNumber:D4}",
-            ScheduledStart  = DateTime.UtcNow.AddDays(1),
+            ScheduledStart  = DateTime.UtcNow,
             EstimatedDurationMinutes = durationMinutes,
             Status    = AppointmentStatus.Scheduled,
             Priority  = priority,
@@ -88,6 +88,8 @@ public class QueueServiceTests
             AppointmentId = apt.Id,
             DoctorId      = doctorId,
             QueueNumber   = queueNumber,
+            QueueCode     = $"A-{queueNumber:000}",
+            QueueDate     = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("Asia/Colombo"))),
             Status        = QueueEntryStatus.Waiting,
             Priority      = priority
         };
@@ -178,6 +180,8 @@ public class QueueServiceTests
         await SeedPatientAsync(ctx, 1);
 
         var (apt, entry) = await SeedEntryAsync(ctx, 10, 1, AppointmentPriority.Normal, queueNumber: 1);
+        entry.Status = QueueEntryStatus.InProgress;
+        await ctx.SaveChangesAsync();
 
         var result = await svc.MarkNoShowAsync(entry.Id, staffUserId: 99);
 
@@ -209,6 +213,30 @@ public class QueueServiceTests
     }
 
     // ── Wait-time estimation ──────────────────────────────────────────────────
+
+    [Fact]
+    public async Task CheckIn_CreatesStableQueueCodeOnce()
+    {
+        using var ctx = CreateContext();
+        var svc = BuildService(ctx);
+        await SeedDoctorAsync(ctx, 10);
+        await SeedPatientAsync(ctx, 1);
+        var appointment = new Appointment
+        {
+            PatientId = 1, DoctorId = 10, ReferenceNumber = "APT-CHECKIN",
+            ScheduledStart = DateTime.UtcNow, EstimatedDurationMinutes = 30,
+            Status = AppointmentStatus.Confirmed, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow
+        };
+        ctx.Appointments.Add(appointment);
+        await ctx.SaveChangesAsync();
+
+        var entry = await svc.CheckInAsync(appointment.Id, staffUserId: 99);
+
+        Assert.Equal("A-001", entry.QueueCode);
+        Assert.Equal("Waiting", entry.Status);
+        Assert.Equal(1, entry.QueuePosition);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CheckInAsync(appointment.Id, staffUserId: 99));
+    }
 
     [Fact]
     public async Task GetQueueStatus_EstimatedWaitIncreasesForLaterEntries()
@@ -250,11 +278,33 @@ public class QueueServiceTests
         await SeedPatientAsync(ctx, 1);
 
         var (apt, entry) = await SeedEntryAsync(ctx, 10, 1, AppointmentPriority.Normal, queueNumber: 1);
+        entry.Status = QueueEntryStatus.InProgress;
+        await ctx.SaveChangesAsync();
 
         var result = await svc.MarkCompletedAsync(entry.Id, staffUserId: 99);
 
         Assert.Equal("Completed", result.Status);
         var updatedApt = await ctx.Appointments.FindAsync(apt.Id);
         Assert.Equal(AppointmentStatus.Completed, updatedApt!.Status);
+    }
+
+    [Fact]
+    public async Task MarkCompleted_CallsNextCheckedInPatient()
+    {
+        using var ctx = CreateContext();
+        var svc = BuildService(ctx);
+        await SeedDoctorAsync(ctx, 10);
+        await SeedPatientAsync(ctx, 1);
+        await SeedPatientAsync(ctx, 2);
+        var (_, current) = await SeedEntryAsync(ctx, 10, 1, AppointmentPriority.Normal, queueNumber: 1);
+        var (_, next) = await SeedEntryAsync(ctx, 10, 2, AppointmentPriority.Normal, queueNumber: 2);
+        current.Status = QueueEntryStatus.InProgress;
+        await ctx.SaveChangesAsync();
+
+        await svc.MarkCompletedAsync(current.Id, staffUserId: 99);
+
+        Assert.Equal(QueueEntryStatus.Called, next.Status);
+        var nextAppointment = await ctx.Appointments.FindAsync(next.AppointmentId);
+        Assert.Equal(AppointmentStatus.Confirmed, nextAppointment!.Status);
     }
 }

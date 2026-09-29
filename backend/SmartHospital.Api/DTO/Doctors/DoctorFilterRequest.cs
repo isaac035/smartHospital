@@ -2,6 +2,8 @@ namespace SmartHospital.Api.DTOs.Doctors;
 
 public class DoctorFilterRequest
 {
+    public bool IncludeInactive { get; set; }
+
     public int? DepartmentId { get; set; }
 
     public string? Specialization { get; set; }
