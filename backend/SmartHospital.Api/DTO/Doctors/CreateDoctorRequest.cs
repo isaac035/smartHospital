@@ -35,6 +35,4 @@ public class CreateDoctorRequest
 
     [MaxLength(2000)]
     public string Bio { get; set; } = string.Empty;
-
-    public int? UserId { get; set; }
 }

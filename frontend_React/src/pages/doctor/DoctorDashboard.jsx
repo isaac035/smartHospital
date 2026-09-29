@@ -8,6 +8,7 @@ import PriorityBadge from '../../components/appointments/PriorityBadge'
 import AppointmentStatusBadge from '../../components/appointments/AppointmentStatusBadge'
 
 export default function DoctorDashboard() {
+
   const { user } = useAuth()
   const navigate = useNavigate()
 

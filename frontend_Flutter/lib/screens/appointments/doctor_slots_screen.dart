@@ -61,7 +61,7 @@ class _DoctorSlotsScreenState extends State<DoctorSlotsScreen> {
           .build();
 
       void refreshForSelectedDoctor(List<Object?>? arguments) {
-        if (!mounted || !_matchesSelectedDoctor(arguments)) return;
+        if (!mounted || !_matchesSelectedDoctorAndDate(arguments)) return;
         _loadSlots();
       }
 
@@ -75,21 +75,38 @@ class _DoctorSlotsScreenState extends State<DoctorSlotsScreen> {
     }
   }
 
-  bool _matchesSelectedDoctor(List<Object?>? arguments) {
+  bool _matchesSelectedDoctorAndDate(List<Object?>? arguments) {
     if (arguments == null || arguments.isEmpty) return true;
     final payload = arguments.first;
     if (payload is! Map) return true;
     final payloadDoctorId = payload['doctorId'] ?? payload['DoctorId'];
     final payloadProfileId =
         payload['doctorProfileId'] ?? payload['DoctorProfileId'];
-    if (payloadProfileId != null) {
-      return payloadProfileId.toString() == widget.doctorProfileId.toString();
+    final matchesDoctor = payloadProfileId != null
+        ? payloadProfileId.toString() == widget.doctorProfileId.toString()
+        : payloadDoctorId == null ||
+              payloadDoctorId.toString() == widget.bookingDoctorId.toString() ||
+              payloadDoctorId.toString() == widget.doctorProfileId.toString();
+    if (!matchesDoctor) return false;
+
+    final specificDate = payload['specificDate'] ?? payload['SpecificDate'];
+    if (specificDate != null) {
+      return specificDate.toString().split('T').first == _dateString;
     }
-    if (payloadDoctorId != null) {
-      return payloadDoctorId.toString() == widget.bookingDoctorId.toString() ||
-          payloadDoctorId.toString() == widget.doctorProfileId.toString();
-    }
-    return true;
+
+    final dayOfWeek = payload['dayOfWeek'] ?? payload['DayOfWeek'];
+    if (dayOfWeek == null) return true;
+    const weekdays = <String>[
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+    ];
+    return dayOfWeek.toString().toLowerCase() ==
+        weekdays[_selectedDate.weekday - 1].toLowerCase();
   }
 
   @override

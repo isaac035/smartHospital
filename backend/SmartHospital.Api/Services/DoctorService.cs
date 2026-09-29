@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
 using SmartHospital.Api.Data;
 using SmartHospital.Api.DTOs.Doctors;
 using SmartHospital.Api.Models;
@@ -107,19 +108,17 @@ public class DoctorService : IDoctorService
             .FirstOrDefaultAsync();
     }
 
-    public async Task<DoctorResponse> CreateAsync(CreateDoctorRequest request)
+    public async Task<CreateDoctorResponse> CreateAsync(CreateDoctorRequest request)
     {
         var email = request.Email.Trim().ToLowerInvariant();
 
-        var existing = await _context.Doctors
-            .FirstOrDefaultAsync(d => d.Email == email);
-
-        if (existing != null)
+        if (await _context.Users.AnyAsync(u => u.Email.ToLower() == email))
         {
-            throw new InvalidOperationException(
-                "A doctor with this email already exists."
-            );
+            throw new InvalidOperationException("This email is already registered to a user.");
         }
+
+        if (await _context.Doctors.AnyAsync(d => d.Email.ToLower() == email))
+            throw new InvalidOperationException("A doctor profile with this email already exists.");
 
         var departmentExists = await _context.Departments
             .AnyAsync(dept => dept.Id == request.DepartmentId);
@@ -131,30 +130,146 @@ public class DoctorService : IDoctorService
             );
         }
 
-        var doctor = new Doctor
+        var temporaryPassword = GenerateTemporaryPassword();
+        await using var transaction = _context.Database.IsRelational()
+            ? await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable)
+            : null;
+
+        try
         {
-            UserId = request.UserId,
-            DepartmentId = request.DepartmentId,
-            FirstName = request.FirstName.Trim(),
-            LastName = request.LastName.Trim(),
-            Email = email,
-            PhoneNumber = request.PhoneNumber.Trim(),
-            Specialization = request.Specialization.Trim(),
-            LicenseNumber = request.LicenseNumber.Trim(),
-            YearsOfExperience = request.YearsOfExperience,
-            Bio = request.Bio.Trim(),
-            Status = DoctorStatus.Active,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        };
+            var now = DateTime.UtcNow;
+            var user = CreateDoctorUser(
+                request.FirstName, request.LastName, email, request.PhoneNumber, temporaryPassword, now);
+            _context.Users.Add(user);
+            await _context.SaveChangesAsync();
 
-        _context.Doctors.Add(doctor);
+            var doctor = new Doctor
+            {
+                UserId = user.Id,
+                DepartmentId = request.DepartmentId,
+                FirstName = request.FirstName.Trim(),
+                LastName = request.LastName.Trim(),
+                Email = email,
+                PhoneNumber = request.PhoneNumber.Trim(),
+                Specialization = request.Specialization.Trim(),
+                LicenseNumber = request.LicenseNumber.Trim(),
+                YearsOfExperience = request.YearsOfExperience,
+                Bio = request.Bio.Trim(),
+                Status = DoctorStatus.Active,
+                CreatedAt = now,
+                UpdatedAt = now
+            };
+            _context.Doctors.Add(doctor);
+            await _context.SaveChangesAsync();
 
-        await _context.SaveChangesAsync();
+            var doctorResponse = await GetByIdAsync(doctor.Id)
+                ?? throw new InvalidOperationException("Failed to create doctor profile.");
+            if (transaction != null) await transaction.CommitAsync();
 
-        return await GetByIdAsync(doctor.Id)
-            ?? throw new InvalidOperationException("Failed to create doctor.");
+            return new CreateDoctorResponse
+            {
+                Doctor = doctorResponse,
+                TemporaryPassword = temporaryPassword
+            };
+        }
+        catch (DbUpdateException)
+        {
+            if (transaction != null) await transaction.RollbackAsync();
+
+            if (await _context.Users.AsNoTracking().AnyAsync(u => u.Email.ToLower() == email))
+                throw new InvalidOperationException("This email is already registered to a user.");
+            if (await _context.Doctors.AsNoTracking().AnyAsync(d => d.Email.ToLower() == email))
+                throw new InvalidOperationException("A doctor profile with this email already exists.");
+
+            throw;
+        }
+        catch
+        {
+            if (transaction != null) await transaction.RollbackAsync();
+            throw;
+        }
     }
+
+    private static string GenerateTemporaryPassword()
+    {
+        var bytes = RandomNumberGenerator.GetBytes(24);
+        return Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_') + "!";
+    }
+
+    public async Task<CreateDoctorResponse> CreateAccountForExistingAsync(int doctorId)
+    {
+        await using var transaction = _context.Database.IsRelational()
+            ? await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable)
+            : null;
+        string? backfillEmail = null;
+
+        try
+        {
+            var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.Id == doctorId)
+                ?? throw new KeyNotFoundException("Doctor profile not found.");
+
+            if (doctor.UserId.HasValue)
+                throw new InvalidOperationException("This doctor profile already has a linked login account.");
+            if (doctor.Status == DoctorStatus.Inactive)
+                throw new InvalidOperationException("Inactive doctor profiles cannot receive a login account. Activate this profile first.");
+
+            var email = doctor.Email.Trim().ToLowerInvariant();
+            backfillEmail = email;
+            if (await _context.Users.AnyAsync(u => u.Email.ToLower() == email))
+                throw new InvalidOperationException("A user account already uses this email. Review that account before linking this doctor profile.");
+
+            var temporaryPassword = GenerateTemporaryPassword();
+            var now = DateTime.UtcNow;
+            var user = CreateDoctorUser(doctor.FirstName, doctor.LastName, email, doctor.PhoneNumber, temporaryPassword, now);
+            _context.Users.Add(user);
+            await _context.SaveChangesAsync();
+
+            doctor.UserId = user.Id;
+            doctor.UpdatedAt = now;
+            await _context.SaveChangesAsync();
+
+            var doctorResponse = await GetByIdAsync(doctor.Id)
+                ?? throw new InvalidOperationException("Failed to reload the linked doctor profile.");
+            if (transaction != null) await transaction.CommitAsync();
+
+            return new CreateDoctorResponse
+            {
+                Doctor = doctorResponse,
+                TemporaryPassword = temporaryPassword
+            };
+        }
+        catch (DbUpdateException)
+        {
+            if (transaction != null) await transaction.RollbackAsync();
+            if (backfillEmail != null && await _context.Users.AsNoTracking().AnyAsync(u => u.Email.ToLower() == backfillEmail))
+                throw new InvalidOperationException("A user account already uses this email. Review that account before linking this doctor profile.");
+            throw new InvalidOperationException("The account could not be created because its email or doctor link changed. Refresh and review the profile.");
+        }
+        catch
+        {
+            if (transaction != null) await transaction.RollbackAsync();
+            throw;
+        }
+    }
+
+    private static User CreateDoctorUser(
+        string firstName,
+        string lastName,
+        string email,
+        string phoneNumber,
+        string temporaryPassword,
+        DateTime now) => new()
+    {
+        FirstName = firstName.Trim(),
+        LastName = lastName.Trim(),
+        Email = email,
+        PasswordHash = BCrypt.Net.BCrypt.HashPassword(temporaryPassword),
+        PhoneNumber = phoneNumber.Trim(),
+        Role = UserRole.Doctor,
+        Status = UserStatus.Active,
+        CreatedAt = now,
+        UpdatedAt = now
+    };
 
     public async Task<DoctorResponse?> UpdateAsync(
         int id,
@@ -199,7 +314,7 @@ public class DoctorService : IDoctorService
         doctor.LicenseNumber = request.LicenseNumber.Trim();
         doctor.YearsOfExperience = request.YearsOfExperience;
         doctor.Bio = request.Bio.Trim();
-        doctor.UserId = request.UserId;
+        doctor.UserId = request.UserId ?? doctor.UserId;
         doctor.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
@@ -222,6 +337,31 @@ public class DoctorService : IDoctorService
 
         await _context.SaveChangesAsync();
 
+        return true;
+    }
+
+    public async Task<bool> DeletePermanentlyAsync(int id)
+    {
+        var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.Id == id);
+        if (doctor == null)
+        {
+            return false;
+        }
+
+        if (doctor.UserId.HasValue)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == doctor.UserId.Value);
+            var anotherDoctorUsesAccount = await _context.Doctors.AnyAsync(d => d.Id != id && d.UserId == doctor.UserId);
+            if (user != null && !anotherDoctorUsesAccount)
+            {
+                // Keep the login row for historical appointment references, but prevent further sign-in.
+                user.Status = UserStatus.Inactive;
+                user.UpdatedAt = DateTime.UtcNow;
+            }
+        }
+
+        _context.Doctors.Remove(doctor);
+        await _context.SaveChangesAsync();
         return true;
     }
 

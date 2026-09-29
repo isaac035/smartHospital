@@ -15,11 +15,6 @@ export async function updateSchedule(id, data) {
   return response.data
 }
 
-export async function addSlotsToSchedule(id, data) {
-  const response = await api.post(`/schedules/${id}/add-slots`, data)
-  return response.data
-}
-
 export async function removeSchedule(id) {
   const response = await api.delete(`/schedules/${id}`)
   return response.data

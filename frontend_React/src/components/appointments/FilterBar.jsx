@@ -18,9 +18,9 @@ export default function FilterBar({ filters, doctors, onFilterChange, onClear })
           style={{ borderColor: 'color-mix(in srgb, var(--color-secondary) 25%, var(--color-primary))' }}
         >
           <option value="">All Doctors</option>
-          {doctors.filter(doctor => doctor.userId != null).map(doctor => (
-            <option key={doctor.userId} value={doctor.userId}>
-              {doctor.firstName} {doctor.lastName}
+          {doctors.map(doctor => (
+            <option key={doctor.id} value={doctor.userId ?? `profile:${doctor.id}`}>
+              {doctor.firstName} {doctor.lastName}{doctor.userId == null ? ' (not linked)' : ''}
             </option>
           ))}
         </select>

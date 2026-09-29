@@ -8,13 +8,17 @@ public interface IDoctorService
 
     Task<DoctorResponse?> GetByIdAsync(int id);
 
-    Task<DoctorResponse> CreateAsync(CreateDoctorRequest request);
+    Task<CreateDoctorResponse> CreateAsync(CreateDoctorRequest request);
+
+    Task<CreateDoctorResponse> CreateAccountForExistingAsync(int doctorId);
 
     Task<DoctorResponse?> UpdateAsync(
         int id,
         UpdateDoctorRequest request);
 
     Task<bool> DeactivateAsync(int id);
+
+    Task<bool> DeletePermanentlyAsync(int id);
 
     Task<bool> ActivateAsync(int id);
 

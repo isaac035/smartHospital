@@ -6,6 +6,7 @@ using Microsoft.OpenApi.Models;
 using SmartHospital.Api.BackgroundServices;
 using SmartHospital.Api.Configuration;
 using SmartHospital.Api.Data;
+using SmartHospital.Api.Middleware;
 using SmartHospital.Api.Services;
 using SmartHospital.Api.Services.Interfaces;
 
@@ -234,6 +235,7 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 
 app.UseAuthorization();
+app.UseMiddleware<AppointmentManagerAuthorizationMiddleware>();
 
 app.MapControllers();
 app.MapHub<SmartHospital.Api.Hubs.HospitalHub>("/hubs/hospital");

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using SmartHospital.Api.Data;
 using SmartHospital.Api.DTOs.Appointments;
+using SmartHospital.Api.DTOs.Availability;
 using SmartHospital.Api.Models;
 using SmartHospital.Api.Services.Interfaces;
 
@@ -39,6 +40,27 @@ public class AppointmentService : IAppointmentService
         _notificationService = notificationService;
         _logger = logger;
     }
+
+    public async Task<List<AppointmentDoctorOptionResponse>> GetDoctorOptionsAsync()
+    {
+        return await _context.Doctors
+            .AsNoTracking()
+            .Where(d => d.Status == DoctorStatus.Active)
+            .OrderBy(d => d.FirstName).ThenBy(d => d.LastName)
+            .Select(d => new AppointmentDoctorOptionResponse
+            {
+                Id = d.Id,
+                UserId = d.UserId,
+                DepartmentName = d.Department!.Name,
+                FirstName = d.FirstName,
+                LastName = d.LastName,
+                Specialization = d.Specialization,
+            })
+            .ToListAsync();
+    }
+
+    public Task<List<AvailableSlotResponse>> GetConsultationPeriodSlotsAsync(int doctorId, DateTime date) =>
+        _availabilityService.GetAvailableSlotsAsync(doctorId, null, date);
 
     // ── Booking ───────────────────────────────────────────────────────────────
 

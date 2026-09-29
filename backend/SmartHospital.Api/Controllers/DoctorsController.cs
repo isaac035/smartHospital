@@ -96,7 +96,7 @@ public class DoctorsController : ControllerBase
         {
             var result = await _doctorService.CreateAsync(request);
 
-            return Created($"/api/doctors/{result.Id}", result);
+            return Created($"/api/doctors/{result.Doctor.Id}", result);
         }
         catch (InvalidOperationException ex)
         {
@@ -104,6 +104,25 @@ public class DoctorsController : ControllerBase
             {
                 message = ex.Message
             });
+        }
+    }
+
+    [HttpPost("{id:int}/create-login")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> CreateLoginForExistingDoctor(int id)
+    {
+        try
+        {
+            var result = await _doctorService.CreateAccountForExistingAsync(id);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
         }
     }
 
@@ -152,6 +171,20 @@ public class DoctorsController : ControllerBase
         {
             message = "Doctor deactivated successfully."
         });
+    }
+
+    [HttpDelete("{id:int}/permanent")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> DeletePermanently(int id)
+    {
+        var success = await _doctorService.DeletePermanentlyAsync(id);
+
+        if (!success)
+        {
+            return NotFound(new { message = "Doctor not found." });
+        }
+
+        return Ok(new { message = "Doctor permanently deleted." });
     }
 
     [HttpPost("{id:int}/activate")]

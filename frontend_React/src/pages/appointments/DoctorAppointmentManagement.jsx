@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react'
 import DashboardLayout from '../../layouts/DashboardLayout'
 import { getAppointments, getQueue, callQueueEntry, markCompleted } from '../../services/appointmentService'
-import { listDoctors } from '../../services/doctorService'
+import { useDoctorOptions } from '../../hooks/useDoctorOptions'
 import { useSignalR } from '../../hooks/useSignalR'
 import { adminNavigation as adminNav } from '../admin/adminNavigation'
 import { staffNavigation as staffNav } from '../staff/staffNavigation'
 import { doctorNavigation as doctorNav } from '../doctor/doctorNavigation'
+import { appointmentManagerNavigation } from './appointmentManagerNavigation'
 import AppointmentStatusBadge from '../../components/appointments/AppointmentStatusBadge'
 import PriorityBadge from '../../components/appointments/PriorityBadge'
 import { useAuth } from '../../hooks/useAuth'
@@ -13,13 +14,15 @@ import { useAuth } from '../../hooks/useAuth'
 export default function DoctorAppointmentManagement() {
   const { user } = useAuth()
   const role = user?.role || 'Admin'
-  const navigation = role === 'Admin' ? adminNav : role === 'Doctor' ? doctorNav : staffNav
+  const navigation = role === 'AppointmentManager' ? appointmentManagerNavigation : role === 'Admin' ? adminNav : role === 'Doctor' ? doctorNav : staffNav
 
-  const now = new Date()
-  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  const todayParts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Colombo', year: 'numeric', month: '2-digit', day: '2-digit'
+  }).formatToParts(new Date())
+  const today = `${todayParts.find(part => part.type === 'year')?.value}-${todayParts.find(part => part.type === 'month')?.value}-${todayParts.find(part => part.type === 'day')?.value}`
   const [date, setDate] = useState(today)
   const [doctorId, setDoctorId] = useState('')
-  const [doctorOptions, setDoctorOptions] = useState([])
+  const doctorOptions = useDoctorOptions(role !== 'Doctor')
 
   const [appointments, setAppointments] = useState([])
   const [queue, setQueue] = useState([])
@@ -33,17 +36,28 @@ export default function DoctorAppointmentManagement() {
       setDoctorId(String(user?.id || ''))
       return
     }
-    listDoctors()
-      .then(docs => {
-        const bookable = docs.filter(d => d.userId != null)
-        setDoctorOptions(bookable)
-        if (bookable.length > 0) setDoctorId(String(bookable[0].userId))
-      })
-      .catch(() => setError('Failed to load doctors'))
   }, [role, user?.id])
 
+  useEffect(() => {
+    if (role === 'Doctor' || doctorId || !doctorOptions.length) return
+    const firstDoctor = doctorOptions.find(doctor => doctor.userId != null) || doctorOptions[0]
+    setDoctorId(String(firstDoctor.userId ?? `profile:${firstDoctor.id}`))
+  }, [doctorId, doctorOptions, role])
+
   const fetchData = useCallback(async () => {
-    if (!doctorId) return
+    if (!doctorId) {
+      setAppointments([])
+      setQueue([])
+      setLoading(false)
+      return
+    }
+    if (doctorId.startsWith('profile:')) {
+      setAppointments([])
+      setQueue([])
+      setError(null)
+      setLoading(false)
+      return
+    }
     setLoading(true)
     setError(null)
     try {
@@ -66,6 +80,8 @@ export default function DoctorAppointmentManagement() {
 
   // Real-time updates — when queue changes (via SignalR broadcast from backend), re-fetch
   useSignalR({
+    AppointmentCreated: fetchData,
+    AppointmentCancelled: fetchData,
     QueueUpdated: fetchData,
     PatientCheckedIn: fetchData,
     ConsultationCompleted: fetchData,
@@ -125,7 +141,7 @@ export default function DoctorAppointmentManagement() {
           >
             <option value="">-- Select Doctor --</option>
             {doctorOptions.map(d => (
-              <option key={d.userId} value={d.userId}>Dr. {d.firstName} {d.lastName}</option>
+              <option key={d.id} value={d.userId ?? `profile:${d.id}`}>Dr. {d.firstName} {d.lastName}{d.userId == null ? ' (not linked)' : ''}</option>
             ))}
           </select>
         </div>}
@@ -154,6 +170,8 @@ export default function DoctorAppointmentManagement() {
       {/* Content */}
       {!doctorId ? (
         <div className="p-12 text-center border rounded-xl stat-card opacity-60">Select a doctor to view their queue.</div>
+      ) : doctorId.startsWith('profile:') ? (
+        <div className="p-12 text-center border rounded-xl stat-card opacity-60">This doctor profile is not linked to an appointment account yet.</div>
       ) : loading ? (
         <div className="p-12 text-center stat-card opacity-60">Loading appointments...</div>
       ) : list.length === 0 ? (
@@ -190,7 +208,7 @@ export default function DoctorAppointmentManagement() {
                 <div className="flex-1 min-w-0">
                   <div className="font-bold text-lg leading-tight">{apt.patientName}</div>
                   <div className="text-sm mt-1 flex flex-wrap gap-x-4 gap-y-1 opacity-70">
-                    <span>⏰ {new Date(apt.scheduledStart).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    <span>⏰ {new Date(apt.scheduledStart).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Colombo' })}</span>
                     <span>📋 {apt.appointmentType}</span>
                     {q?.estimatedWaitMinutes != null && (
                       <span>⌛ ~{q.estimatedWaitMinutes} min wait</span>

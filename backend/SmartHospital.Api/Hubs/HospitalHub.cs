@@ -15,6 +15,7 @@ public class HospitalHub : Hub
             await Groups.AddToGroupAsync(Context.ConnectionId, $"doctor:{userId}");
         if (Context.User?.IsInRole("Staff") == true) await Groups.AddToGroupAsync(Context.ConnectionId, "staff");
         if (Context.User?.IsInRole("Admin") == true) await Groups.AddToGroupAsync(Context.ConnectionId, "admin");
+        if (Context.User?.IsInRole("AppointmentManager") == true) await Groups.AddToGroupAsync(Context.ConnectionId, "appointment-manager");
         await base.OnConnectedAsync();
     }
     // Clients will listen to these events:

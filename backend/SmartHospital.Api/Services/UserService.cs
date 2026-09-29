@@ -55,6 +55,32 @@ public class UserService : IUserService
             .FirstOrDefaultAsync();
     }
 
+    public async Task<UserResponse> CreateAppointmentManagerAsync(CreateAppointmentManagerRequest request)
+    {
+        var email = request.Email.Trim().ToLowerInvariant();
+        if (await _context.Users.AnyAsync(u => u.Email == email))
+            throw new InvalidOperationException("A user with this email already exists.");
+
+        var now = DateTime.UtcNow;
+        var user = new User
+        {
+            FirstName = request.FirstName.Trim(),
+            LastName = request.LastName.Trim(),
+            Email = email,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+            PhoneNumber = request.PhoneNumber.Trim(),
+            Role = UserRole.AppointmentManager,
+            Status = UserStatus.Active,
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+        return await GetByIdAsync(user.Id)
+            ?? throw new InvalidOperationException("Failed to create appointment manager account.");
+    }
+
     public async Task<UserResponse?> UpdateAsync(
         int id,
         UpdateUserRequest request)

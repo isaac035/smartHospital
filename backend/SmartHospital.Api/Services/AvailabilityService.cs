@@ -22,7 +22,8 @@ public class AvailabilityService : IAvailabilityService
         int? doctorId,
         int? departmentId,
         DateTime date,
-        int? doctorProfileId = null)
+        int? doctorProfileId = null,
+        bool includePast = false)
     {
         // Models.DayOfWeek uses Monday=1..Sunday=7, unlike System.DayOfWeek's Sunday=0..Saturday=6.
         var systemDayOfWeek = (int)date.DayOfWeek;
@@ -86,6 +87,7 @@ public class AvailabilityService : IAvailabilityService
             .ToListAsync();
 
         var result = new List<AvailableSlotResponse>();
+        var nowUtc = DateTime.UtcNow;
 
         foreach (var schedule in schedules)
         {
@@ -109,7 +111,7 @@ public class AvailabilityService : IAvailabilityService
                     a.ScheduledStart < slotEnd &&
                     a.ScheduledStart.AddMinutes(a.EstimatedDurationMinutes) > slotStart);
 
-                if (slotStart > DateTime.UtcNow)
+                if (includePast || slotStart > nowUtc)
                 {
                     result.Add(new AvailableSlotResponse
                     {

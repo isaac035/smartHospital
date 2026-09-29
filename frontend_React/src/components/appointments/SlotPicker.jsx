@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { getAvailableSlots } from '../../services/appointmentService'
+import { getAvailableSlots, getAppointmentConsultationPeriod } from '../../services/appointmentService'
 
-export default function SlotPicker({ doctorId, departmentId, date, onSlotSelect, selectedSlot, durationMinutes = 30 }) {
+export default function SlotPicker({ doctorId, departmentId, date, onSlotSelect, selectedSlot, durationMinutes = 30, appointmentManager = false }) {
   const [slots, setSlots] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -13,7 +13,9 @@ export default function SlotPicker({ doctorId, departmentId, date, onSlotSelect,
     const fetchSlots = async () => {
       try {
         setLoading(true)
-        const data = await getAvailableSlots(date, doctorId, departmentId)
+        const data = appointmentManager
+          ? await getAppointmentConsultationPeriod(date, doctorId)
+          : await getAvailableSlots(date, doctorId, departmentId)
         
         // Filter by duration if needed, though backend handles the basic chunks
         setSlots(data)
@@ -26,7 +28,7 @@ export default function SlotPicker({ doctorId, departmentId, date, onSlotSelect,
     }
     
     fetchSlots()
-  }, [date, doctorId, departmentId])
+  }, [date, doctorId, departmentId, appointmentManager])
 
   if (!date || (!doctorId && !departmentId)) {
     return <div className="p-4 text-sm text-center border rounded-md" style={{ borderColor: 'color-mix(in srgb, var(--color-secondary) 15%, var(--color-primary))', color: 'color-mix(in srgb, var(--color-secondary) 60%, var(--color-primary))' }}>

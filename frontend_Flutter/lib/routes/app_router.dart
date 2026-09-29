@@ -269,8 +269,16 @@ class AppRouter {
                 int.parse(state.pathParameters['doctorProfileId']!);
             final bookingDoctorId = int.tryParse(
                   state.uri.queryParameters['userId'] ?? '',
-                ) ??
-                doctorProfileId;
+                );
+            if (bookingDoctorId == null) {
+              return const Scaffold(
+                body: Center(
+                  child: Text(
+                    'This doctor is not linked to a booking account.',
+                  ),
+                ),
+              );
+            }
             return DoctorSlotsScreen(
               doctorProfileId: doctorProfileId,
               bookingDoctorId: bookingDoctorId,

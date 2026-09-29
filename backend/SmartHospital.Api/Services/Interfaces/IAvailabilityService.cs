@@ -12,7 +12,8 @@ public interface IAvailabilityService
         int? doctorId,
         int? departmentId,
         DateTime date,
-        int? doctorProfileId = null);
+        int? doctorProfileId = null,
+        bool includePast = false);
 
     /// <summary>
     /// Determines whether a specific slot is free for a doctor.

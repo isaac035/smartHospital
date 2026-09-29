@@ -8,6 +8,8 @@ public interface IUserService
 
     Task<UserResponse?> GetByIdAsync(int id);
 
+    Task<UserResponse> CreateAppointmentManagerAsync(CreateAppointmentManagerRequest request);
+
     Task<UserResponse?> UpdateAsync(
         int id,
         UpdateUserRequest request);

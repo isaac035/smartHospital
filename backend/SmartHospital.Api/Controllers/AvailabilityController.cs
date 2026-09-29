@@ -31,7 +31,8 @@ public class AvailabilityController : ControllerBase
         [FromQuery] int? doctorId,
         [FromQuery] int? departmentId,
         [FromQuery] DateTime date,
-        [FromQuery] int? doctorProfileId)
+        [FromQuery] int? doctorProfileId,
+        [FromQuery] bool includePast = false)
     {
         if (date == default || (!doctorId.HasValue && !doctorProfileId.HasValue))
             return BadRequest(new { message = "A doctor and a valid date are required." });
@@ -41,8 +42,11 @@ public class AvailabilityController : ControllerBase
 
         try
         {
+            if (includePast && !User.IsInRole("Admin") && !User.IsInRole("Staff"))
+                return Forbid();
+
             var slots = await _availabilityService.GetAvailableSlotsAsync(
-                doctorId, departmentId, utcDate, doctorProfileId);
+                doctorId, departmentId, utcDate, doctorProfileId, includePast);
             return Ok(slots);
         }
         catch (KeyNotFoundException ex)

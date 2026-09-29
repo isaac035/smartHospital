@@ -25,6 +25,7 @@ export function dashboardPathForRole(role) {
     Admin: '/admin/dashboard',
     Doctor: '/doctor/dashboard',
     Staff: '/staff/dashboard',
+    AppointmentManager: '/admin/appointments',
   }
 
   return paths[role] || null

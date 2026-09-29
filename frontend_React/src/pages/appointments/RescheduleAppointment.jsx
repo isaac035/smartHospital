@@ -4,6 +4,7 @@ import DashboardLayout from '../../layouts/DashboardLayout'
 import { getAppointmentById, rescheduleAppointment } from '../../services/appointmentService'
 import SlotPicker from '../../components/appointments/SlotPicker'
 import { useAuth } from '../../hooks/useAuth'
+import { appointmentManagerNavigation } from './appointmentManagerNavigation'
 
 const adminNav = ['Dashboard', 'User Management', 'Doctor Management', 'Department Management', 'Appointments', 'Reports', 'Settings']
 const staffNav = ['Dashboard', 'Patients', 'Appointments', 'Queue Management', 'Resources']
@@ -13,7 +14,8 @@ export default function RescheduleAppointment() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const role = user?.role || 'Staff'
-  const navigation = role === 'Admin' ? adminNav : staffNav // Doctors can't reschedule
+  const navigation = role === 'AppointmentManager' ? appointmentManagerNavigation : role === 'Admin' ? adminNav : staffNav // Doctors can't reschedule
+  const routeRole = role === 'AppointmentManager' ? 'admin' : role.toLowerCase()
 
   const [appointment, setAppointment] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -65,7 +67,7 @@ export default function RescheduleAppointment() {
         newEstimatedDurationMinutes: appointment.estimatedDurationMinutes,
         reason: reason
       })
-      navigate(`/${role.toLowerCase()}/appointments/${id}`)
+      navigate(`/${routeRole}/appointments/${id}`)
     } catch (err) {
       setFormError(err.response?.data?.message || 'Failed to reschedule appointment')
     } finally {
@@ -118,6 +120,7 @@ export default function RescheduleAppointment() {
               selectedSlot={selectedSlot}
               onSlotSelect={setSelectedSlot}
               durationMinutes={appointment.estimatedDurationMinutes}
+              appointmentManager={role === 'AppointmentManager'}
             />
           </div>
 
