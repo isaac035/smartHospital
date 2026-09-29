@@ -153,4 +153,23 @@ public class DoctorsController : ControllerBase
             message = "Doctor deactivated successfully."
         });
     }
+
+    [HttpPost("{id:int}/activate")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> Activate(int id)
+    {
+        try
+        {
+            await _doctorService.ActivateAsync(id);
+            return Ok(new { message = "Doctor activated successfully." });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+    }
 }

@@ -1,13 +1,21 @@
+import '../../core/utils/api_datetime.dart';
+
 class AppointmentSlotModel {
   final DateTime slotStart;
+  final String status;
+  final int durationMinutes;
 
-  const AppointmentSlotModel({required this.slotStart});
+  const AppointmentSlotModel({required this.slotStart, this.status = 'Available', this.durationMinutes = 30});
 
   factory AppointmentSlotModel.fromJson(Map<String, dynamic> json) {
     return AppointmentSlotModel(
-      slotStart: DateTime.parse(json['slotStart'] as String),
+      slotStart: ApiDateTime.parseUtcToLocal(json['slotStart'] as String),
+      status: json['status'] as String? ?? 'Available',
+      durationMinutes: json['durationMinutes'] as int? ?? 30,
     );
   }
+
+  bool get isAvailable => status == 'Available';
 
   String get formattedTime {
     final h = slotStart.hour;

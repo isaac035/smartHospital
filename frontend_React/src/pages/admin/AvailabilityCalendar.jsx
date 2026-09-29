@@ -13,6 +13,8 @@ import { adminNavigation as navigation } from './adminNavigation'
 import { listDoctors } from '../../services/doctorService'
 import { listConsultationTypes } from '../../services/consultationTypeService'
 import { createSchedule, listSchedules, removeSchedule } from '../../services/scheduleService'
+import { useAuth } from '../../hooks/useAuth'
+import { staffNavigation } from '../staff/staffNavigation'
 
 const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
@@ -82,6 +84,9 @@ function ScheduleFormModal({ doctorId, consultationTypes, initialSlot, onClose, 
 }
 
 export default function AvailabilityCalendar() {
+  const { user } = useAuth()
+  const role = user?.role || 'Admin'
+  const pageNavigation = role === 'Staff' ? staffNavigation : navigation
   const [doctors, setDoctors] = useState([])
   const [consultationTypes, setConsultationTypes] = useState([])
   const [doctorId, setDoctorId] = useState('')
@@ -130,7 +135,7 @@ export default function AvailabilityCalendar() {
 
   const handleSaved = () => { setPendingSlot(null); loadSchedules() }
 
-  return <DashboardLayout role="Admin" navigation={navigation} title="Doctor Availability Calendar" subtitle="View and manage recurring weekly availability.">
+  return <DashboardLayout role={role} navigation={pageNavigation} title="Doctor Availability Calendar" subtitle="View and manage recurring weekly availability.">
     <div className="toolbar">
       <div className="filter-bar">
         <select value={doctorId} onChange={(event) => setDoctorId(event.target.value)}>

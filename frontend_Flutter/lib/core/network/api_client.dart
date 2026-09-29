@@ -46,6 +46,10 @@ class ApiClient {
 
   Exception _handleError(DioException e) {
     if (e.response != null) {
+      if (e.response?.statusCode == 401) {
+        return UnauthorizedException();
+      }
+      
       final data = e.response?.data;
       String message = 'An unexpected error occurred.';
       if (data is Map<String, dynamic> && data.containsKey('message')) {

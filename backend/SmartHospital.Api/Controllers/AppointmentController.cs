@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.SignalR;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -10,14 +11,7 @@ namespace SmartHospital.Api.Controllers;
 [ApiController]
 [Route("api/appointments")]
 [Authorize]
-public class AppointmentController : ControllerBase
-{
-    private readonly IAppointmentService _appointmentService;
-
-    public AppointmentController(IAppointmentService appointmentService)
-    {
-        _appointmentService = appointmentService;
-    }
+public class AppointmentController : ControllerBase { private readonly IAppointmentService _appointmentService; private readonly Microsoft.AspNetCore.SignalR.IHubContext<Hubs.HospitalHub> _hub; public AppointmentController(IAppointmentService appointmentService, Microsoft.AspNetCore.SignalR.IHubContext<Hubs.HospitalHub> hub) { _appointmentService = appointmentService; _hub = hub; }
 
     // ── GET /api/appointments ─────────────────────────────────────────────────
 
@@ -27,12 +21,18 @@ public class AppointmentController : ControllerBase
     /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(List<AppointmentResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(AppointmentListPageResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAppointments([FromQuery] AppointmentQueryFilter filter)
     {
         var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized(new { message = "User is not authenticated." });
 
         var role = GetCurrentUserRole();
+        if (filter.Page.HasValue || filter.PageSize.HasValue)
+        {
+            var page = await _appointmentService.GetAppointmentsPageAsync(userId.Value, role, filter);
+            return Ok(page);
+        }
         var appointments = await _appointmentService.GetAppointmentsAsync(userId.Value, role, filter);
         return Ok(appointments);
     }
@@ -56,7 +56,7 @@ public class AppointmentController : ControllerBase
             if (appointment == null) return NotFound(new { message = "Appointment not found." });
             return Ok(appointment);
         }
-        catch (UnauthorizedAccessException ex)
+        catch (UnauthorizedAccessException)
         {
             return Forbid();
         }
@@ -76,14 +76,15 @@ public class AppointmentController : ControllerBase
         var userId = GetCurrentUserId();
         if (!userId.HasValue) return Unauthorized(new { message = "User is not authenticated." });
 
-        // Patients may only book for themselves
         var role = GetCurrentUserRole();
-        if (role == "Patient" && request.PatientId != userId.Value)
-            return Forbid();
+        // The JWT is authoritative for patient bookings; never trust a body ID.
+        if (role == "Patient") request.PatientId = userId.Value;
 
         try
         {
             var result = await _appointmentService.BookAppointmentAsync(userId.Value, request);
+            await BroadcastAppointmentEventAsync("AppointmentCreated", result);
+            await BroadcastAppointmentEventAsync("SlotBooked", result);
             return Created($"/api/appointments/{result.Id}", result);
         }
         catch (InvalidOperationException ex)
@@ -125,6 +126,35 @@ public class AppointmentController : ControllerBase
         }
     }
 
+    /// <summary>Changes an appointment's queue priority. Only Staff or Admin may call this endpoint.</summary>
+    [HttpPut("{id:int}/priority")]
+    [Authorize(Roles = "Staff,Admin")]
+    [ProducesResponseType(typeof(AppointmentResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateAppointmentPriority(int id, [FromBody] UpdateAppointmentPriorityRequest request)
+    {
+        var userId = GetCurrentUserId();
+        if (!userId.HasValue) return Unauthorized(new { message = "User is not authenticated." });
+
+        try
+        {
+            var priority = request.Priority!.Value;
+            var result = await _appointmentService.UpdateAppointmentPriorityAsync(id, priority, userId.Value);
+            await BroadcastAppointmentEventAsync("AppointmentUpdated", result);
+            await BroadcastAppointmentEventAsync("QueueUpdated", result);
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
+
     // ── POST /api/appointments/{id}/cancel ────────────────────────────────────
 
     /// <summary>Cancels an appointment. Patients can only cancel their own.</summary>
@@ -140,6 +170,8 @@ public class AppointmentController : ControllerBase
         {
             var role   = GetCurrentUserRole();
             var result = await _appointmentService.CancelAppointmentAsync(id, request, userId.Value, role);
+            await BroadcastAppointmentEventAsync("AppointmentCancelled", result);
+            await BroadcastAppointmentEventAsync("SlotReleased", result);
             return Ok(result);
         }
         catch (UnauthorizedAccessException)
@@ -174,6 +206,7 @@ public class AppointmentController : ControllerBase
         {
             var role   = GetCurrentUserRole();
             var result = await _appointmentService.RescheduleAppointmentAsync(id, request, userId.Value, role);
+            await BroadcastAppointmentEventAsync("AppointmentUpdated", result);
             return Ok(result);
         }
         catch (UnauthorizedAccessException)
@@ -198,11 +231,49 @@ public class AppointmentController : ControllerBase
     [ProducesResponseType(typeof(List<AppointmentStatusHistoryResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetStatusHistory(int id)
     {
+        var userId = GetCurrentUserId();
+        if (!userId.HasValue) return Unauthorized(new { message = "User is not authenticated." });
+        try
+        {
+            var appointment = await _appointmentService.GetAppointmentByIdAsync(id, userId.Value, GetCurrentUserRole());
+            if (appointment == null) return NotFound(new { message = "Appointment not found." });
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
         var history = await _appointmentService.GetStatusHistoryAsync(id);
         return Ok(history);
     }
 
     // ── POST /api/appointments/{id}/confirm-emergency ─────────────────────────
+
+    /// <summary>Confirms a Scheduled appointment. Only Staff or Admin may call this endpoint.</summary>
+    [HttpPost("{id:int}/confirm")]
+    [Authorize(Roles = "Staff,Admin")]
+    [ProducesResponseType(typeof(AppointmentResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ConfirmAppointment(int id)
+    {
+        var userId = GetCurrentUserId();
+        if (!userId.HasValue) return Unauthorized(new { message = "User is not authenticated." });
+
+        try
+        {
+            var result = await _appointmentService.ConfirmAppointmentAsync(id, userId.Value);
+            await BroadcastAppointmentEventAsync("AppointmentUpdated", result);
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
 
     /// <summary>
     /// Confirms an Emergency-priority appointment.
@@ -242,4 +313,9 @@ public class AppointmentController : ControllerBase
 
     private string GetCurrentUserRole() =>
         User.FindFirst(ClaimTypes.Role)?.Value ?? string.Empty;
+
+    private Task BroadcastAppointmentEventAsync(string eventName, AppointmentResponse appointment) =>
+        _hub.Clients.Groups(new[] { $"user:{appointment.PatientId}", $"user:{appointment.DoctorId}", $"doctor:{appointment.DoctorId}", "staff", "admin" })
+            .SendAsync(eventName, appointment);
 }
+

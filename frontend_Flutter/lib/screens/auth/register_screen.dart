@@ -51,7 +51,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Registration successful. Please log in.')),
+        const SnackBar(
+          content: Text('Registration successful. Please log in.'),
+        ),
       );
       context.pop(); // Go back to login screen
     }
@@ -62,9 +64,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final authProvider = Provider.of<AuthProvider>(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Create Account'),
-      ),
+      appBar: AppBar(title: const Text('Create Account')),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -74,21 +74,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 ErrorMessage(message: authProvider.error),
-                
+
                 AppTextField(
                   label: 'First Name',
                   hint: 'Enter your first name',
                   controller: _firstNameController,
-                  validator: (val) => Validators.validateName(val, 'First Name'),
+                  validator: (val) =>
+                      Validators.validateName(val, 'First Name'),
                 ),
-                
+
                 AppTextField(
                   label: 'Last Name',
                   hint: 'Enter your last name',
                   controller: _lastNameController,
                   validator: (val) => Validators.validateName(val, 'Last Name'),
                 ),
-                
+
                 AppTextField(
                   label: 'Email',
                   hint: 'Enter your email address',
@@ -96,7 +97,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   keyboardType: TextInputType.emailAddress,
                   validator: Validators.validateEmail,
                 ),
-                
+
                 AppTextField(
                   label: 'Phone Number',
                   hint: 'Enter your phone number',
@@ -104,23 +105,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   keyboardType: TextInputType.phone,
                   validator: Validators.validatePhone,
                 ),
-                
+
                 PasswordField(
                   label: 'Password',
                   hint: 'Create a password',
                   controller: _passwordController,
                   validator: Validators.validatePassword,
                 ),
-                
+
                 PasswordField(
                   label: 'Confirm Password',
                   hint: 'Confirm your password',
                   controller: _confirmPasswordController,
-                  validator: (val) => Validators.validateConfirmPassword(val, _passwordController.text),
+                  validator: (val) => Validators.validateConfirmPassword(
+                    val,
+                    _passwordController.text,
+                  ),
                 ),
-                
+
                 const SizedBox(height: 24),
-                
+
                 AppButton(
                   text: 'Register',
                   onPressed: _register,

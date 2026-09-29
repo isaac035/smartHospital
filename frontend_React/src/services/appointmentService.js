@@ -8,90 +8,105 @@ export const getAppointments = async (filters = {}) => {
   if (filters.priority) params.append('priority', filters.priority)
   if (filters.doctorId) params.append('doctorId', filters.doctorId)
   if (filters.departmentId) params.append('departmentId', filters.departmentId)
-  if (filters.fromDate) params.append('fromDate', filters.fromDate)
-  if (filters.toDate) params.append('toDate', filters.toDate)
+  // The date picker is a hospital-local calendar date (Asia/Colombo), while
+  // appointment timestamps are stored in UTC. Query the full local day.
+  if (filters.fromDate) params.append('fromDate', `${filters.fromDate}T00:00:00+05:30`)
+  if (filters.toDate) params.append('toDate', `${filters.toDate}T23:59:59.999+05:30`)
   if (filters.patientId) params.append('patientId', filters.patientId)
+  if (filters.page != null) params.append('page', filters.page)
+  if (filters.pageSize != null) params.append('pageSize', filters.pageSize)
   
-  const response = await api.get(`/api/appointments?${params.toString()}`)
+  const response = await api.get(`/appointments?${params.toString()}`)
   return response.data
 }
 
 export const getAppointmentById = async (id) => {
-  const response = await api.get(`/api/appointments/${id}`)
+  const response = await api.get(`/appointments/${id}`)
   return response.data
 }
 
 export const bookAppointment = async (data) => {
-  const response = await api.post('/api/appointments', data)
+  const response = await api.post('/appointments', data)
   return response.data
 }
 
 export const updateAppointment = async (id, data) => {
-  const response = await api.put(`/api/appointments/${id}`, data)
+  const response = await api.put(`/appointments/${id}`, data)
   return response.data
 }
 
 export const cancelAppointment = async (id, reason) => {
-  const response = await api.post(`/api/appointments/${id}/cancel`, { reason })
+  const response = await api.post(`/appointments/${id}/cancel`, { reason })
   return response.data
 }
 
 export const rescheduleAppointment = async (id, data) => {
-  const response = await api.post(`/api/appointments/${id}/reschedule`, data)
+  const response = await api.post(`/appointments/${id}/reschedule`, data)
   return response.data
 }
 
 export const getAppointmentHistory = async (id) => {
-  const response = await api.get(`/api/appointments/${id}/history`)
+  const response = await api.get(`/appointments/${id}/history`)
   return response.data
 }
 
 export const confirmEmergency = async (id) => {
-  const response = await api.post(`/api/appointments/${id}/confirm-emergency`)
+  const response = await api.post(`/appointments/${id}/confirm-emergency`)
+  return response.data
+}
+
+export const confirmAppointment = async (id) => {
+  const response = await api.post(`/appointments/${id}/confirm`)
+  return response.data
+}
+
+export const updateAppointmentPriority = async (id, priority) => {
+  const response = await api.put(`/appointments/${id}/priority`, { priority })
   return response.data
 }
 
 // -- Queues --
 
-export const getQueue = async (doctorId) => {
-  const response = await api.get(`/api/queues/${doctorId}`)
-  return response.data
-}
-
-export const callQueueEntry = async (id) => {
-  const response = await api.post(`/api/queues/${id}/call`)
+export const getQueue = async (doctorId, date) => {
+  const response = await api.get(`/queues/${doctorId}`, { params: date ? { date } : {} })
   return response.data
 }
 
 export const checkIn = async (appointmentId) => {
-  const response = await api.post(`/api/queues/check-in/${appointmentId}`)
+  const response = await api.post(`/queues/check-in/${appointmentId}`)
+  return response.data
+}
+
+export const callQueueEntry = async (id) => {
+  const response = await api.post(`/queues/${id}/call`)
   return response.data
 }
 
 export const markNoShow = async (id) => {
-  const response = await api.post(`/api/queues/${id}/no-show`)
+  const response = await api.post(`/queues/${id}/no-show`)
   return response.data
 }
 
 export const markCompleted = async (id) => {
-  const response = await api.post(`/api/queues/${id}/complete`)
+  const response = await api.post(`/queues/${id}/complete`)
   return response.data
 }
 
 export const getQueueEntryStatus = async (id) => {
-  const response = await api.get(`/api/queues/${id}/status`)
+  const response = await api.get(`/queues/${id}/status`)
   return response.data
 }
 
 // -- Availability --
 
-export const getAvailableSlots = async (date, doctorId, departmentId) => {
+export const getAvailableSlots = async (date, doctorId, departmentId, doctorProfileId) => {
   const params = new URLSearchParams()
   params.append('date', date)
   if (doctorId) params.append('doctorId', doctorId)
+  if (doctorProfileId) params.append('doctorProfileId', doctorProfileId)
   if (departmentId) params.append('departmentId', departmentId)
   
-  const response = await api.get(`/api/availability/slots?${params.toString()}`)
+  const response = await api.get(`/availability/slots?${params.toString()}`)
   return response.data
 }
 
@@ -101,18 +116,18 @@ export const getRescheduleSuggestions = async (doctorId, preferredDate, duration
   params.append('preferredDate', preferredDate)
   params.append('durationMinutes', durationMinutes)
   
-  const response = await api.get(`/api/availability/suggestions?${params.toString()}`)
+  const response = await api.get(`/availability/suggestions?${params.toString()}`)
   return response.data
 }
 
 // -- Notifications --
 
 export const getNotifications = async () => {
-  const response = await api.get('/api/notifications')
+  const response = await api.get('/notifications')
   return response.data
 }
 
 export const markNotificationRead = async (id) => {
-  const response = await api.post(`/api/notifications/${id}/read`)
+  const response = await api.post(`/notifications/${id}/read`)
   return response.data
 }

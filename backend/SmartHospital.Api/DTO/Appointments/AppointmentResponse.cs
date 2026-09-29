@@ -30,6 +30,8 @@ public class AppointmentResponse
 
     public string Priority { get; set; } = string.Empty;
 
+    public bool PriorityNeedsReview { get; set; }
+
     public int? QueueNumber { get; set; }
 
     public string? Notes { get; set; }

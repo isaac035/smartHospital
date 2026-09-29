@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../core/network/api_exception.dart';
 import '../models/appointments/appointment_model.dart';
@@ -36,6 +37,7 @@ class AppointmentProvider extends ChangeNotifier {
   List<AppointmentSlotModel> _slots = [];
   bool _slotsLoading = false;
   String? _slotsError;
+  Object? _activeSlotsRequest;
 
   List<AppointmentSlotModel> get slots => _slots;
   bool get slotsLoading => _slotsLoading;
@@ -73,61 +75,91 @@ class AppointmentProvider extends ChangeNotifier {
 
   // --- Methods ---
 
-  Future<void> loadMyAppointments({String? statusFilter}) async {
-    _appointmentsLoading = true;
-    _appointmentsError = null;
-    notifyListeners();
+  Future<void> loadMyAppointments({
+    String? statusFilter,
+    bool showLoading = true,
+  }) async {
+    if (showLoading) {
+      _appointmentsLoading = true;
+      _appointmentsError = null;
+      notifyListeners();
+    }
     try {
       _appointments = await _service.getMyAppointments(status: statusFilter);
     } on ApiException catch (e) {
-      _appointmentsError = e.message;
+      if (showLoading) _appointmentsError = e.message;
     } catch (_) {
-      _appointmentsError = 'Failed to load appointments.';
+      if (showLoading) _appointmentsError = 'Failed to load appointments.';
     } finally {
-      _appointmentsLoading = false;
+      if (showLoading) _appointmentsLoading = false;
       notifyListeners();
     }
   }
 
-  Future<void> loadAppointmentDetail(int id) async {
-    _detailLoading = true;
-    _detailError = null;
-    _selectedAppointment = null;
-    _selectedHistory = [];
-    notifyListeners();
+  Future<void> loadAppointmentDetail(int id, {bool showLoading = true}) async {
+    if (showLoading) {
+      _detailLoading = true;
+      _detailError = null;
+      _selectedAppointment = null;
+      _selectedHistory = [];
+      notifyListeners();
+    }
     try {
       _selectedAppointment = await _service.getAppointmentById(id);
       _selectedHistory = await _service.getAppointmentHistory(id);
     } on ApiException catch (e) {
-      _detailError = e.message;
+      if (showLoading) _detailError = e.message;
     } catch (_) {
-      _detailError = 'Failed to load appointment details.';
+      if (showLoading) _detailError = 'Failed to load appointment details.';
     } finally {
-      _detailLoading = false;
+      if (showLoading) _detailLoading = false;
       notifyListeners();
     }
   }
 
-  Future<void> loadSlots({required int doctorId, required String date}) async {
+  Future<void> loadSlots({
+    required int doctorId,
+    int? doctorProfileId,
+    required String date,
+  }) async {
+    final requestToken = Object();
+    _activeSlotsRequest = requestToken;
     _slotsLoading = true;
     _slotsError = null;
     _slots = [];
     notifyListeners();
     try {
-      _slots = await _service.getAvailableSlots(doctorId: doctorId, date: date);
+      final slots = await _service
+          .getAvailableSlots(
+            doctorId: doctorId,
+            doctorProfileId: doctorProfileId,
+            date: date,
+          )
+          .timeout(const Duration(seconds: 15));
+      if (!identical(requestToken, _activeSlotsRequest)) return;
+      _slots = slots;
     } on ApiException catch (e) {
+      if (!identical(requestToken, _activeSlotsRequest)) return;
       _slotsError = e.message;
+    } on TimeoutException {
+      if (!identical(requestToken, _activeSlotsRequest)) return;
+      _slotsError = 'Loading slots timed out. Check your connection and try again.';
     } catch (_) {
+      if (!identical(requestToken, _activeSlotsRequest)) return;
       _slotsError = 'Failed to load available slots.';
     } finally {
-      _slotsLoading = false;
-      notifyListeners();
+      if (identical(requestToken, _activeSlotsRequest)) {
+        _slotsLoading = false;
+        _activeSlotsRequest = null;
+        notifyListeners();
+      }
     }
   }
 
   Future<void> loadQueue(int doctorId) async {
     _queueLoading = true;
     _queueError = null;
+    _queue = [];
     notifyListeners();
     try {
       _queue = await _service.getQueueForDoctor(doctorId);
@@ -135,6 +167,30 @@ class AppointmentProvider extends ChangeNotifier {
       _queueError = e.message;
     } catch (_) {
       _queueError = 'Failed to load queue information.';
+    } finally {
+      _queueLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<QueueEntryModel?> checkIn(int appointmentId, int doctorId) async {
+    _queueLoading = true;
+    _queueError = null;
+    notifyListeners();
+    try {
+      final createdEntry = await _service.checkIn(appointmentId);
+      try {
+        _queue = await _service.getQueueForDoctor(doctorId);
+      } catch (_) {
+        _queue = [createdEntry];
+      }
+      return _queue.isNotEmpty ? _queue.first : createdEntry;
+    } on ApiException catch (e) {
+      _queueError = e.message;
+      return null;
+    } catch (_) {
+      _queueError = 'Unable to check in for this appointment.';
+      return null;
     } finally {
       _queueLoading = false;
       notifyListeners();
@@ -159,6 +215,7 @@ class AppointmentProvider extends ChangeNotifier {
 
   /// Returns the new appointment on success, null on failure.
   Future<AppointmentModel?> bookAppointment({
+    required int patientId,
     required int doctorId,
     required int appointmentType,
     required String scheduledStart,
@@ -171,6 +228,7 @@ class AppointmentProvider extends ChangeNotifier {
     notifyListeners();
     try {
       final result = await _service.bookAppointment(
+        patientId: patientId,
         doctorId: doctorId,
         appointmentType: appointmentType,
         scheduledStart: scheduledStart,

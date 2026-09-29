@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.Mvc;
 using SmartHospital.Api.DTOs.Schedules;
 using SmartHospital.Api.Services.Interfaces;
@@ -11,10 +12,12 @@ namespace SmartHospital.Api.Controllers;
 public class SchedulesController : ControllerBase
 {
     private readonly IScheduleService _scheduleService;
+    private readonly IHubContext<Hubs.HospitalHub> _hub;
 
-    public SchedulesController(IScheduleService scheduleService)
+    public SchedulesController(IScheduleService scheduleService, IHubContext<Hubs.HospitalHub> hub)
     {
         _scheduleService = scheduleService;
+        _hub = hub;
     }
 
     [HttpGet]
@@ -48,6 +51,7 @@ public class SchedulesController : ControllerBase
         try
         {
             var result = await _scheduleService.CreateAsync(request);
+            await BroadcastSlotUpdateAsync(result.DoctorId, result);
 
             return Created($"/api/schedules/{result.Id}", result);
         }
@@ -76,6 +80,7 @@ public class SchedulesController : ControllerBase
                 });
             }
 
+            await BroadcastSlotUpdateAsync(schedule.DoctorId, schedule);
             return Ok(schedule);
         }
         catch (InvalidOperationException ex)
@@ -87,10 +92,30 @@ public class SchedulesController : ControllerBase
         }
     }
 
+    [HttpPost("{id:int}/add-slots")]
+    [Authorize(Roles = "Admin,Staff")]
+    public async Task<IActionResult> AddSlots(int id, AddScheduleSlotsRequest request)
+    {
+        try
+        {
+            var schedule = await _scheduleService.AddSlotsAsync(id, request.Date, request.AdditionalSlotCount);
+            if (schedule == null)
+                return NotFound(new { message = "Schedule not found or inactive." });
+
+            await BroadcastSlotUpdateAsync(schedule.DoctorId, schedule);
+            return Ok(schedule);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+    }
+
     [HttpDelete("{id:int}")]
     [Authorize(Roles = "Admin,Staff")]
     public async Task<IActionResult> Remove(int id)
     {
+        var existing = await _scheduleService.GetByIdAsync(id);
         var success = await _scheduleService.RemoveAsync(id);
 
         if (!success)
@@ -101,9 +126,17 @@ public class SchedulesController : ControllerBase
             });
         }
 
+        if (existing != null) await BroadcastSlotUpdateAsync(existing.DoctorId, existing);
         return Ok(new
         {
             message = "Schedule removed successfully."
         });
+    }
+
+    private async Task BroadcastSlotUpdateAsync(int doctorProfileId, object payload)
+    {
+        // Patient booking screens also subscribe to slot changes. The payload only
+        // describes a schedule; clients refetch scoped data for their selected doctor/date.
+        await _hub.Clients.All.SendAsync("SlotUpdated", payload);
     }
 }

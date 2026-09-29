@@ -127,6 +127,9 @@ namespace SmartHospital.Api.Migrations
                     b.Property<int?>("QueueNumber")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("RequestedPriority")
+                        .HasColumnType("integer");
+
                     b.Property<string>("ReferenceNumber")
                         .IsRequired()
                         .HasMaxLength(40)
@@ -545,6 +548,9 @@ namespace SmartHospital.Api.Migrations
                         .HasColumnType("integer")
                         .HasDefaultValue(30);
 
+                    b.Property<DateOnly?>("SpecificDate")
+                        .HasColumnType("date");
+
                     b.Property<TimeOnly>("StartTime")
                         .HasColumnType("time without time zone");
 
@@ -559,6 +565,8 @@ namespace SmartHospital.Api.Migrations
                     b.HasIndex("ConsultationTypeId");
 
                     b.HasIndex("DoctorId", "DayOfWeek");
+
+                    b.HasIndex("DoctorId", "SpecificDate");
 
                     b.ToTable("DoctorSchedules");
                 });
@@ -1005,6 +1013,17 @@ namespace SmartHospital.Api.Migrations
                     b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("QueueCode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateOnly>("QueueDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<int>("DoctorId")
                         .HasColumnType("integer");
 
@@ -1026,6 +1045,9 @@ namespace SmartHospital.Api.Migrations
                         .IsUnique();
 
                     b.HasIndex("DoctorId");
+
+                    b.HasIndex("DoctorId", "QueueDate", "QueueNumber")
+                        .IsUnique();
 
                     b.ToTable("QueueEntries");
                 });

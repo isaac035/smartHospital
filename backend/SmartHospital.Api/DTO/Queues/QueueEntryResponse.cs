@@ -18,6 +18,10 @@ public class QueueEntryResponse
 
     public int QueueNumber { get; set; }
 
+    public string QueueCode { get; set; } = string.Empty;
+
+    public DateOnly QueueDate { get; set; }
+
     public string Status { get; set; } = string.Empty;
 
     public string Priority { get; set; } = string.Empty;
@@ -28,8 +32,18 @@ public class QueueEntryResponse
 
     public DateTime? CalledAt { get; set; }
 
+    public DateTime? StartedAt { get; set; }
+
     public DateTime? CompletedAt { get; set; }
 
     /// <summary>Position in the active queue (1 = next to be called).</summary>
     public int QueuePosition { get; set; }
+
+    public int PatientsAhead { get; set; }
+
+    public string? CurrentQueueCode { get; set; }
+
+    public int? CurrentQueueNumber { get; set; }
+
+    public bool IsYourTurn { get; set; }
 }

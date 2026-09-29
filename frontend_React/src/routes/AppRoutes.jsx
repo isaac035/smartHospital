@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import Login from '../pages/auth/Login'
 import AdminDashboard from '../pages/admin/AdminDashboard'
+import UserManagement from '../pages/admin/UserManagement'
 import DoctorManagement from '../pages/admin/DoctorManagement'
 import DepartmentManagement from '../pages/admin/DepartmentManagement'
 import ConsultationTypeManagement from '../pages/admin/ConsultationTypeManagement'
@@ -24,6 +25,7 @@ import BookAppointment from '../pages/appointments/BookAppointment'
 import AppointmentCalendar from '../pages/appointments/AppointmentCalendar'
 import AppointmentDetails from '../pages/appointments/AppointmentDetails'
 import RescheduleAppointment from '../pages/appointments/RescheduleAppointment'
+import DoctorAppointmentManagement from '../pages/appointments/DoctorAppointmentManagement'
 import QueueDashboard from '../pages/queue/QueueDashboard'
 
 import ResourceDashboard from '../pages/hospitalResource/ResourceDashboard'
@@ -39,11 +41,13 @@ export default function AppRoutes() {
     <Route element={<ProtectedRoute />}>
       <Route element={<RoleRoute allowedRoles={['Admin']} />}>
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/users" element={<UserManagement />} />
         <Route path="/admin/appointments" element={<AppointmentsDashboard />} />
         <Route path="/admin/appointments/book" element={<BookAppointment />} />
         <Route path="/admin/appointments/calendar" element={<AppointmentCalendar />} />
         <Route path="/admin/appointments/:id" element={<AppointmentDetails />} />
         <Route path="/admin/appointments/:id/reschedule" element={<RescheduleAppointment />} />
+        <Route path="/admin/doctor-appointments" element={<DoctorAppointmentManagement />} />
         <Route path="/admin/queue-management" element={<QueueDashboard />} />
       </Route>
       <Route element={<RoleRoute allowedRoles={['Admin', 'Staff']} />}>

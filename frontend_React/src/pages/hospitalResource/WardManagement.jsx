@@ -6,8 +6,10 @@ import { getAllWards } from '../../services/hospitalResourceService'
 import WardFormModal from './components/WardFormModal'
 import WardOccupancyModal from './components/WardOccupancyModal'
 import DeactivateWardModal from './components/DeactivateWardModal'
+import RoomManagementModal from './components/RoomManagementModal'
+import EditIconButton from './components/EditIconButton'
+import { adminNavigation } from '../admin/adminNavigation'
 
-const adminNav = ['Dashboard', 'User Management', 'Doctor Management', 'Department Management', 'Appointments', 'Reports', 'Settings']
 const staffNav = ['Dashboard', 'Patients', 'Appointments', 'Queue Management', 'Resources']
 
 const WARD_TYPE_OPTIONS = [
@@ -23,7 +25,7 @@ const WARD_TYPE_OPTIONS = [
 export default function WardManagement() {
   const { user } = useAuth()
   const role = user?.role || 'Staff'
-  const navigation = role === 'Admin' ? adminNav : staffNav
+  const navigation = role === 'Admin' ? adminNavigation : staffNav
 
   const [wards, setWards] = useState([])
   const [loading, setLoading] = useState(true)
@@ -40,6 +42,7 @@ export default function WardManagement() {
   const [editWardTarget, setEditWardTarget] = useState(null)
   const [occupancyTarget, setOccupancyTarget] = useState(null)
   const [deactivateTarget, setDeactivateTarget] = useState(null)
+  const [roomsTarget, setRoomsTarget] = useState(null)
 
   useEffect(() => {
     fetchWards()
@@ -383,15 +386,21 @@ export default function WardManagement() {
                           Occupancy
                         </button>
 
+                        <button
+                          type="button"
+                          onClick={() => setRoomsTarget(ward)}
+                          className="secondary-button text-xs px-2.5 py-1"
+                          title="Manage rooms in this ward"
+                        >
+                          Rooms
+                        </button>
+
                         {(role === 'Admin' || role === 'Staff') && (
-                          <button
-                            type="button"
+                          <EditIconButton
                             onClick={() => setEditWardTarget(ward)}
-                            className="secondary-button text-xs px-2.5 py-1"
-                            title="Edit ward configuration"
-                          >
-                            Edit
-                          </button>
+                            title="Edit"
+                            aria-label="Edit Ward"
+                          />
                         )}
 
                         {role === 'Admin' && ward.isActive && (
@@ -439,6 +448,18 @@ export default function WardManagement() {
         isOpen={Boolean(occupancyTarget)}
         onClose={() => setOccupancyTarget(null)}
         ward={occupancyTarget}
+      />
+
+      {/* Modal: Ward Rooms */}
+      <RoomManagementModal
+        isOpen={Boolean(roomsTarget)}
+        onClose={() => {
+          setRoomsTarget(null)
+          fetchWards()
+        }}
+        ward={roomsTarget}
+        role={role}
+        wards={wards}
       />
 
       {/* Modal: Deactivate Ward */}

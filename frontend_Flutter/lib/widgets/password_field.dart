@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:smart_hospital/core/theme/app_theme.dart';
 import 'app_text_field.dart';
 
 class PasswordField extends StatefulWidget {
@@ -33,7 +34,7 @@ class _PasswordFieldState extends State<PasswordField> {
       suffixIcon: IconButton(
         icon: Icon(
           _obscure ? Icons.visibility_off : Icons.visibility,
-          color: Colors.grey,
+          color: AppTheme.textSecondary,
         ),
         onPressed: () {
           setState(() {

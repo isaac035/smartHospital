@@ -14,5 +14,7 @@ public interface IScheduleService
         int id,
         UpdateScheduleRequest request);
 
+    Task<ScheduleResponse?> AddSlotsAsync(int scheduleId, DateOnly date, int additionalSlotCount);
+
     Task<bool> RemoveAsync(int id);
 }
