@@ -4,6 +4,7 @@ import DashboardLayout from '../../layouts/DashboardLayout'
 import { getQueue, callQueueEntry, markNoShow, markCompleted } from '../../services/appointmentService'
 import PriorityBadge from '../../components/appointments/PriorityBadge'
 import { useAuth } from '../../hooks/useAuth'
+import { useBookableDoctors } from '../../hooks/useBookableDoctors'
 
 const adminNav = ['Dashboard', 'User Management', 'Doctor Management', 'Department Management', 'Appointments', 'Reports', 'Settings']
 const staffNav = ['Dashboard', 'Patients', 'Appointments', 'Queue Management', 'Resources']
@@ -19,11 +20,7 @@ export default function QueueDashboard() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   
-  // Dummy list of doctors for Staff/Admin to select from
-  const doctorOptions = [
-    { id: 2, name: 'Dr. Bob' },
-    { id: 10, name: 'Dr. Smith' }
-  ]
+  const doctorOptions = useBookableDoctors()
 
   useEffect(() => {
     let intervalId

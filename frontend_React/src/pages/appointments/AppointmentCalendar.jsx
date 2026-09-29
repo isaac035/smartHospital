@@ -4,6 +4,7 @@ import { getAppointments } from '../../services/appointmentService'
 import AppointmentStatusBadge from '../../components/appointments/AppointmentStatusBadge'
 import PriorityBadge from '../../components/appointments/PriorityBadge'
 import { useAuth } from '../../hooks/useAuth'
+import { useBookableDoctors } from '../../hooks/useBookableDoctors'
 
 const adminNav = ['Dashboard', 'User Management', 'Doctor Management', 'Department Management', 'Appointments', 'Reports', 'Settings']
 const staffNav = ['Dashboard', 'Patients', 'Appointments', 'Queue Management', 'Resources']
@@ -21,10 +22,7 @@ export default function AppointmentCalendar() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  const doctorOptions = [
-    { id: 2, name: 'Dr. Bob' },
-    { id: 10, name: 'Dr. Smith' }
-  ]
+  const doctorOptions = useBookableDoctors()
 
   useEffect(() => {
     if (!date) return

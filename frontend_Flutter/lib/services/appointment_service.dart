@@ -121,17 +121,31 @@ class AppointmentService {
     return [];
   }
 
-  // --- Doctor search (reads from Users endpoint, Doctor role) ---
-  // TODO: Replace with shared Doctor module endpoint once available.
+  // --- Doctor search (reads from the Doctor module's /doctors endpoint) ---
+  // /Users is Admin/Staff only, so patients use /doctors instead. Appointments
+  // reference the doctor's User id, so only active doctors with a linked
+  // account are bookable, and their userId becomes the summary id.
 
   Future<List<DoctorSummaryModel>> searchDoctors({String? query}) async {
-    final q = query != null && query.isNotEmpty ? '?search=$query&role=Doctor' : '?role=Doctor';
-    final response = await _apiClient.get('/Users$q');
-    if (response is List) {
-      return response
-          .map((e) => DoctorSummaryModel.fromJson(e as Map<String, dynamic>))
-          .toList();
-    }
-    return [];
+    final response = await _apiClient.get('/doctors');
+    if (response is! List) return [];
+
+    final term = query?.trim().toLowerCase() ?? '';
+    return response
+        .cast<Map<String, dynamic>>()
+        .where((d) => d['userId'] != null && d['status'] == 'Active')
+        .map((d) => DoctorSummaryModel(
+              id: d['userId'] as int,
+              firstName: d['firstName'] as String? ?? '',
+              lastName: d['lastName'] as String? ?? '',
+              specialization: d['specialization'] as String?,
+              department: d['departmentName'] as String?,
+              email: d['email'] as String?,
+            ))
+        .where((d) =>
+            term.isEmpty ||
+            d.fullName.toLowerCase().contains(term) ||
+            (d.specialization?.toLowerCase().contains(term) ?? false))
+        .toList();
   }
 }
