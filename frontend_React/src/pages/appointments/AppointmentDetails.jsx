@@ -6,6 +6,7 @@ import AppointmentStatusBadge from '../../components/appointments/AppointmentSta
 import PriorityBadge from '../../components/appointments/PriorityBadge'
 import { useAuth } from '../../hooks/useAuth'
 import { useSignalR } from '../../hooks/useSignalR'
+import { appointmentManagerNavigation } from './appointmentManagerNavigation'
 
 const adminNav = ['Dashboard', 'User Management', 'Doctor Management', 'Department Management', 'Appointments', 'Reports', 'Settings']
 const staffNav = ['Dashboard', 'Patients', 'Appointments', 'Queue Management', 'Resources']
@@ -16,7 +17,8 @@ export default function AppointmentDetails() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const role = user?.role || 'Staff'
-  const navigation = role === 'Admin' ? adminNav : role === 'Doctor' ? doctorNav : staffNav
+  const navigation = role === 'AppointmentManager' ? appointmentManagerNavigation : role === 'Admin' ? adminNav : role === 'Doctor' ? doctorNav : staffNav
+  const routeRole = role === 'AppointmentManager' ? 'admin' : role.toLowerCase()
 
   const [appointment, setAppointment] = useState(null)
   const [history, setHistory] = useState([])
@@ -149,10 +151,10 @@ export default function AppointmentDetails() {
   )
 
   const isTerminal = ['Completed', 'Cancelled', 'NoShow', 'Rescheduled'].includes(appointment.status)
-  const canCancel = (role === 'Staff' || role === 'Admin') && !isTerminal
+  const canCancel = ['Staff', 'Admin', 'AppointmentManager'].includes(role) && !isTerminal
   const canCheckIn = (role === 'Staff' || role === 'Admin') && ['Scheduled', 'Confirmed'].includes(appointment.status)
-  const canConfirm = (role === 'Staff' || role === 'Admin') && appointment.status === 'Scheduled'
-  const needsEmergencyConfirm = (role === 'Staff' || role === 'Admin') && appointment.priority === 'Emergency' && !appointment.priorityNeedsReview && !appointment.emergencyConfirmed && appointment.status === 'Scheduled'
+  const canConfirm = ['Staff', 'Admin', 'AppointmentManager'].includes(role) && appointment.status === 'Scheduled'
+  const needsEmergencyConfirm = ['Staff', 'Admin', 'AppointmentManager'].includes(role) && appointment.priority === 'Emergency' && !appointment.priorityNeedsReview && !appointment.emergencyConfirmed && appointment.status === 'Scheduled'
 
   return (
     <DashboardLayout role={role} navigation={navigation} title={`Appointment ${appointment.referenceNumber}`} subtitle="Detailed view and actions">
@@ -184,8 +186,8 @@ export default function AppointmentDetails() {
               Cancel Appointment
             </button>
           )}
-          {(role === 'Staff' || role === 'Admin') && !isTerminal && (
-            <Link to={`/${role.toLowerCase()}/appointments/${id}/reschedule`} className="secondary-button text-center flex items-center justify-center" style={{ textDecoration: 'none' }}>
+          {['Staff', 'Admin', 'AppointmentManager'].includes(role) && !isTerminal && (
+            <Link to={`/${routeRole}/appointments/${id}/reschedule`} className="secondary-button text-center flex items-center justify-center" style={{ textDecoration: 'none' }}>
               Reschedule
             </Link>
           )}
@@ -227,7 +229,7 @@ export default function AppointmentDetails() {
                   </button>
                 )}
               </div>
-              {(role === 'Staff' || role === 'Admin') && (
+              {(role === 'Staff' || role === 'Admin' || role === 'AppointmentManager') && (
                 <div className="flex items-center gap-2 mt-2">
                   <label htmlFor="appointment-priority" className="text-sm">Change priority</label>
                   <select

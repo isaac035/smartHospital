@@ -11,7 +11,6 @@ export const adminNavigation = [
     label: 'Appointments', 
     children: [
       { label: 'Appointment Management', path: '/admin/appointments' },
-      { label: 'Appointment Slots', path: '/admin/appointments/calendar' },
       { label: 'Doctor Appointment Management', path: '/admin/doctor-appointments' },
       { label: 'Queue Management', path: '/admin/queue-management' }
     ]

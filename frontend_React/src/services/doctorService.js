@@ -15,6 +15,11 @@ export async function createDoctor(data) {
   return response.data
 }
 
+export async function createDoctorLogin(doctorId) {
+  const response = await api.post(`/doctors/${doctorId}/create-login`)
+  return response.data
+}
+
 export async function updateDoctor(id, data) {
   const response = await api.put(`/doctors/${id}`, data)
   return response.data
@@ -22,6 +27,11 @@ export async function updateDoctor(id, data) {
 
 export async function deactivateDoctor(id) {
   const response = await api.delete(`/doctors/${id}`)
+  return response.data
+}
+
+export async function deleteDoctorPermanently(id) {
+  const response = await api.delete(`/doctors/${id}/permanent`)
   return response.data
 }
 

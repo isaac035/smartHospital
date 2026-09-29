@@ -19,6 +19,19 @@ public class AppointmentController : ControllerBase { private readonly IAppointm
     /// Lists appointments. Patients see only their own; Staff/Doctor/Admin see all.
     /// Supports filtering by status, priority, doctor, department, and date range.
     /// </summary>
+    [HttpGet("doctor-options")]
+    public async Task<IActionResult> GetDoctorOptions() => Ok(await _appointmentService.GetDoctorOptionsAsync());
+
+    [HttpGet("consultation-period")]
+    public async Task<IActionResult> GetConsultationPeriod([FromQuery] int doctorId, [FromQuery] DateTime date)
+    {
+        if (doctorId <= 0 || date == default)
+            return BadRequest(new { message = "A doctor and a valid date are required." });
+
+        var utcDate = DateTime.SpecifyKind(date, DateTimeKind.Utc);
+        return Ok(await _appointmentService.GetConsultationPeriodSlotsAsync(doctorId, utcDate));
+    }
+
     [HttpGet]
     [ProducesResponseType(typeof(List<AppointmentResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(AppointmentListPageResponse), StatusCodes.Status200OK)]
@@ -128,7 +141,7 @@ public class AppointmentController : ControllerBase { private readonly IAppointm
 
     /// <summary>Changes an appointment's queue priority. Only Staff or Admin may call this endpoint.</summary>
     [HttpPut("{id:int}/priority")]
-    [Authorize(Roles = "Staff,Admin")]
+    [Authorize(Roles = "Staff,Admin,AppointmentManager")]
     [ProducesResponseType(typeof(AppointmentResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -227,7 +240,7 @@ public class AppointmentController : ControllerBase { private readonly IAppointm
 
     /// <summary>Returns the full status-change audit trail for an appointment.</summary>
     [HttpGet("{id:int}/history")]
-    [Authorize(Roles = "Staff,Admin,Doctor")]
+    [Authorize(Roles = "Staff,Admin,Doctor,AppointmentManager")]
     [ProducesResponseType(typeof(List<AppointmentStatusHistoryResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetStatusHistory(int id)
     {
@@ -250,7 +263,7 @@ public class AppointmentController : ControllerBase { private readonly IAppointm
 
     /// <summary>Confirms a Scheduled appointment. Only Staff or Admin may call this endpoint.</summary>
     [HttpPost("{id:int}/confirm")]
-    [Authorize(Roles = "Staff,Admin")]
+    [Authorize(Roles = "Staff,Admin,AppointmentManager")]
     [ProducesResponseType(typeof(AppointmentResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -280,7 +293,7 @@ public class AppointmentController : ControllerBase { private readonly IAppointm
     /// Only Staff or Admin may call this endpoint.
     /// </summary>
     [HttpPost("{id:int}/confirm-emergency")]
-    [Authorize(Roles = "Staff,Admin")]
+    [Authorize(Roles = "Staff,Admin,AppointmentManager")]
     [ProducesResponseType(typeof(AppointmentResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> ConfirmEmergency(int id)
@@ -315,7 +328,7 @@ public class AppointmentController : ControllerBase { private readonly IAppointm
         User.FindFirst(ClaimTypes.Role)?.Value ?? string.Empty;
 
     private Task BroadcastAppointmentEventAsync(string eventName, AppointmentResponse appointment) =>
-        _hub.Clients.Groups(new[] { $"user:{appointment.PatientId}", $"user:{appointment.DoctorId}", $"doctor:{appointment.DoctorId}", "staff", "admin" })
+        _hub.Clients.Groups(new[] { $"user:{appointment.PatientId}", $"user:{appointment.DoctorId}", $"doctor:{appointment.DoctorId}", "staff", "admin", "appointment-manager" })
             .SendAsync(eventName, appointment);
 }
 

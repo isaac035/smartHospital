@@ -20,6 +20,16 @@ export const getAppointments = async (filters = {}) => {
   return response.data
 }
 
+export const getAppointmentDoctorOptions = async () => {
+  const response = await api.get('/appointments/doctor-options')
+  return response.data
+}
+
+export const getAppointmentConsultationPeriod = async (date, doctorId) => {
+  const response = await api.get('/appointments/consultation-period', { params: { date, doctorId } })
+  return response.data
+}
+
 export const getAppointmentById = async (id) => {
   const response = await api.get(`/appointments/${id}`)
   return response.data
@@ -99,12 +109,13 @@ export const getQueueEntryStatus = async (id) => {
 
 // -- Availability --
 
-export const getAvailableSlots = async (date, doctorId, departmentId, doctorProfileId) => {
+export const getAvailableSlots = async (date, doctorId, departmentId, doctorProfileId, includePast = false) => {
   const params = new URLSearchParams()
   params.append('date', date)
   if (doctorId) params.append('doctorId', doctorId)
   if (doctorProfileId) params.append('doctorProfileId', doctorProfileId)
   if (departmentId) params.append('departmentId', departmentId)
+  if (includePast) params.append('includePast', 'true')
   
   const response = await api.get(`/availability/slots?${params.toString()}`)
   return response.data

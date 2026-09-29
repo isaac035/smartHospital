@@ -42,7 +42,7 @@ public class QueueController : ControllerBase
     /// Designed to be polled by the frontend or to back a SignalR hub.
     /// </summary>
     [HttpGet("{doctorId:int}")]
-    [Authorize(Roles = "Staff,Admin,Doctor")]
+    [Authorize(Roles = "Staff,Admin,Doctor,AppointmentManager")]
     [ProducesResponseType(typeof(QueueStatusResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetQueue(int doctorId, [FromQuery] DateOnly? date)
     {
@@ -67,7 +67,7 @@ public class QueueController : ControllerBase
 
     /// <summary>Calls a specific queue entry — marks it as Called and notifies the patient.</summary>
     [HttpPost("{id:int}/call")]
-    [Authorize(Roles = "Staff,Admin,Doctor")]
+    [Authorize(Roles = "Staff,Admin,Doctor,AppointmentManager")]
     [ProducesResponseType(typeof(QueueEntryResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CallQueueEntry(int id)
@@ -104,7 +104,7 @@ public class QueueController : ControllerBase
     /// the patient's position and estimated wait time.
     /// </summary>
     [HttpGet("{id:int}/status")]
-    [Authorize(Roles = "Staff,Admin,Doctor")]
+    [Authorize(Roles = "Staff,Admin,Doctor,AppointmentManager")]
     [ProducesResponseType(typeof(QueueEntryResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetQueueEntryStatus(int id)
@@ -151,7 +151,7 @@ public class QueueController : ControllerBase
 
     /// <summary>Marks a queue entry as No-Show and updates the linked appointment accordingly.</summary>
     [HttpPost("{id:int}/no-show")]
-    [Authorize(Roles = "Staff,Admin,Doctor")]
+    [Authorize(Roles = "Staff,Admin,Doctor,AppointmentManager")]
     [ProducesResponseType(typeof(QueueEntryResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> MarkNoShow(int id)
@@ -183,7 +183,7 @@ public class QueueController : ControllerBase
 
     /// <summary>Marks a queue entry as Completed and closes the linked appointment.</summary>
     [HttpPost("{id:int}/complete")]
-    [Authorize(Roles = "Staff,Admin,Doctor")]
+    [Authorize(Roles = "Staff,Admin,Doctor,AppointmentManager")]
     [ProducesResponseType(typeof(QueueEntryResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> MarkCompleted(int id)
@@ -221,6 +221,6 @@ public class QueueController : ControllerBase
     }
 
     private Task BroadcastQueueEventAsync(string eventName, QueueEntryResponse entry) =>
-        _hub.Clients.Groups(new[] { $"doctor:{entry.DoctorId}", $"user:{entry.PatientId}", "staff", "admin" })
+        _hub.Clients.Groups(new[] { $"doctor:{entry.DoctorId}", $"user:{entry.PatientId}", "staff", "admin", "appointment-manager" })
             .SendAsync(eventName, entry);
 }

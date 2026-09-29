@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import DashboardLayout from '../../layouts/DashboardLayout'
-import { checkIn, getAppointments, getAvailableSlots } from '../../services/appointmentService'
-import { listDoctors } from '../../services/doctorService'
+import { checkIn, getAppointments, getAvailableSlots, getAppointmentConsultationPeriod } from '../../services/appointmentService'
+import { useDoctorOptions } from '../../hooks/useDoctorOptions'
 import { useSignalR } from '../../hooks/useSignalR'
 import AppointmentStatusBadge from '../../components/appointments/AppointmentStatusBadge'
 import PriorityBadge from '../../components/appointments/PriorityBadge'
@@ -10,6 +10,7 @@ import FilterBar from '../../components/appointments/FilterBar'
 import { adminNavigation as adminNav } from '../admin/adminNavigation'
 import { doctorNavigation as doctorNav } from '../doctor/doctorNavigation'
 import { staffNavigation as staffNav } from '../staff/staffNavigation'
+import { appointmentManagerNavigation } from './appointmentManagerNavigation'
 import { useAuth } from '../../hooks/useAuth'
 import DoctorServingList from '../../components/appointments/DoctorServingList'
 
@@ -26,10 +27,11 @@ export default function AppointmentsDashboard() {
   const { user } = useAuth()
   const role = user?.role || 'Staff'
   
-  const navigation = role === 'Admin' ? adminNav : role === 'Doctor' ? doctorNav : staffNav
+  const navigation = role === 'AppointmentManager' ? appointmentManagerNavigation : role === 'Admin' ? adminNav : role === 'Doctor' ? doctorNav : staffNav
+  const routeRole = role === 'AppointmentManager' ? 'admin' : role.toLowerCase()
   
   const [appointments, setAppointments] = useState([])
-  const [doctors, setDoctors] = useState([])
+  const doctors = useDoctorOptions()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [checkInLoadingId, setCheckInLoadingId] = useState(null)
@@ -43,29 +45,39 @@ export default function AppointmentsDashboard() {
   const [periodLoading, setPeriodLoading] = useState(false)
   const [periodError, setPeriodError] = useState(null)
   const requestSequence = useRef(0)
-
-  useEffect(() => {
-    listDoctors().then(setDoctors).catch(err => {
-      setError(err.response?.data?.message || 'Failed to load doctors')
-    })
-  }, [])
+  const safeDoctors = Array.isArray(doctors)
+    ? doctors.filter(doctor => doctor && typeof doctor === 'object')
+    : []
 
   const fetchAppointments = useCallback(async () => {
     const sequence = ++requestSequence.current
     try {
       setLoading(true)
+      setError(null)
+      if (String(filters.doctorId || '').startsWith('profile:')) {
+        setAppointments([])
+        setPageInfo({ totalCount: 0, totalPages: 0, statusCounts: {}, priorityCounts: {} })
+        setLoading(false)
+        return
+      }
       const data = await getAppointments({ ...filters, page, pageSize })
       if (sequence !== requestSequence.current) return
-      setAppointments(data.appointments || [])
+      if (!data || !Array.isArray(data.appointments)) {
+        throw new Error('The appointments response was invalid. Please try again.')
+      }
+      setAppointments(data.appointments.filter(appointment => appointment && typeof appointment === 'object'))
       setPageInfo({
         totalCount: data.totalCount || 0,
         totalPages: data.totalPages || 0,
-        statusCounts: data.statusCounts || {},
-        priorityCounts: data.priorityCounts || {},
+        statusCounts: data.statusCounts && typeof data.statusCounts === 'object' ? data.statusCounts : {},
+        priorityCounts: data.priorityCounts && typeof data.priorityCounts === 'object' ? data.priorityCounts : {},
       })
-      setError(null)
     } catch (err) {
-      if (sequence === requestSequence.current) setError(err.response?.data?.message || 'Failed to load appointments')
+      if (sequence === requestSequence.current) {
+        setError(err.response?.data?.message || err.message || 'Failed to load appointments')
+        setAppointments([])
+        setPageInfo({ totalCount: 0, totalPages: 0, statusCounts: {}, priorityCounts: {} })
+      }
     } finally {
       if (sequence === requestSequence.current) setLoading(false)
     }
@@ -109,11 +121,17 @@ export default function AppointmentsDashboard() {
     PatientCheckedIn: refreshForAppointmentEvent,
   })
 
-  const selectedDoctor = doctors.find(doctor => String(doctor.userId) === String(filters.doctorId))
+  const selectedDoctor = safeDoctors.find(doctor => String(doctor.userId ?? `profile:${doctor.id}`) === String(filters.doctorId))
 
   useEffect(() => {
     if (!filters.doctorId) {
       setConsultationPeriod('')
+      setPeriodError(null)
+      setPeriodLoading(false)
+      return
+    }
+    if (String(filters.doctorId).startsWith('profile:')) {
+      setConsultationPeriod('Doctor has no linked appointment account')
       setPeriodError(null)
       setPeriodLoading(false)
       return
@@ -129,9 +147,17 @@ export default function AppointmentsDashboard() {
     let active = true
     setPeriodLoading(true)
     setPeriodError(null)
-    getAvailableSlots(date, Number(filters.doctorId))
+    const slotsRequest = role === 'AppointmentManager'
+      ? getAppointmentConsultationPeriod(date, Number(filters.doctorId))
+      : getAvailableSlots(date, Number(filters.doctorId))
+    slotsRequest
       .then(slots => {
         if (!active) return
+        if (!Array.isArray(slots)) {
+          setConsultationPeriod('')
+          setPeriodError('Could not load the consultation period')
+          return
+        }
         if (!slots.length) {
           setConsultationPeriod('No consultation period configured for this date')
           return
@@ -149,7 +175,7 @@ export default function AppointmentsDashboard() {
         if (active) setPeriodLoading(false)
       })
     return () => { active = false }
-  }, [filters.doctorId, filters.fromDate, filters.toDate])
+  }, [filters.doctorId, filters.fromDate, filters.toDate, role])
 
   const handleFilterChange = nextFilters => {
     setFilters(nextFilters)
@@ -191,7 +217,7 @@ export default function AppointmentsDashboard() {
         <DoctorServingList user={user} />
       ) : (
         <>
-          <FilterBar filters={filters} doctors={doctors} onFilterChange={handleFilterChange} onClear={clearFilters} />
+          <FilterBar filters={filters} doctors={safeDoctors} onFilterChange={handleFilterChange} onClear={clearFilters} />
 
       {selectedDoctor && (
         <div className="stat-card mb-6" style={{ padding: '16px 20px' }}>
@@ -207,7 +233,12 @@ export default function AppointmentsDashboard() {
       )}
 
 
-      {error && <div className="form-error">{error}</div>}
+      {error && (
+        <div className="form-error flex items-center justify-between gap-3" role="alert">
+          <span>{error}</span>
+          <button type="button" className="secondary-button" onClick={fetchAppointments}>Retry</button>
+        </div>
+      )}
       {checkInNotice && (
         <div className={`mb-4 p-3 rounded-lg border ${checkInNotice.type === 'success' ? 'bg-green-50 text-green-800 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
           {checkInNotice.text}
@@ -235,11 +266,19 @@ export default function AppointmentsDashboard() {
                     Loading appointments...
                   </td>
                 </tr>
+              ) : error ? (
+                <tr>
+                  <td colSpan="7" className="p-8 text-center" style={{ color: 'color-mix(in srgb, var(--color-secondary) 50%, var(--color-primary))' }}>
+                    Appointments could not be loaded.
+                  </td>
+                </tr>
               ) : appointments.length === 0 ? (
                 <tr>
                   <td colSpan="7" className="p-8 text-center" style={{ color: 'color-mix(in srgb, var(--color-secondary) 50%, var(--color-primary))' }}>
                     {filters.doctorId
-                      ? 'No appointments found for this doctor with the selected filters'
+                      ? (filters.status || filters.priority || filters.fromDate || filters.toDate || filters.departmentId || filters.patientId)
+                        ? 'No appointments found for this doctor with the selected filters'
+                        : 'No appointments found for this doctor'
                       : 'No appointments found matching your filters.'}
                   </td>
                 </tr>
@@ -283,7 +322,7 @@ export default function AppointmentsDashboard() {
                             </button>
                           )}
                         <Link
-                          to={`/${role.toLowerCase()}/appointments/${apt.id}`}
+                          to={`/${routeRole}/appointments/${apt.id}`}
                           className="text-sm font-semibold hover:underline"
                           style={{ color: 'var(--color-accent)' }}
                         >

@@ -43,52 +43,6 @@ public static class DbSeeder
             await context.SaveChangesAsync();
         }
 
-        var doctorUser = await context.Users
-            .FirstOrDefaultAsync(u =>
-                u.Email == "doctor@smarthospital.local");
-
-        if (doctorUser == null)
-        {
-            doctorUser = new User
-            {
-                FirstName = "Nadia",
-                LastName = "Perera",
-                Email = "doctor@smarthospital.local",
-
-                PasswordHash =
-                    BCrypt.Net.BCrypt.HashPassword(
-                        "Doctor123!"
-                    ),
-
-                PhoneNumber = "0771234567",
-
-                Role = UserRole.Doctor,
-
-                Status = UserStatus.Active,
-
-                CreatedAt = DateTime.UtcNow,
-
-                UpdatedAt = DateTime.UtcNow
-            };
-
-            context.Users.Add(doctorUser);
-
-            await context.SaveChangesAsync();
-        }
-
-        var unlinkedDoctorProfile = await context.Doctors
-            .FirstOrDefaultAsync(d =>
-                d.Email == "nadia.perera@smarthospital.local" &&
-                d.UserId == null);
-
-        if (unlinkedDoctorProfile != null)
-        {
-            unlinkedDoctorProfile.UserId = doctorUser.Id;
-            unlinkedDoctorProfile.UpdatedAt = DateTime.UtcNow;
-
-            await context.SaveChangesAsync();
-        }
-
         var departmentExists = await context.Departments
             .AnyAsync(d => d.Name == "General Medicine");
 
@@ -129,25 +83,6 @@ public static class DbSeeder
         };
 
         context.ConsultationTypes.AddRange(generalConsultation, followUp);
-
-        var doctor = new Doctor
-        {
-            UserId = doctorUser.Id,
-            Department = department,
-            FirstName = "Nadia",
-            LastName = "Perera",
-            Email = "nadia.perera@smarthospital.local",
-            PhoneNumber = "0771234567",
-            Specialization = "General Medicine",
-            LicenseNumber = "SLMC-00123",
-            YearsOfExperience = 8,
-            Bio = "General physician with a focus on primary care.",
-            Status = DoctorStatus.Active,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        };
-
-        context.Doctors.Add(doctor);
 
         await context.SaveChangesAsync();
     }

@@ -17,6 +17,21 @@ public class UsersController : ControllerBase
         _userService = userService;
     }
 
+    [HttpPost("appointment-manager")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> CreateAppointmentManager(CreateAppointmentManagerRequest request)
+    {
+        try
+        {
+            var user = await _userService.CreateAppointmentManagerAsync(request);
+            return Created($"/api/users/{user.Id}", user);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+    }
+
     [HttpGet]
     [Authorize(Roles = "Admin,Staff")]
     public async Task<IActionResult> GetAll()

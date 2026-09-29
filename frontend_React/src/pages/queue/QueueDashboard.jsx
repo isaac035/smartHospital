@@ -9,11 +9,13 @@ import { staffNavigation as staffNav } from '../staff/staffNavigation'
 import { useAuth } from '../../hooks/useAuth'
 import { useSignalR } from '../../hooks/useSignalR'
 import { listDoctors } from '../../services/doctorService'
+import { getAppointmentDoctorOptions } from '../../services/appointmentService'
+import { appointmentManagerNavigation } from '../appointments/appointmentManagerNavigation'
 
 export default function QueueDashboard() {
   const { user } = useAuth()
   const role = user?.role || 'Staff'
-  const navigation = role === 'Admin' ? adminNav : role === 'Doctor' ? doctorNav : staffNav
+  const navigation = role === 'AppointmentManager' ? appointmentManagerNavigation : role === 'Admin' ? adminNav : role === 'Doctor' ? doctorNav : staffNav
 
   const [doctorId, setDoctorId] = useState(role === 'Doctor' ? user?.id : '')
   const [queue, setQueue] = useState([])
@@ -21,7 +23,7 @@ export default function QueueDashboard() {
   const [error, setError] = useState(null)
   useEffect(() => {
     if (role !== 'Doctor') {
-      listDoctors().then(docs => {
+      (role === 'AppointmentManager' ? getAppointmentDoctorOptions() : listDoctors()).then(docs => {
         setDoctorOptions(docs)
         const bookable = docs.filter(d => d.userId != null)
         setDoctorOptions(bookable)

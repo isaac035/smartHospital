@@ -5,7 +5,6 @@
     label: 'Appointments', 
     children: [
       { label: 'Appointment Management', path: '/staff/appointments' },
-      { label: 'Appointment Slots', path: '/staff/appointments/calendar' },
       { label: 'Queue Management', path: '/staff/queue-management' }
     ]
   },

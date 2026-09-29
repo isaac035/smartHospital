@@ -1,10 +1,15 @@
 using SmartHospital.Api.DTOs.Appointments;
+using SmartHospital.Api.DTOs.Availability;
 using SmartHospital.Api.Models;
 
 namespace SmartHospital.Api.Services.Interfaces;
 
 public interface IAppointmentService
 {
+    Task<List<AppointmentDoctorOptionResponse>> GetDoctorOptionsAsync();
+
+    Task<List<AvailableSlotResponse>> GetConsultationPeriodSlotsAsync(int doctorId, DateTime date);
+
     /// <summary>Books a new appointment, assigns reference/queue numbers, and creates a queue entry.</summary>
     Task<AppointmentResponse> BookAppointmentAsync(int requestingUserId, CreateAppointmentRequest request);
 

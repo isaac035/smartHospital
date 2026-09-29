@@ -92,25 +92,6 @@ public class SchedulesController : ControllerBase
         }
     }
 
-    [HttpPost("{id:int}/add-slots")]
-    [Authorize(Roles = "Admin,Staff")]
-    public async Task<IActionResult> AddSlots(int id, AddScheduleSlotsRequest request)
-    {
-        try
-        {
-            var schedule = await _scheduleService.AddSlotsAsync(id, request.Date, request.AdditionalSlotCount);
-            if (schedule == null)
-                return NotFound(new { message = "Schedule not found or inactive." });
-
-            await BroadcastSlotUpdateAsync(schedule.DoctorId, schedule);
-            return Ok(schedule);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return Conflict(new { message = ex.Message });
-        }
-    }
-
     [HttpDelete("{id:int}")]
     [Authorize(Roles = "Admin,Staff")]
     public async Task<IActionResult> Remove(int id)

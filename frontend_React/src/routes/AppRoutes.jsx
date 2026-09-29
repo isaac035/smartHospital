@@ -17,12 +17,12 @@ import DoctorLabReportsPage from '../pages/doctor/emr/DoctorLabReportsPage'
 import StaffDashboard from '../pages/staff/StaffDashboard'
 import Unauthorized from '../pages/Unauthorized'
 import NotFound from '../pages/NotFound'
+import RoleAwareNotFound from './RoleAwareNotFound'
 import ProtectedRoute from './ProtectedRoute'
 import RoleRoute from './RoleRoute'
 
 import AppointmentsDashboard from '../pages/appointments/AppointmentsDashboard'
 import BookAppointment from '../pages/appointments/BookAppointment'
-import AppointmentCalendar from '../pages/appointments/AppointmentCalendar'
 import AppointmentDetails from '../pages/appointments/AppointmentDetails'
 import RescheduleAppointment from '../pages/appointments/RescheduleAppointment'
 import DoctorAppointmentManagement from '../pages/appointments/DoctorAppointmentManagement'
@@ -42,9 +42,11 @@ export default function AppRoutes() {
       <Route element={<RoleRoute allowedRoles={['Admin']} />}>
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/admin/users" element={<UserManagement />} />
-        <Route path="/admin/appointments" element={<AppointmentsDashboard />} />
         <Route path="/admin/appointments/book" element={<BookAppointment />} />
-        <Route path="/admin/appointments/calendar" element={<AppointmentCalendar />} />
+        <Route path="/admin/appointments/calendar" element={<NotFound />} />
+      </Route>
+      <Route element={<RoleRoute allowedRoles={['Admin', 'AppointmentManager']} />}>
+        <Route path="/admin/appointments" element={<AppointmentsDashboard />} />
         <Route path="/admin/appointments/:id" element={<AppointmentDetails />} />
         <Route path="/admin/appointments/:id/reschedule" element={<RescheduleAppointment />} />
         <Route path="/admin/doctor-appointments" element={<DoctorAppointmentManagement />} />
@@ -69,7 +71,7 @@ export default function AppRoutes() {
         <Route path="/doctor/schedule" element={<MySchedule />} />
         <Route path="/doctor/leave" element={<MyLeave />} />
         <Route path="/doctor/my-appointments" element={<AppointmentsDashboard />} />
-        <Route path="/doctor/appointments/calendar" element={<AppointmentCalendar />} />
+        <Route path="/doctor/appointments/calendar" element={<NotFound />} />
         <Route path="/doctor/appointments/:id" element={<AppointmentDetails />} />
         <Route path="/doctor/queue-management" element={<QueueDashboard />} />
         <Route path="/doctor/medical-records" element={<DoctorMedicalRecordsPage />} />
@@ -80,7 +82,7 @@ export default function AppRoutes() {
         <Route path="/staff/dashboard" element={<StaffDashboard />} />
         <Route path="/staff/appointments" element={<AppointmentsDashboard />} />
         <Route path="/staff/appointments/book" element={<BookAppointment />} />
-        <Route path="/staff/appointments/calendar" element={<AppointmentCalendar />} />
+        <Route path="/staff/appointments/calendar" element={<NotFound />} />
         <Route path="/staff/appointments/:id" element={<AppointmentDetails />} />
         <Route path="/staff/appointments/:id/reschedule" element={<RescheduleAppointment />} />
         <Route path="/staff/queue-management" element={<QueueDashboard />} />
@@ -88,6 +90,6 @@ export default function AppRoutes() {
       <Route path="/unauthorized" element={<Unauthorized />} />
     </Route>
     <Route path="/" element={<Navigate to="/login" replace />} />
-    <Route path="*" element={<NotFound />} />
+    <Route path="*" element={<RoleAwareNotFound />} />
   </Routes>
 }
