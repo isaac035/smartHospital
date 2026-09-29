@@ -326,4 +326,22 @@ public class MedicalHistoryServiceTests
         Assert.Equal("Patient 1 complaint", timeline1.Events[0].Summary.Split("Chief complaint - ")[1]);
         Assert.DoesNotContain(timeline1.Events, e => e.PatientId == patient2.Id);
     }
+
+    [Fact]
+    public async Task GetPatientTimelineAsync_WhenPatientHasNoEvents_ReturnsEmptyTimelineWithZeroTotalEvents()
+    {
+        // Arrange
+        using var context = CreateInMemoryDbContext();
+        var (patient, _) = SeedDefaultUsers(context, 10, 20);
+        var service = new MedicalHistoryService(context);
+
+        // Act
+        var result = await service.GetPatientTimelineAsync(10);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(10, result.PatientId);
+        Assert.Equal(0, result.TotalEvents);
+        Assert.Empty(result.Events);
+    }
 }

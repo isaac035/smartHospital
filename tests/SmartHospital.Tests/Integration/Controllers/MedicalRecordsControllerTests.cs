@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -1092,4 +1093,113 @@ public class MedicalRecordsControllerTests
 
         Assert.IsType<NotFoundObjectResult>(result);
     }
+
+    [Theory]
+    [InlineData(0, 1)]
+    [InlineData(-1, 1)]
+    [InlineData(1, 0)]
+    [InlineData(1, -1)]
+    public async Task GetVersion_WithInvalidIds_ReturnsBadRequest(int id, int versionNumber)
+    {
+        var stubService = new StubMedicalRecordService();
+        var controller = new MedicalRecordsController(stubService)
+        {
+            ControllerContext = CreateDoctorContext("5")
+        };
+
+        var result = await controller.GetVersion(id, versionNumber);
+
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task UpdateDiagnosis_WithoutDoctorClaims_ReturnsUnauthorized()
+    {
+        var stubService = new StubMedicalRecordService();
+        var controller = new MedicalRecordsController(stubService)
+        {
+            ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext()
+            }
+        };
+
+        var request = new UpdateDiagnosisRequest { Description = "Updated" };
+        var result = await controller.UpdateDiagnosis(1, 1, request);
+
+        Assert.IsType<UnauthorizedObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task UpdateTreatmentPlan_WithoutDoctorClaims_ReturnsUnauthorized()
+    {
+        var stubService = new StubMedicalRecordService();
+        var controller = new MedicalRecordsController(stubService)
+        {
+            ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext()
+            }
+        };
+
+        var request = new UpdateTreatmentPlanRequest { Title = "Title", Description = "Desc" };
+        var result = await controller.UpdateTreatmentPlan(1, 1, request);
+
+        Assert.IsType<UnauthorizedObjectResult>(result);
+    }
+
+    #region Role Restriction & Authorization Attribute Verification
+
+    [Fact]
+    public void Controller_HasAuthorizeAttribute()
+    {
+        var authAttr = typeof(MedicalRecordsController).GetCustomAttribute<Microsoft.AspNetCore.Authorization.AuthorizeAttribute>();
+        Assert.NotNull(authAttr);
+    }
+
+    [Fact]
+    public void CreateAction_HasAuthorizeRolesAttribute_RestrictedToDoctorAdmin()
+    {
+        var method = typeof(MedicalRecordsController).GetMethod(nameof(MedicalRecordsController.Create));
+        Assert.NotNull(method);
+
+        var authAttr = method.GetCustomAttribute<Microsoft.AspNetCore.Authorization.AuthorizeAttribute>();
+        Assert.NotNull(authAttr);
+        Assert.Equal("Doctor,Admin", authAttr.Roles);
+    }
+
+    [Fact]
+    public void UpdateAction_HasAuthorizeRolesAttribute_RestrictedToDoctorAdmin()
+    {
+        var method = typeof(MedicalRecordsController).GetMethod(nameof(MedicalRecordsController.Update));
+        Assert.NotNull(method);
+
+        var authAttr = method.GetCustomAttribute<Microsoft.AspNetCore.Authorization.AuthorizeAttribute>();
+        Assert.NotNull(authAttr);
+        Assert.Equal("Doctor,Admin", authAttr.Roles);
+    }
+
+    [Fact]
+    public void AddDiagnosisAction_HasAuthorizeRolesAttribute_RestrictedToDoctorAdmin()
+    {
+        var method = typeof(MedicalRecordsController).GetMethod(nameof(MedicalRecordsController.AddDiagnosis));
+        Assert.NotNull(method);
+
+        var authAttr = method.GetCustomAttribute<Microsoft.AspNetCore.Authorization.AuthorizeAttribute>();
+        Assert.NotNull(authAttr);
+        Assert.Equal("Doctor,Admin", authAttr.Roles);
+    }
+
+    [Fact]
+    public void RecordTreatmentPlanAction_HasAuthorizeRolesAttribute_RestrictedToDoctorAdmin()
+    {
+        var method = typeof(MedicalRecordsController).GetMethod(nameof(MedicalRecordsController.RecordTreatmentPlan));
+        Assert.NotNull(method);
+
+        var authAttr = method.GetCustomAttribute<Microsoft.AspNetCore.Authorization.AuthorizeAttribute>();
+        Assert.NotNull(authAttr);
+        Assert.Equal("Doctor,Admin", authAttr.Roles);
+    }
+
+    #endregion
 }
