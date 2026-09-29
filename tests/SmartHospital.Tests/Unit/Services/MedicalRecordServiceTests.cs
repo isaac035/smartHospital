@@ -43,6 +43,7 @@ public class MedicalRecordServiceTests
         };
 
         context.Users.AddRange(patient, doctor);
+        context.SaveChanges();
         return (patient, doctor);
     }
 
@@ -634,5 +635,423 @@ public class MedicalRecordServiceTests
         // Act & Assert
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.GetByPatientIdAsync(999));
         Assert.Equal("Patient with ID 999 was not found.", ex.Message);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-5)]
+    public async Task GetByIdAsync_WithInvalidId_ReturnsNull(int id)
+    {
+        // Arrange
+        using var context = CreateInMemoryDbContext();
+        var service = new MedicalRecordService(context);
+
+        // Act
+        var result = await service.GetByIdAsync(id);
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_WithNonExistentId_ReturnsNull()
+    {
+        // Arrange
+        using var context = CreateInMemoryDbContext();
+        var service = new MedicalRecordService(context);
+
+        // Act
+        var result = await service.GetByIdAsync(999);
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_WithExistingRecord_ReturnsFullResponse()
+    {
+        // Arrange
+        using var context = CreateInMemoryDbContext();
+        var (patient, doctor) = SeedDefaultUsers(context, 10, 20);
+
+        var record = new MedicalRecord
+        {
+            Id = 100,
+            RecordNumber = "REC-100",
+            PatientId = 10,
+            DoctorId = 20,
+            VisitDate = DateTime.UtcNow,
+            ChiefComplaint = "Abdominal pain",
+            Symptoms = "Nausea, cramping",
+            ExaminationNotes = "Tenderness in RLQ",
+            Diagnosis = "Appendicitis",
+            TreatmentPlan = "Immediate surgical consult",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        context.MedicalRecords.Add(record);
+        await context.SaveChangesAsync();
+
+        var service = new MedicalRecordService(context);
+
+        // Act
+        var result = await service.GetByIdAsync(100);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(100, result.Id);
+        Assert.Equal("REC-100", result.RecordNumber);
+        Assert.Equal(10, result.PatientId);
+        Assert.Equal("John Doe", result.PatientName);
+        Assert.Equal(20, result.DoctorId);
+        Assert.Equal("Dr. Sarah Smith", result.DoctorName);
+        Assert.Equal("Abdominal pain", result.ChiefComplaint);
+        Assert.Equal("Nausea, cramping", result.Symptoms);
+        Assert.Equal("Tenderness in RLQ", result.ExaminationNotes);
+        Assert.Equal("Appendicitis", result.Diagnosis);
+        Assert.Equal("Immediate surgical consult", result.TreatmentPlan);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-10)]
+    public async Task GetByAppointmentIdAsync_WithInvalidAppointmentId_ReturnsNull(int appointmentId)
+    {
+        // Arrange
+        using var context = CreateInMemoryDbContext();
+        var service = new MedicalRecordService(context);
+
+        // Act
+        var result = await service.GetByAppointmentIdAsync(appointmentId);
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task GetByAppointmentIdAsync_WithNonExistentAppointment_ReturnsNull()
+    {
+        // Arrange
+        using var context = CreateInMemoryDbContext();
+        var service = new MedicalRecordService(context);
+
+        // Act
+        var result = await service.GetByAppointmentIdAsync(999);
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task GetByAppointmentIdAsync_WithLinkedAppointment_ReturnsRecord()
+    {
+        // Arrange
+        using var context = CreateInMemoryDbContext();
+        var (patient, doctor) = SeedDefaultUsers(context, 10, 20);
+
+        var appointment = new Appointment
+        {
+            Id = 55,
+            PatientId = 10,
+            DoctorId = 20,
+            ScheduledStart = DateTime.UtcNow
+        };
+        context.Appointments.Add(appointment);
+
+        var record = new MedicalRecord
+        {
+            Id = 101,
+            RecordNumber = "REC-101",
+            PatientId = 10,
+            DoctorId = 20,
+            AppointmentId = 55,
+            ChiefComplaint = "Follow-up visit",
+            Diagnosis = "Hypertension controlled",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        context.MedicalRecords.Add(record);
+        await context.SaveChangesAsync();
+
+        var service = new MedicalRecordService(context);
+
+        // Act
+        var result = await service.GetByAppointmentIdAsync(55);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(101, result.Id);
+        Assert.Equal(55, result.AppointmentId);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WhenDoctorIsNotAuthor_ReturnsNull()
+    {
+        // Arrange
+        using var context = CreateInMemoryDbContext();
+        var (patient, doctor) = SeedDefaultUsers(context, 10, 20);
+
+        var doctorOther = new User
+        {
+            Id = 21,
+            FirstName = "Other",
+            LastName = "Doctor",
+            Email = "otherdoc@example.com",
+            PasswordHash = "hash",
+            Role = UserRole.Doctor,
+            Status = UserStatus.Active
+        };
+        context.Users.Add(doctorOther);
+
+        var record = new MedicalRecord
+        {
+            Id = 102,
+            RecordNumber = "REC-102",
+            PatientId = 10,
+            DoctorId = 20, // Created by Doctor 20
+            ChiefComplaint = "Ear ache",
+            Diagnosis = "Otitis media",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        context.MedicalRecords.Add(record);
+        await context.SaveChangesAsync();
+
+        var service = new MedicalRecordService(context);
+
+        var request = new UpdateMedicalRecordRequest
+        {
+            ChiefComplaint = "Updated complaint",
+            Diagnosis = "Otitis externa"
+        };
+
+        // Act: Doctor 21 attempts to update Doctor 20's record
+        var result = await service.UpdateAsync(102, 21, request);
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task AddDiagnosisAsync_WhenDoctorIsInactive_ThrowsUnauthorizedAccessException()
+    {
+        // Arrange
+        using var context = CreateInMemoryDbContext();
+        var (patient, doctor) = SeedDefaultUsers(context, 10, 20);
+
+        var record = new MedicalRecord
+        {
+            Id = 103,
+            RecordNumber = "REC-103",
+            PatientId = 10,
+            DoctorId = 20,
+            ChiefComplaint = "Complaint",
+            Diagnosis = "Diagnosis",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        context.MedicalRecords.Add(record);
+
+        // Deactivate doctor
+        doctor.Status = UserStatus.Inactive;
+        await context.SaveChangesAsync();
+
+        var service = new MedicalRecordService(context);
+
+        var request = new AddDiagnosisRequest
+        {
+            Code = "J06.9",
+            Description = "Acute upper respiratory infection",
+            Type = DiagnosisType.Secondary
+        };
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.AddDiagnosisAsync(103, 20, request));
+        Assert.Equal("Active doctor not found or unauthorized.", ex.Message);
+    }
+
+    [Fact]
+    public async Task AddDiagnosisAsync_WhenRecordDoesNotExist_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        using var context = CreateInMemoryDbContext();
+        SeedDefaultUsers(context, 10, 20);
+        var service = new MedicalRecordService(context);
+
+        var request = new AddDiagnosisRequest
+        {
+            Code = "J06.9",
+            Description = "Acute upper respiratory infection",
+            Type = DiagnosisType.Secondary
+        };
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.AddDiagnosisAsync(999, 20, request));
+        Assert.Equal("Medical record with ID 999 was not found.", ex.Message);
+    }
+
+    [Fact]
+    public async Task AddDiagnosisAsync_WhenDoctorIsNotAuthor_ThrowsUnauthorizedAccessException()
+    {
+        // Arrange
+        using var context = CreateInMemoryDbContext();
+        SeedDefaultUsers(context, 10, 20);
+
+        var otherDoctor = new User
+        {
+            Id = 22,
+            FirstName = "Unauthorized",
+            LastName = "Doctor",
+            Email = "unauthdoc@example.com",
+            PasswordHash = "hash",
+            Role = UserRole.Doctor,
+            Status = UserStatus.Active
+        };
+        context.Users.Add(otherDoctor);
+
+        var record = new MedicalRecord
+        {
+            Id = 104,
+            RecordNumber = "REC-104",
+            PatientId = 10,
+            DoctorId = 20,
+            ChiefComplaint = "Cough",
+            Diagnosis = "Bronchitis",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        context.MedicalRecords.Add(record);
+        await context.SaveChangesAsync();
+
+        var service = new MedicalRecordService(context);
+
+        var request = new AddDiagnosisRequest
+        {
+            Code = "R05",
+            Description = "Persistent cough"
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.AddDiagnosisAsync(104, 22, request));
+    }
+
+    [Fact]
+    public async Task RecordTreatmentPlanAsync_WhenRecordDoesNotExist_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        using var context = CreateInMemoryDbContext();
+        SeedDefaultUsers(context, 10, 20);
+        var service = new MedicalRecordService(context);
+
+        var request = new RecordTreatmentPlanRequest
+        {
+            Title = "Inhaler Regimen",
+            Description = "Prescribe inhaler",
+            Category = TreatmentPlanCategory.General
+        };
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.RecordTreatmentPlanAsync(999, 20, request));
+        Assert.Equal("Medical record with ID 999 was not found.", ex.Message);
+    }
+
+    [Fact]
+    public async Task RecordTreatmentPlanAsync_WhenDoctorIsNotAuthor_ThrowsUnauthorizedAccessException()
+    {
+        // Arrange
+        using var context = CreateInMemoryDbContext();
+        SeedDefaultUsers(context, 10, 20);
+
+        var otherDoctor = new User
+        {
+            Id = 23,
+            FirstName = "Other",
+            LastName = "Doctor",
+            Email = "doc23@example.com",
+            PasswordHash = "hash",
+            Role = UserRole.Doctor,
+            Status = UserStatus.Active
+        };
+        context.Users.Add(otherDoctor);
+
+        var record = new MedicalRecord
+        {
+            Id = 105,
+            RecordNumber = "REC-105",
+            PatientId = 10,
+            DoctorId = 20,
+            ChiefComplaint = "Asthma",
+            Diagnosis = "Asthma",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        context.MedicalRecords.Add(record);
+        await context.SaveChangesAsync();
+
+        var service = new MedicalRecordService(context);
+
+        var request = new RecordTreatmentPlanRequest
+        {
+            Title = "Bronchodilator Therapy",
+            Description = "Albuterol PRN",
+            Category = TreatmentPlanCategory.General
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.RecordTreatmentPlanAsync(105, 23, request));
+    }
+
+    [Fact]
+    public async Task GetVersionHistoryAsync_WhenRecordNotFound_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        using var context = CreateInMemoryDbContext();
+        var service = new MedicalRecordService(context);
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.GetVersionHistoryAsync(999));
+        Assert.Equal("Medical record with ID 999 was not found.", ex.Message);
+    }
+
+    [Fact]
+    public async Task GetVersionAsync_WhenRecordNotFound_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        using var context = CreateInMemoryDbContext();
+        var service = new MedicalRecordService(context);
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.GetVersionAsync(999, 1));
+        Assert.Equal("Medical record with ID 999 was not found.", ex.Message);
+    }
+
+    [Fact]
+    public async Task GetVersionAsync_WhenVersionNumberDoesNotExist_ReturnsNull()
+    {
+        // Arrange
+        using var context = CreateInMemoryDbContext();
+        SeedDefaultUsers(context, 10, 20);
+
+        var record = new MedicalRecord
+        {
+            Id = 106,
+            RecordNumber = "REC-106",
+            PatientId = 10,
+            DoctorId = 20,
+            ChiefComplaint = "Initial complaint",
+            Diagnosis = "Initial diagnosis",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        context.MedicalRecords.Add(record);
+        await context.SaveChangesAsync();
+
+        var service = new MedicalRecordService(context);
+
+        // Act
+        var result = await service.GetVersionAsync(106, 999);
+
+        // Assert
+        Assert.Null(result);
     }
 }

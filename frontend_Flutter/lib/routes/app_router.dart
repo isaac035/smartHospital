@@ -12,7 +12,6 @@ import '../screens/profile/edit_profile_screen.dart';
 import '../screens/profile/change_password_screen.dart';
 import '../screens/doctors/doctor_directory_screen.dart';
 import '../screens/doctors/doctor_details_screen.dart';
-import '../screens/doctors/doctor_schedule_screen.dart';
 import '../screens/doctors/doctor_availability_screen.dart';
 import '../screens/emr/patient_medical_records_screen.dart';
 import '../screens/emr/patient_clinical_history_screen.dart';

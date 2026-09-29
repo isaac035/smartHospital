@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -493,4 +494,48 @@ public class LabOrdersControllerTests
 
         Assert.IsType<UnauthorizedObjectResult>(result);
     }
+
+    #region Role Restriction & Authorization Attribute Verification
+
+    [Fact]
+    public void Controller_HasAuthorizeAttribute()
+    {
+        var authAttr = typeof(LabOrdersController).GetCustomAttribute<Microsoft.AspNetCore.Authorization.AuthorizeAttribute>();
+        Assert.NotNull(authAttr);
+    }
+
+    [Fact]
+    public void CreateOrder_HasAuthorizeRolesAttribute_RestrictedToDoctorAdmin()
+    {
+        var method = typeof(LabOrdersController).GetMethod(nameof(LabOrdersController.CreateOrder));
+        Assert.NotNull(method);
+
+        var authAttr = method.GetCustomAttribute<Microsoft.AspNetCore.Authorization.AuthorizeAttribute>();
+        Assert.NotNull(authAttr);
+        Assert.Equal("Doctor,Admin", authAttr.Roles);
+    }
+
+    [Fact]
+    public void UpdateStatus_HasAuthorizeRolesAttribute_RestrictedToStaffDoctorAdmin()
+    {
+        var method = typeof(LabOrdersController).GetMethod(nameof(LabOrdersController.UpdateStatus));
+        Assert.NotNull(method);
+
+        var authAttr = method.GetCustomAttribute<Microsoft.AspNetCore.Authorization.AuthorizeAttribute>();
+        Assert.NotNull(authAttr);
+        Assert.Equal("Staff,Doctor,Admin", authAttr.Roles);
+    }
+
+    [Fact]
+    public void RecordReport_HasAuthorizeRolesAttribute_RestrictedToStaffDoctorAdmin()
+    {
+        var method = typeof(LabOrdersController).GetMethod(nameof(LabOrdersController.RecordReport));
+        Assert.NotNull(method);
+
+        var authAttr = method.GetCustomAttribute<Microsoft.AspNetCore.Authorization.AuthorizeAttribute>();
+        Assert.NotNull(authAttr);
+        Assert.Equal("Staff,Doctor,Admin", authAttr.Roles);
+    }
+
+    #endregion
 }

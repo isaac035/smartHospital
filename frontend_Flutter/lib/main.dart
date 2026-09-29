@@ -18,6 +18,7 @@ import 'services/appointment_service.dart';
 import 'providers/appointment_provider.dart';
 import 'services/emr_service.dart';
 import 'providers/emr_provider.dart';
+import 'widgets/app_ui.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();

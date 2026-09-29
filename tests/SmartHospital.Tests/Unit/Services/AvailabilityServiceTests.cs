@@ -106,7 +106,7 @@ public class AvailabilityServiceTests
             .Options;
         await using var context = new AppDbContext(options);
 
-        var date = new DateTime(2026, 9, 29, 0, 0, 0, DateTimeKind.Utc);
+        var date = DateTime.UtcNow.Date.AddDays(3);
         var user = new User
         {
             Id = 5, FirstName = "Priya", LastName = "Gunawardena", Email = "priya@example.test",
