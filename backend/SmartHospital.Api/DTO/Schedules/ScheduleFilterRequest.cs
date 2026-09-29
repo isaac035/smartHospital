@@ -7,4 +7,6 @@ public class ScheduleFilterRequest
     public int? DepartmentId { get; set; }
 
     public string? DayOfWeek { get; set; }
+
+    public DateOnly? SpecificDate { get; set; }
 }

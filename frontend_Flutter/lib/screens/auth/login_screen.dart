@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:smart_hospital/core/theme/app_theme.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
@@ -29,9 +30,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     FocusScope.of(context).unfocus();
-    
+
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final success = await authProvider.login(
       _emailController.text.trim(),
@@ -61,14 +62,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   const Icon(
                     Icons.local_hospital,
                     size: 80,
-                    color: Colors.blue,
+                    color: AppTheme.primaryColor,
                   ),
                   const SizedBox(height: 24),
                   const Text(
                     'Welcome Back',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 28,
+                      fontSize: AppTheme.fontDisplaySmall,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -77,12 +78,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     'Sign in to access your health records',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey,
+                      fontSize: AppTheme.fontTitleMedium,
+                      color: AppTheme.textSecondary,
                     ),
                   ),
                   const SizedBox(height: 32),
-                  
+
                   ErrorMessage(message: authProvider.error),
 
                   AppTextField(
@@ -92,24 +93,24 @@ class _LoginScreenState extends State<LoginScreen> {
                     keyboardType: TextInputType.emailAddress,
                     validator: Validators.validateEmail,
                   ),
-                  
+
                   PasswordField(
                     label: 'Password',
                     hint: 'Enter your password',
                     controller: _passwordController,
                     validator: Validators.validatePassword,
                   ),
-                  
+
                   const SizedBox(height: 24),
-                  
+
                   AppButton(
                     text: 'Login',
                     onPressed: _login,
                     isLoading: authProvider.isLoading,
                   ),
-                  
+
                   const SizedBox(height: 16),
-                  
+
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [

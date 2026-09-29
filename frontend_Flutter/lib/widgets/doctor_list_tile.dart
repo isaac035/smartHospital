@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:smart_hospital/core/theme/app_theme.dart';
 
-import '../core/theme/app_theme.dart';
 import '../models/doctor_model.dart';
 
 class DoctorListTile extends StatelessWidget {
@@ -25,7 +25,7 @@ class DoctorListTile extends StatelessWidget {
               const CircleAvatar(
                 radius: 26,
                 backgroundColor: AppTheme.primaryColor,
-                child: Icon(Icons.person, color: Colors.white),
+                child: Icon(Icons.person, color: AppTheme.surfaceColor),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -34,22 +34,35 @@ class DoctorListTile extends StatelessWidget {
                   children: [
                     Text(
                       'Dr. ${doctor.fullName}',
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: AppTheme.fontTitleMedium,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       doctor.specialization,
-                      style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+                      style: TextStyle(
+                        fontSize: AppTheme.fontBodyMedium,
+                        color: AppTheme.textSecondary,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       doctor.departmentName,
-                      style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                      style: TextStyle(
+                        fontSize: AppTheme.fontBodyMedium,
+                        color: AppTheme.textSecondary,
+                      ),
                     ),
                   ],
                 ),
               ),
-              const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+              const Icon(
+                Icons.arrow_forward_ios,
+                size: 16,
+                color: AppTheme.textSecondary,
+              ),
             ],
           ),
         ),

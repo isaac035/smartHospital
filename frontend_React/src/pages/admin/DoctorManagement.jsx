@@ -4,7 +4,7 @@ import DashboardLayout from '../../layouts/DashboardLayout'
 import { adminNavigation as navigation } from './adminNavigation'
 import { listDepartments } from '../../services/departmentService'
 import { listConsultationTypes } from '../../services/consultationTypeService'
-import { createDoctor, deactivateDoctor, listDoctors, updateDoctor } from '../../services/doctorService'
+import { activateDoctor, createDoctor, deactivateDoctor, listDoctors, updateDoctor } from '../../services/doctorService'
 
 function DoctorFormModal({ doctor, departments, onClose, onSaved }) {
   const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm({
@@ -75,6 +75,9 @@ export default function DoctorManagement() {
   const [error, setError] = useState('')
   const [editingDoctor, setEditingDoctor] = useState(null)
   const [showForm, setShowForm] = useState(false)
+  const [statusTarget, setStatusTarget] = useState(null)
+  const [statusBusy, setStatusBusy] = useState(false)
+  const [statusMessage, setStatusMessage] = useState(null)
 
   const [searchTerm, setSearchTerm] = useState('')
   const [departmentId, setDepartmentId] = useState('')
@@ -85,6 +88,7 @@ export default function DoctorManagement() {
     try {
       setLoading(true)
       const filters = {}
+      filters.includeInactive = true
       if (searchTerm.trim()) filters.searchTerm = searchTerm.trim()
       if (departmentId) filters.departmentId = departmentId
       if (minExperience) filters.minExperience = minExperience
@@ -109,10 +113,24 @@ export default function DoctorManagement() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm, departmentId, minExperience, consultationTypeId])
 
-  const handleDeactivate = async (id) => {
-    if (!window.confirm('Deactivate this doctor?')) return
-    await deactivateDoctor(id)
-    loadDoctors()
+  const handleStatusChange = async () => {
+    if (!statusTarget || statusBusy) return
+    const { doctor, action } = statusTarget
+    setStatusBusy(true)
+    setStatusMessage(null)
+    try {
+      if (action === 'activate') await activateDoctor(doctor.id)
+      else await deactivateDoctor(doctor.id)
+      const status = action === 'activate' ? 'Active' : 'Inactive'
+      setDoctors((current) => current.map((item) => item.id === doctor.id ? { ...item, status } : item))
+      setStatusMessage({ type: 'success', text: `Dr. ${doctor.firstName} ${doctor.lastName} has been ${action === 'activate' ? 'activated' : 'deactivated'}.` })
+      setStatusTarget(null)
+      loadDoctors()
+    } catch (requestError) {
+      setStatusMessage({ type: 'error', text: requestError.response?.data?.message || `Failed to ${action} doctor.` })
+    } finally {
+      setStatusBusy(false)
+    }
   }
 
   const closeForm = () => { setShowForm(false); setEditingDoctor(null) }
@@ -137,10 +155,12 @@ export default function DoctorManagement() {
 
     {error && <p className="form-error" role="alert">{error}</p>}
 
-    <div className="panel table-scroll">
-      <table className="data-table">
+    {statusMessage && <p className={statusMessage.type === 'success' ? 'doctor-status-success' : 'form-error'} role={statusMessage.type === 'success' ? 'status' : 'alert'}>{statusMessage.text}</p>}
+
+    <div className="panel table-scroll doctor-management-table-wrap">
+      <table className="data-table doctor-management-table">
         <thead>
-          <tr><th>Name</th><th>Department</th><th>Specialization</th><th>Experience</th><th>Status</th><th></th></tr>
+          <tr><th>Name</th><th>Department</th><th>Specialization</th><th>Experience</th><th>Status</th><th className="doctor-actions">Actions</th></tr>
         </thead>
         <tbody>
           {doctors.map((doctor) => <tr key={doctor.id}>
@@ -149,15 +169,32 @@ export default function DoctorManagement() {
             <td>{doctor.specialization}</td>
             <td>{doctor.yearsOfExperience} yrs</td>
             <td><span className={`badge badge-${doctor.status.toLowerCase()}`}>{doctor.status}</span></td>
-            <td className="row-actions">
+            <td className="row-actions doctor-actions">
               <button className="link-button" onClick={() => { setEditingDoctor(doctor); setShowForm(true) }}>Edit</button>
-              {doctor.status !== 'Inactive' && <button className="link-button danger" onClick={() => handleDeactivate(doctor.id)}>Deactivate</button>}
+              {doctor.status === 'Inactive'
+                ? <button className="link-button doctor-activate" onClick={() => { setStatusMessage(null); setStatusTarget({ doctor, action: 'activate' }) }}>Activate</button>
+                : <button className="link-button danger" onClick={() => { setStatusMessage(null); setStatusTarget({ doctor, action: 'deactivate' }) }}>Deactivate</button>}
             </td>
           </tr>)}
         </tbody>
       </table>
       {!loading && doctors.length === 0 && <p className="empty-state">No doctors match your search.</p>}
     </div>
+
+    {statusTarget && <div className="modal-overlay" role="alertdialog" aria-modal="true" aria-labelledby="doctor-status-title">
+      <div className="modal-card">
+        <h2 id="doctor-status-title">{statusTarget.action === 'activate' ? 'Activate Doctor' : 'Deactivate Doctor'}</h2>
+        <p>{statusTarget.action === 'activate'
+          ? <>Activate <strong>Dr. {statusTarget.doctor.firstName} {statusTarget.doctor.lastName}</strong>? They will appear in appointment booking again.</>
+          : <>Deactivate <strong>Dr. {statusTarget.doctor.firstName} {statusTarget.doctor.lastName}</strong>? They will no longer appear in appointment booking.</>}</p>
+        <div className="modal-actions">
+          <button type="button" className="secondary-button" disabled={statusBusy} onClick={() => setStatusTarget(null)}>Cancel</button>
+          <button type="button" className={statusTarget.action === 'activate' ? 'primary-button doctor-activate' : 'primary-button doctor-deactivate'} disabled={statusBusy} onClick={handleStatusChange}>
+            {statusBusy ? (statusTarget.action === 'activate' ? 'Activating...' : 'Deactivating...') : (statusTarget.action === 'activate' ? 'Activate' : 'Deactivate')}
+          </button>
+        </div>
+      </div>
+    </div>}
 
     {showForm && <DoctorFormModal doctor={editingDoctor} departments={departments} onClose={closeForm} onSaved={handleSaved} />}
   </DashboardLayout>

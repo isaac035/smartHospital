@@ -211,7 +211,7 @@ public class AdmissionService : IAdmissionService
                 .ThenInclude(ba => ba.Bed!)
                     .ThenInclude(b => b.Room!)
                         .ThenInclude(r => r.Ward)
-            .Where(a => a.PatientId == patientId)
+            .Where(a => a.PatientId == patientId && a.Status == AdmissionStatus.Discharged)
             .OrderByDescending(a => a.AdmissionDate)
             .ToListAsync();
 

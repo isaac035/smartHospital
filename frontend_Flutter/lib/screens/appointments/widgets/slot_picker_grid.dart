@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_theme.dart';
+import 'package:smart_hospital/core/theme/app_theme.dart';
 import '../../../models/appointments/appointment_slot_model.dart';
 
 class SlotPickerGrid extends StatelessWidget {
@@ -31,12 +31,12 @@ class SlotPickerGrid extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: Colors.grey.shade100,
+          color: AppTheme.neutralContainer,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Text(
           'No available slots for this date.',
-          style: TextStyle(color: Colors.grey.shade600),
+          style: TextStyle(color: AppTheme.textSecondary),
         ),
       );
     }
@@ -54,25 +54,51 @@ class SlotPickerGrid extends StatelessWidget {
       itemBuilder: (context, index) {
         final slot = slots[index];
         final isSelected = selectedSlot?.slotStart == slot.slotStart;
+        final isAvailable = slot.isAvailable;
         return GestureDetector(
-          onTap: () => onSlotSelected(slot),
+          onTap: isAvailable ? () => onSlotSelected(slot) : null,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 150),
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: isSelected ? AppTheme.primaryColor : Colors.white,
+              color: isSelected
+                  ? AppTheme.primaryColor
+                  : (isAvailable
+                        ? AppTheme.surfaceColor
+                        : AppTheme.neutralContainer),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: isSelected ? AppTheme.primaryColor : Colors.grey.shade300,
+                color: isSelected
+                    ? AppTheme.primaryColor
+                    : (isAvailable
+                          ? AppTheme.borderColor
+                          : AppTheme.warningColor),
               ),
             ),
-            child: Text(
-              slot.formattedTime,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: isSelected ? Colors.white : AppTheme.primaryColor,
-              ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  slot.formattedTime,
+                  style: TextStyle(
+                    fontSize: AppTheme.fontBodyMedium,
+                    fontWeight: FontWeight.w600,
+                    color: isSelected
+                        ? AppTheme.surfaceColor
+                        : (isAvailable
+                              ? AppTheme.primaryColor
+                              : AppTheme.onPrimary),
+                  ),
+                ),
+                if (!isAvailable)
+                  Text(
+                    slot.status,
+                    style: TextStyle(
+                      fontSize: AppTheme.fontBodySmall,
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+              ],
             ),
           ),
         );

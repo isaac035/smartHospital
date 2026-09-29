@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:smart_hospital/core/theme/app_theme.dart';
 import 'package:provider/provider.dart';
-import '../../core/theme/app_theme.dart';
+import '../../core/utils/hospital_date.dart';
 import '../../models/appointments/queue_entry_model.dart';
 import '../../providers/appointment_provider.dart';
 import '../../providers/auth_provider.dart';
@@ -28,8 +29,7 @@ class _QueueStatusScreenState extends State<QueueStatusScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // Load upcoming appointments to determine which doctors the patient has
-      context.read<AppointmentProvider>().loadMyAppointments(
-          statusFilter: 'Confirmed');
+      context.read<AppointmentProvider>().loadMyAppointments();
     });
   }
 
@@ -49,47 +49,41 @@ class _QueueStatusScreenState extends State<QueueStatusScreen> {
   void _startPolling(int doctorId) {
     _refreshTimer?.cancel();
     context.read<AppointmentProvider>().loadQueue(doctorId);
-    _refreshTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+    _refreshTimer = Timer.periodic(const Duration(seconds: 5), (_) {
       if (mounted) {
         context.read<AppointmentProvider>().loadQueue(doctorId);
       }
     });
   }
 
-  QueueEntryModel? _findMyEntry(
-      List<QueueEntryModel> queue, int patientId) {
+  QueueEntryModel? _findMyEntry(List<QueueEntryModel> queue, int patientId) {
     try {
-      return queue.firstWhere(
-          (e) => e.patientId == patientId && e.isActive);
+      return queue.firstWhere((e) => e.patientId == patientId);
     } catch (_) {
       return null;
     }
   }
 
   int? _nowServing(List<QueueEntryModel> queue) {
-    try {
-      return queue
-          .firstWhere((e) => e.status == 2 || e.status == 3)
-          .queueNumber;
-    } catch (_) {
-      return null;
-    }
+    return queue.isEmpty ? null : queue.first.currentQueueNumber;
   }
 
   @override
   Widget build(BuildContext context) {
-    final patientId =
-        context.read<AuthProvider>().currentUser?.id ?? 0;
+    final patientId = context.read<AuthProvider>().currentUser?.id ?? 0;
 
     return Scaffold(
+      backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
-        title: const Text('Queue Status'),
+        title: const Text('Live Queue Status'),
+        elevation: 0,
+        backgroundColor: AppTheme.surfaceColor,
+        foregroundColor: AppTheme.textPrimary,
         actions: [
           if (_selectedDoctorId != null)
             IconButton(
-              icon: const Icon(Icons.refresh),
-              onPressed: () =>
-                  _startPolling(_selectedDoctorId!),
+              icon: const Icon(Icons.refresh, color: AppTheme.primaryColor),
+              onPressed: () => _startPolling(_selectedDoctorId!),
               tooltip: 'Refresh',
             ),
         ],
@@ -98,8 +92,12 @@ class _QueueStatusScreenState extends State<QueueStatusScreen> {
         builder: (context, provider, _) {
           // Build doctor picker from confirmed appointments
           final doctorOptions = provider.appointments
-              .where((a) =>
-                  a.doctorId != null && a.doctorName != null)
+              .where(
+                (a) =>
+                    a.doctorId != null &&
+                    a.doctorName != null &&
+                    (a.status == 1 || a.status == 2 || a.status == 3),
+              )
               .map((a) => {'id': a.doctorId!, 'name': a.doctorName!})
               .toList();
           // Deduplicate
@@ -111,67 +109,121 @@ class _QueueStatusScreenState extends State<QueueStatusScreen> {
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // Doctor picker
-                const Text('Select Your Doctor',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15)),
-                const SizedBox(height: 8),
+                const Text(
+                  'Select Your Doctor',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: AppTheme.fontTitleMedium,
+                  ),
+                ),
+                const SizedBox(height: 12),
                 if (provider.appointmentsLoading)
-                  const Center(child: CircularProgressIndicator())
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: CircularProgressIndicator(),
+                    ),
+                  )
                 else if (uniqueDoctors.isEmpty)
                   Container(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
+                      color: AppTheme.surfaceColor,
                       borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppTheme.neutralContainer),
                     ),
-                    child: Text(
-                      'You have no confirmed appointments. Queue tracking is only available for confirmed appointments.',
-                      style:
-                          TextStyle(color: Colors.grey.shade600),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.event_busy,
+                          size: 48,
+                          color: AppTheme.borderColor,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'No active appointments today. Queue tracking is only available for confirmed appointments.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: AppTheme.textSecondary),
+                        ),
+                      ],
                     ),
                   )
                 else
                   Wrap(
                     spacing: 8,
+                    runSpacing: 8,
                     children: uniqueDoctors.map((d) {
-                      final selected =
-                          _selectedDoctorId == d['id'] as int;
+                      final selected = _selectedDoctorId == d['id'] as int;
                       return ChoiceChip(
                         label: Text('Dr. ${d['name']}'),
                         selected: selected,
+                        selectedColor: AppTheme.infoContainer,
+                        backgroundColor: AppTheme.surfaceColor,
+                        side: BorderSide(
+                          color: selected
+                              ? AppTheme.accentContainer
+                              : AppTheme.borderColor,
+                        ),
+                        labelStyle: TextStyle(
+                          color: selected
+                              ? AppTheme.primaryColor
+                              : AppTheme.textSecondary,
+                          fontWeight: selected
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                        ),
                         onSelected: (_) => _selectDoctor(d['id'] as int),
                       );
                     }).toList(),
                   ),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: 32),
 
                 // Queue status
                 if (_selectedDoctorId == null)
                   Container(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(32),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
+                      color: AppTheme.surfaceColor,
                       borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppTheme.neutralContainer),
                     ),
-                    child: const Center(
-                      child: Text(
-                          'Select a doctor above to see your queue position.'),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.people_outline,
+                          size: 56,
+                          color: AppTheme.borderColor,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Select a doctor above to see your real-time queue position and estimated wait.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: AppTheme.textSecondary,
+                            fontSize: AppTheme.fontBodyMedium,
+                          ),
+                        ),
+                      ],
                     ),
                   )
-                else if (provider.queueLoading)
+                else if (provider.queueLoading && provider.queue.isEmpty)
                   const Center(
-                      child: Padding(
-                    padding: EdgeInsets.all(32),
-                    child: CircularProgressIndicator(),
-                  ))
+                    child: Padding(
+                      padding: EdgeInsets.all(40),
+                      child: CircularProgressIndicator(),
+                    ),
+                  )
                 else ...[
                   if (provider.queueError != null)
-                    ErrorMessage(message: provider.queueError),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: ErrorMessage(message: provider.queueError),
+                    ),
+
                   QueuePositionCard(
                     myEntry: _findMyEntry(provider.queue, patientId),
                     nowServingNumber: _nowServing(provider.queue),
@@ -179,102 +231,71 @@ class _QueueStatusScreenState extends State<QueueStatusScreen> {
                         .where((e) => e.status == 1)
                         .length,
                   ),
-                  const SizedBox(height: 16),
+                  if (provider.queue.isEmpty) ...[
+                    const SizedBox(height: 12),
+                    Builder(
+                      builder: (context) {
+                        final candidates = provider.appointments
+                            .where(
+                              (a) =>
+                                  a.doctorId == _selectedDoctorId &&
+                                  (a.status == 1 || a.status == 2) &&
+                                  HospitalDate.isToday(a.scheduledStart),
+                            )
+                            .toList();
+                        final appointment = candidates.isEmpty
+                            ? null
+                            : candidates.first;
+                        if (appointment == null) return const SizedBox.shrink();
+                        return FilledButton.icon(
+                          onPressed: provider.queueLoading
+                              ? null
+                              : () async {
+                                  final entry = await provider.checkIn(
+                                    appointment.id,
+                                    _selectedDoctorId!,
+                                  );
+                                  if (entry != null && context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'Check-in complete · ${entry.queueCode} · Position ${entry.position}',
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                },
+                          icon: const Icon(Icons.how_to_reg),
+                          label: const Text('Check in for today’s appointment'),
+                        );
+                      },
+                    ),
+                  ],
+
+                  const SizedBox(height: 12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.refresh,
-                          size: 14, color: Colors.grey.shade500),
-                      const SizedBox(width: 4),
+                      Icon(Icons.sync, size: 14, color: AppTheme.onPrimary),
+                      const SizedBox(width: 6),
                       Text(
-                        'Auto-refreshes every 15 seconds',
+                        'Auto-refreshes every 5 seconds',
                         style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade500),
+                          fontSize: AppTheme.fontBodySmall,
+                          color: AppTheme.onPrimary,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 24),
 
-                  // Waiting list preview
-                  if (provider.queue.isNotEmpty) ...[
-                    Text(
-                      'Waiting List (${provider.queue.where((e) => e.status == 1).length})',
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15),
-                    ),
-                    const SizedBox(height: 10),
-                    ...provider.queue
-                        .where((e) => e.status == 1)
-                        .take(10)
-                        .map((entry) => _WaitingTile(
-                              entry: entry,
-                              isMe: entry.patientId == patientId,
-                            )),
-                  ],
+                  const SizedBox(height: 32),
                 ],
-                const SizedBox(height: 32),
+                const SizedBox(height: 40),
               ],
             ),
           );
         },
-      ),
-    );
-  }
-}
-
-class _WaitingTile extends StatelessWidget {
-  final QueueEntryModel entry;
-  final bool isMe;
-
-  const _WaitingTile({required this.entry, required this.isMe});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: isMe
-            ? AppTheme.primaryColor.withValues(alpha: 0.08)
-            : Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: isMe
-              ? AppTheme.primaryColor.withValues(alpha: 0.4)
-              : Colors.grey.shade200,
-          width: isMe ? 1.5 : 1,
-        ),
-      ),
-      child: Row(
-        children: [
-          Text(
-            '#${entry.queueNumber}',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: isMe
-                  ? AppTheme.primaryColor
-                  : AppTheme.secondaryColor,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              isMe ? 'You' : 'Patient ${entry.queueNumber}',
-              style: TextStyle(
-                color: isMe ? AppTheme.primaryColor : Colors.grey.shade600,
-                fontWeight:
-                    isMe ? FontWeight.bold : FontWeight.normal,
-              ),
-            ),
-          ),
-          Text(
-            '~${entry.estimatedWaitMinutes} min',
-            style:
-                TextStyle(fontSize: 12, color: Colors.grey.shade500),
-          ),
-        ],
       ),
     );
   }

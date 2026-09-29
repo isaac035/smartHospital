@@ -1,3 +1,5 @@
+import '../../core/utils/api_datetime.dart';
+
 class AppointmentModel {
   final int id;
   final String referenceNumber;
@@ -11,6 +13,7 @@ class AppointmentModel {
   final int appointmentType;
   final int status;
   final int priority;
+  final bool priorityNeedsReview;
   final bool emergencyConfirmed;
   final String? notes;
   final String? cancelledReason;
@@ -29,6 +32,7 @@ class AppointmentModel {
     required this.appointmentType,
     required this.status,
     required this.priority,
+    this.priorityNeedsReview = false,
     required this.emergencyConfirmed,
     this.notes,
     this.cancelledReason,
@@ -44,16 +48,31 @@ class AppointmentModel {
       doctorId: json['doctorId'] as int?,
       doctorName: json['doctorName'] as String?,
       departmentName: json['departmentName'] as String?,
-      scheduledStart: DateTime.parse(json['scheduledStart'] as String),
+      scheduledStart: ApiDateTime.parseUtcToLocal(json['scheduledStart'] as String),
       estimatedDurationMinutes: json['estimatedDurationMinutes'] as int? ?? 30,
-      appointmentType: json['appointmentType'] as int? ?? 1,
-      status: json['status'] as int? ?? 1,
-      priority: json['priority'] as int? ?? 1,
+      appointmentType: _enumValue(json['appointmentType'], const {
+        'General': 1, 'Specialist': 2, 'FollowUp': 3, 'Emergency': 4,
+        'Teleconsultation': 5, 'Procedure': 6,
+      }),
+      status: _enumValue(json['status'], const {
+        'Scheduled': 1, 'Confirmed': 2, 'CheckedIn': 3, 'InProgress': 4,
+        'Completed': 5, 'Cancelled': 6, 'NoShow': 7, 'Rescheduled': 8,
+      }),
+      priority: _enumValue(json['priority'], const {
+        'Normal': 1, 'Urgent': 2, 'Emergency': 3,
+      }),
+      priorityNeedsReview: json['priorityNeedsReview'] as bool? ?? false,
       emergencyConfirmed: json['emergencyConfirmed'] as bool? ?? false,
       notes: json['notes'] as String?,
       cancelledReason: json['cancelledReason'] as String?,
       createdAt: DateTime.parse(json['createdAt'] as String),
     );
+  }
+
+  static int _enumValue(dynamic value, Map<String, int> names) {
+    if (value is int) return value;
+    if (value is String) return names[value] ?? int.tryParse(value) ?? 1;
+    return 1;
   }
 
   // --- Human-readable label helpers ---
@@ -80,10 +99,10 @@ class AppointmentModel {
   String get typeLabel {
     const map = {
       1: 'General',
-      2: 'Follow-Up',
-      3: 'Consultation',
-      4: 'Checkup',
-      5: 'Vaccination',
+      2: 'Specialist',
+      3: 'Follow-Up',
+      4: 'Emergency',
+      5: 'Teleconsultation',
       6: 'Procedure',
     };
     return map[appointmentType] ?? 'General';

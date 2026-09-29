@@ -10,6 +10,9 @@ public class DoctorSchedule
 
     public DayOfWeek DayOfWeek { get; set; }
 
+    /// <summary>When set, this is a one-date availability session; null means weekly recurring.</summary>
+    public DateOnly? SpecificDate { get; set; }
+
     public TimeOnly StartTime { get; set; }
 
     public TimeOnly EndTime { get; set; }

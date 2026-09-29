@@ -1,4 +1,4 @@
-export default function FilterBar({ filters, onFilterChange }) {
+export default function FilterBar({ filters, doctors, onFilterChange, onClear }) {
   const handleChange = (e) => {
     onFilterChange({
       ...filters,
@@ -8,6 +8,24 @@ export default function FilterBar({ filters, onFilterChange }) {
 
   return (
     <div className="flex flex-wrap gap-4 mb-6 p-4 rounded-xl border" style={{ borderColor: 'color-mix(in srgb, var(--color-secondary) 15%, var(--color-primary))', background: 'var(--color-primary)' }}>
+      <div className="flex flex-col gap-1">
+        <label className="text-xs uppercase tracking-wider font-bold" style={{ color: 'var(--color-accent)' }}>Doctor</label>
+        <select
+          name="doctorId"
+          value={filters.doctorId || ''}
+          onChange={handleChange}
+          className="border rounded-md px-3 py-1.5 text-sm"
+          style={{ borderColor: 'color-mix(in srgb, var(--color-secondary) 25%, var(--color-primary))' }}
+        >
+          <option value="">All Doctors</option>
+          {doctors.filter(doctor => doctor.userId != null).map(doctor => (
+            <option key={doctor.userId} value={doctor.userId}>
+              {doctor.firstName} {doctor.lastName}
+            </option>
+          ))}
+        </select>
+      </div>
+
       <div className="flex flex-col gap-1">
         <label className="text-xs uppercase tracking-wider font-bold" style={{ color: 'var(--color-accent)' }}>Status</label>
         <select 
@@ -67,6 +85,10 @@ export default function FilterBar({ filters, onFilterChange }) {
           className="border rounded-md px-3 py-1.5 text-sm"
           style={{ borderColor: 'color-mix(in srgb, var(--color-secondary) 25%, var(--color-primary))' }}
         />
+      </div>
+
+      <div className="flex items-end">
+        <button type="button" className="secondary-button" onClick={onClear}>Clear filters</button>
       </div>
     </div>
   )
