@@ -47,7 +47,10 @@ public class ResourceMaintenanceService : IResourceMaintenanceService
         MedicalResource? resource = null;
         if (request.MedicalResourceId.HasValue)
         {
-            resource = await _context.MedicalResources.FindAsync(request.MedicalResourceId.Value);
+            resource = await _context.MedicalResources
+                .Include(mr => mr.Ward)
+                .Include(mr => mr.Room)
+                .FirstOrDefaultAsync(mr => mr.Id == request.MedicalResourceId.Value);
             if (resource == null)
             {
                 throw new InvalidOperationException("Specified medical resource does not exist.");
@@ -81,7 +84,11 @@ public class ResourceMaintenanceService : IResourceMaintenanceService
         return MapToMaintenanceResponse(maintenance, bed, resource, null);
     }
 
-    public async Task<List<MaintenanceResponse>> GetMaintenanceRecordsAsync(int? bedId = null, int? resourceId = null, MaintenanceStatus? status = null)
+    public async Task<List<MaintenanceResponse>> GetMaintenanceRecordsAsync(
+        int? bedId = null,
+        int? resourceId = null,
+        MaintenanceStatus? status = null,
+        string? search = null)
     {
         var query = _context.ResourceMaintenances
             .AsNoTracking()
@@ -89,6 +96,9 @@ public class ResourceMaintenanceService : IResourceMaintenanceService
                 .ThenInclude(b => b!.Room)
                     .ThenInclude(r => r!.Ward)
             .Include(m => m.MedicalResource)
+                .ThenInclude(mr => mr!.Ward)
+            .Include(m => m.MedicalResource)
+                .ThenInclude(mr => mr!.Room)
             .Include(m => m.PerformedByStaff)
             .AsQueryable();
 
@@ -107,6 +117,26 @@ public class ResourceMaintenanceService : IResourceMaintenanceService
             query = query.Where(m => m.Status == status.Value);
         }
 
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var terms = search.Trim().ToLower().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            foreach (var term in terms)
+            {
+                query = query.Where(m =>
+                    m.MaintenanceCode.ToLower().Contains(term) ||
+                    m.Description.ToLower().Contains(term) ||
+                    (m.Bed != null && m.Bed.BedNumber.ToLower().Contains(term)) ||
+                    (m.Bed != null && m.Bed.Room != null && m.Bed.Room.RoomNumber.ToLower().Contains(term)) ||
+                    (m.Bed != null && m.Bed.Room != null && m.Bed.Room.Ward != null && m.Bed.Room.Ward.Name.ToLower().Contains(term)) ||
+                    (m.MedicalResource != null && m.MedicalResource.Name.ToLower().Contains(term)) ||
+                    (m.MedicalResource != null && m.MedicalResource.ResourceCode.ToLower().Contains(term)) ||
+                    (m.MedicalResource != null && m.MedicalResource.LocationDescription.ToLower().Contains(term)) ||
+                    (m.MedicalResource != null && m.MedicalResource.Ward != null && m.MedicalResource.Ward.Name.ToLower().Contains(term)) ||
+                    (m.MedicalResource != null && m.MedicalResource.Room != null && m.MedicalResource.Room.RoomNumber.ToLower().Contains(term))
+                );
+            }
+        }
+
         var records = await query.OrderByDescending(m => m.ScheduledStart).ToListAsync();
 
         return records.Select(m => MapToMaintenanceResponse(m, m.Bed, m.MedicalResource, m.PerformedByStaff)).ToList();
@@ -120,6 +150,9 @@ public class ResourceMaintenanceService : IResourceMaintenanceService
                 .ThenInclude(b => b!.Room)
                     .ThenInclude(r => r!.Ward)
             .Include(x => x.MedicalResource)
+                .ThenInclude(mr => mr!.Ward)
+            .Include(x => x.MedicalResource)
+                .ThenInclude(mr => mr!.Room)
             .Include(x => x.PerformedByStaff)
             .FirstOrDefaultAsync(x => x.Id == id);
 
@@ -389,6 +422,12 @@ public class ResourceMaintenanceService : IResourceMaintenanceService
             ? $"Bed {bed?.BedNumber ?? m.BedId.ToString()}"
             : (resource != null ? $"{resource.Name} ({resource.ResourceCode})" : "Medical Resource");
 
+        var wardId = bed?.Room?.WardId ?? resource?.WardId;
+        var wardName = bed?.Room?.Ward?.Name ?? resource?.Ward?.Name;
+        var roomId = bed?.RoomId ?? resource?.RoomId;
+        var roomNumber = bed?.Room?.RoomNumber ?? resource?.Room?.RoomNumber;
+        var locationDesc = resource?.LocationDescription;
+
         return new MaintenanceResponse
         {
             Id = m.Id,
@@ -397,6 +436,11 @@ public class ResourceMaintenanceService : IResourceMaintenanceService
             TargetName = targetName,
             BedId = m.BedId,
             BedNumber = bed?.BedNumber,
+            WardId = wardId,
+            WardName = wardName,
+            RoomId = roomId,
+            RoomNumber = roomNumber,
+            LocationDescription = locationDesc,
             MedicalResourceId = m.MedicalResourceId,
             MedicalResourceCode = resource?.ResourceCode,
             MedicalResourceName = resource?.Name,

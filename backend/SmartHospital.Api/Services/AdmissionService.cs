@@ -105,10 +105,13 @@ public class AdmissionService : IAdmissionService
 
         if (!string.IsNullOrWhiteSpace(filter.PatientSearch))
         {
-            var term = filter.PatientSearch.Trim().ToLower();
+            var rawTerm = filter.PatientSearch.Trim();
+            var term = System.Text.RegularExpressions.Regex.Replace(rawTerm, @"\s+", " ").ToLower();
             query = query.Where(a =>
                 a.Patient!.FirstName.ToLower().Contains(term) ||
                 a.Patient.LastName.ToLower().Contains(term) ||
+                (a.Patient.FirstName.ToLower() + " " + a.Patient.LastName.ToLower()).Contains(term) ||
+                (a.Patient.LastName.ToLower() + " " + a.Patient.FirstName.ToLower()).Contains(term) ||
                 a.Patient.Email.ToLower().Contains(term) ||
                 a.Patient.PhoneNumber.ToLower().Contains(term));
         }
@@ -130,9 +133,18 @@ public class AdmissionService : IAdmissionService
 
         if (filter.WardId.HasValue)
         {
-            query = query.Where(a => a.BedAllocations.Any(ba =>
-                ba.Status == BedAllocationStatus.Active &&
-                ba.Bed!.Room!.WardId == filter.WardId.Value));
+            var targetWardId = filter.WardId.Value;
+            query = query.Where(a =>
+                (a.Status == AdmissionStatus.Admitted && a.BedAllocations.Any(ba =>
+                    ba.Status == BedAllocationStatus.Active &&
+                    ba.Bed!.Room!.WardId == targetWardId))
+                ||
+                (a.Status != AdmissionStatus.Admitted && a.BedAllocations
+                    .OrderByDescending(ba => ba.ReleasedAt ?? ba.AllocatedAt)
+                    .ThenByDescending(ba => ba.AllocatedAt)
+                    .ThenByDescending(ba => ba.Id)
+                    .Select(ba => (int?)ba.Bed!.Room!.WardId)
+                    .FirstOrDefault() == targetWardId));
         }
 
         var page = filter.Page < 1 ? 1 : filter.Page;
@@ -488,7 +500,15 @@ public class AdmissionService : IAdmissionService
 
     private static AdmissionResponse MapToAdmissionResponse(Admission admission)
     {
-        var activeAlloc = admission.BedAllocations.FirstOrDefault(ba => ba.Status == BedAllocationStatus.Active);
+        var activeAlloc = admission.Status == AdmissionStatus.Admitted
+            ? admission.BedAllocations.FirstOrDefault(ba => ba.Status == BedAllocationStatus.Active)
+            : null;
+
+        var resolvedAlloc = activeAlloc ?? admission.BedAllocations
+            .OrderByDescending(ba => ba.ReleasedAt ?? ba.AllocatedAt)
+            .ThenByDescending(ba => ba.AllocatedAt)
+            .ThenByDescending(ba => ba.Id)
+            .FirstOrDefault();
 
         return new AdmissionResponse
         {
@@ -509,10 +529,10 @@ public class AdmissionService : IAdmissionService
             ReasonForAdmission = admission.ReasonForAdmission,
             Diagnosis = admission.Diagnosis,
             DischargeSummary = admission.DischargeSummary,
-            ActiveBedId = activeAlloc?.BedId,
-            ActiveBedNumber = activeAlloc?.Bed?.BedNumber,
-            ActiveRoomNumber = activeAlloc?.Bed?.Room?.RoomNumber,
-            ActiveWardName = activeAlloc?.Bed?.Room?.Ward?.Name,
+            ActiveBedId = resolvedAlloc?.BedId,
+            ActiveBedNumber = resolvedAlloc?.Bed?.BedNumber,
+            ActiveRoomNumber = resolvedAlloc?.Bed?.Room?.RoomNumber,
+            ActiveWardName = resolvedAlloc?.Bed?.Room?.Ward?.Name,
             CreatedAt = admission.CreatedAt,
             UpdatedAt = admission.UpdatedAt
         };

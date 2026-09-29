@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import DashboardLayout from '../../layouts/DashboardLayout'
 import ResourceNavigation from './ResourceNavigation'
 import { useAuth } from '../../hooks/useAuth'
@@ -11,6 +11,20 @@ import EditIconButton from './components/EditIconButton'
 
 const staffNav = ['Dashboard', 'Patients', 'Appointments', 'Queue Management', 'Resources']
 
+// Generate pagination numbers with ellipsis when needed
+function getPageNumbers(current, total) {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1)
+  }
+  if (current <= 4) {
+    return [1, 2, 3, 4, 5, '...', total]
+  }
+  if (current >= total - 3) {
+    return [1, '...', total - 4, total - 3, total - 2, total - 1, total]
+  }
+  return [1, '...', current - 1, current, current + 1, '...', total]
+}
+
 export default function BedManagement() {
   const { user } = useAuth()
   const role = user?.role || 'Staff'
@@ -18,6 +32,7 @@ export default function BedManagement() {
 
   // Data states
   const [beds, setBeds] = useState([])
+  const [fullBeds, setFullBeds] = useState([])
   const [wards, setWards] = useState([])
   const [filterRooms, setFilterRooms] = useState([])
   const [loading, setLoading] = useState(true)
@@ -30,18 +45,127 @@ export default function BedManagement() {
   const [roomFilter, setRoomFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
 
+  // Pagination states - Default 10 records per page
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+
+  // Reset pagination to page 1 whenever any filter changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [wardFilter, roomFilter, statusFilter])
+
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false)
   const [editBedTarget, setEditBedTarget] = useState(null)
   const [statusBedTarget, setStatusBedTarget] = useState(null)
   const [deactivateBedTarget, setDeactivateBedTarget] = useState(null)
 
-  // Fetch initial active wards once
-  useEffect(() => {
-    getAllWards({ isActive: true })
-      .then((data) => setWards(Array.isArray(data) ? data : []))
-      .catch(() => {})
+  // Helper: Fetch complete unfiltered beds dataset for KPI metrics
+  const fetchFullBeds = useCallback(async () => {
+    let all = []
+    let pageNum = 1
+    let hasMore = true
+    while (hasMore) {
+      const pageData = await getBeds({ page: pageNum, pageSize: 100 })
+      if (Array.isArray(pageData) && pageData.length > 0) {
+        all = all.concat(pageData)
+        if (pageData.length < 100 || pageNum >= 20) {
+          hasMore = false
+        } else {
+          pageNum++
+        }
+      } else {
+        hasMore = false
+      }
+    }
+    return all
   }, [])
+
+  // Helper: Fetch filtered beds matching active filters for table display
+  const fetchFilteredBeds = useCallback(async () => {
+    const params = {
+      pageSize: 100,
+    }
+    if (wardFilter) params.wardId = parseInt(wardFilter, 10)
+    if (roomFilter) params.roomId = parseInt(roomFilter, 10)
+    if (statusFilter) params.status = parseInt(statusFilter, 10)
+
+    let all = []
+    let pageNum = 1
+    let hasMore = true
+    while (hasMore) {
+      const pageData = await getBeds({ ...params, page: pageNum, pageSize: 100 })
+      if (Array.isArray(pageData) && pageData.length > 0) {
+        all = all.concat(pageData)
+        if (pageData.length < 100 || pageNum >= 20) {
+          hasMore = false
+        } else {
+          pageNum++
+        }
+      } else {
+        hasMore = false
+      }
+    }
+    return all
+  }, [wardFilter, roomFilter, statusFilter])
+
+  // Initial load for full beds dataset (KPIs) and wards
+  useEffect(() => {
+    let isCurrent = true
+    const loadInitial = async () => {
+      try {
+        const [fullData, wardsData] = await Promise.all([
+          fetchFullBeds(),
+          getAllWards({ isActive: true }).catch(() => []),
+        ])
+        if (isCurrent) {
+          setFullBeds(Array.isArray(fullData) ? fullData : [])
+          if (Array.isArray(wardsData) && wardsData.length > 0) {
+            setWards(wardsData)
+          }
+        }
+      } catch (err) {
+        if (isCurrent) {
+          setError(err.response?.data?.message || 'Failed to load hospital beds summary.')
+        }
+      }
+    }
+
+    loadInitial()
+
+    return () => {
+      isCurrent = false
+    }
+  }, [fetchFullBeds])
+
+  // Filtered beds loader (runs on mount and whenever any table filter changes)
+  useEffect(() => {
+    let isCurrent = true
+    const loadFiltered = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        const data = await fetchFilteredBeds()
+        if (isCurrent) {
+          setBeds(Array.isArray(data) ? data : [])
+        }
+      } catch (err) {
+        if (isCurrent) {
+          setError(err.response?.data?.message || 'Failed to load hospital beds.')
+        }
+      } finally {
+        if (isCurrent) {
+          setLoading(false)
+        }
+      }
+    }
+
+    loadFiltered()
+
+    return () => {
+      isCurrent = false
+    }
+  }, [fetchFilteredBeds])
 
   // Load rooms ONLY when a Ward is selected in the filter
   useEffect(() => {
@@ -67,51 +191,59 @@ export default function BedManagement() {
     fetchRoomsForFilter()
   }, [wardFilter])
 
-  // Fetch beds based on active filters
-  const fetchBedsData = useCallback(async () => {
+  // Refresh both full beds (KPIs) and filtered beds (table)
+  const handleRefresh = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
-
-      const params = {
-        pageSize: 100,
+      const [fullData, filteredData, wardsData] = await Promise.all([
+        fetchFullBeds(),
+        fetchFilteredBeds(),
+        getAllWards({ isActive: true }).catch(() => wards),
+      ])
+      setFullBeds(Array.isArray(fullData) ? fullData : [])
+      setBeds(Array.isArray(filteredData) ? filteredData : [])
+      if (Array.isArray(wardsData) && wardsData.length > 0) {
+        setWards(wardsData)
       }
-      if (wardFilter) params.wardId = parseInt(wardFilter, 10)
-      if (roomFilter) params.roomId = parseInt(roomFilter, 10)
-      if (statusFilter) params.status = parseInt(statusFilter, 10)
-
-      const bedsData = await getBeds(params)
-      setBeds(Array.isArray(bedsData) ? bedsData : [])
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load hospital beds.')
+      setError(err.response?.data?.message || 'Failed to refresh hospital beds.')
     } finally {
       setLoading(false)
     }
-  }, [wardFilter, roomFilter, statusFilter])
-
-  useEffect(() => {
-    fetchBedsData()
-  }, [fetchBedsData])
+  }, [fetchFullBeds, fetchFilteredBeds, wards])
 
   const handleResetFilters = () => {
     setWardFilter('')
     setRoomFilter('')
     setStatusFilter('')
+    setCurrentPage(1)
   }
 
   const handleSuccessFeedback = (msg) => {
     setSuccessMessage(msg)
-    fetchBedsData()
+    handleRefresh()
     setTimeout(() => {
       setSuccessMessage(null)
     }, 5000)
   }
 
-  // Summary Metrics derived from loaded beds dataset
-  const totalBeds = beds.length
-  const availableBeds = beds.filter((b) => b.status?.toLowerCase() === 'available').length
-  const occupiedBeds = beds.filter((b) => b.status?.toLowerCase() === 'occupied').length
-  const maintenanceBeds = beds.filter((b) => b.status?.toLowerCase() === 'maintenance').length
+  // Summary Metrics (Calculated strictly from the complete, unfiltered beds dataset)
+  const totalBeds = fullBeds.length
+  const availableBeds = fullBeds.filter((b) => b.status?.toLowerCase() === 'available').length
+  const occupiedBeds = fullBeds.filter((b) => b.status?.toLowerCase() === 'occupied').length
+  const maintenanceBeds = fullBeds.filter((b) => b.status?.toLowerCase() === 'maintenance').length
+
+  // Pagination calculations applied to currently filtered bed dataset
+  const totalCount = beds.length
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize))
+  const safePage = Math.min(currentPage, totalPages)
+
+  const startIndex = (safePage - 1) * pageSize
+  const endIndex = Math.min(startIndex + pageSize, totalCount)
+  const paginatedBeds = useMemo(() => {
+    return beds.slice(startIndex, endIndex)
+  }, [beds, startIndex, endIndex])
 
   const renderStatusBadge = (status) => {
     const s = (status || '').toLowerCase()
@@ -200,7 +332,7 @@ export default function BedManagement() {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={fetchBedsData}
+            onClick={handleRefresh}
             disabled={loading}
             className="secondary-button text-xs px-3 py-2"
           >
@@ -224,25 +356,25 @@ export default function BedManagement() {
         <article className="stat-card">
           <p>Total Beds</p>
           <strong>{totalBeds}</strong>
-          <span className="text-xs opacity-60">Configured in current view</span>
+          <span className="text-xs opacity-60">All active beds</span>
         </article>
 
         <article className="stat-card">
           <p>Available Beds</p>
           <strong style={{ color: '#0d7a42' }}>{availableBeds}</strong>
-          <span className="text-xs opacity-60">Ready for admissions</span>
+          <span className="text-xs opacity-60">Currently available</span>
         </article>
 
         <article className="stat-card">
           <p>Occupied Beds</p>
           <strong style={{ color: '#1e40af' }}>{occupiedBeds}</strong>
-          <span className="text-xs opacity-60">Currently assigned to patients</span>
+          <span className="text-xs opacity-60">Currently occupied</span>
         </article>
 
         <article className="stat-card">
           <p>Maintenance Beds</p>
           <strong style={{ color: '#d97706' }}>{maintenanceBeds}</strong>
-          <span className="text-xs opacity-60">Servicing, cleaning, or repair</span>
+          <span className="text-xs opacity-60">Under maintenance</span>
         </article>
       </div>
 
@@ -400,7 +532,7 @@ export default function BedManagement() {
                   </td>
                 </tr>
               ) : (
-                beds.map((bed) => {
+                paginatedBeds.map((bed) => {
                   const isOccupied = bed.status?.toLowerCase() === 'occupied'
 
                   return (
@@ -503,6 +635,99 @@ export default function BedManagement() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination & Result Summary Bar */}
+        {totalCount > 0 && (
+          <div
+            className="flex flex-wrap items-center justify-between gap-3 p-3.5 border-t text-xs transition-opacity duration-150"
+            style={{
+              borderColor: 'color-mix(in srgb, var(--color-secondary) 12%, var(--color-primary))',
+              background: 'color-mix(in srgb, var(--color-accent) 2%, var(--color-primary))',
+              opacity: loading && beds.length > 0 ? 0.65 : 1,
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <span className="font-medium opacity-75">
+                Showing {startIndex + 1}–{endIndex} of {totalCount} beds
+              </span>
+              <div className="flex items-center gap-1.5 text-xs">
+                <span className="opacity-60">Rows:</span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value))
+                    setCurrentPage(1)
+                  }}
+                  className="px-2 py-1 text-xs border rounded bg-transparent outline-none cursor-pointer"
+                  style={{
+                    borderColor: 'color-mix(in srgb, var(--color-secondary) 25%, var(--color-primary))',
+                    color: 'var(--color-secondary)',
+                  }}
+                  aria-label="Rows per page"
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                disabled={safePage <= 1}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                className="secondary-button text-xs px-2.5 py-1 disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ marginTop: 0 }}
+              >
+                Previous
+              </button>
+
+              <div className="flex items-center gap-1">
+                {getPageNumbers(safePage, totalPages).map((p, idx) =>
+                  p === '...' ? (
+                    <span key={`ellipsis-${idx}`} className="px-1.5 py-1 text-xs opacity-50">
+                      ...
+                    </span>
+                  ) : (
+                    <button
+                      key={`page-${p}`}
+                      type="button"
+                      onClick={() => setCurrentPage(p)}
+                      className="text-xs px-2.5 py-1 rounded font-medium transition-colors cursor-pointer"
+                      style={{
+                        background:
+                          p === safePage
+                            ? 'var(--color-accent)'
+                            : 'transparent',
+                        color:
+                          p === safePage
+                            ? 'var(--color-primary)'
+                            : 'var(--color-secondary)',
+                        border:
+                          p === safePage
+                            ? '1px solid var(--color-accent)'
+                            : '1px solid color-mix(in srgb, var(--color-secondary) 20%, var(--color-primary))',
+                      }}
+                    >
+                      {p}
+                    </button>
+                  )
+                )}
+              </div>
+
+              <button
+                type="button"
+                disabled={safePage >= totalPages}
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                className="secondary-button text-xs px-2.5 py-1 disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ marginTop: 0 }}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Modals */}
