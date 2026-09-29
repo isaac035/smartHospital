@@ -15,7 +15,16 @@ var builder = WebApplication.CreateBuilder(args);
 // Controllers
 // --------------------------------------------------
 
-builder.Services.AddControllers();
+builder.Services
+    .AddControllers(options =>
+    {
+        // Zone-less dates in query strings / routes are treated as UTC (see UtcDateTimeHandling.cs)
+        options.ModelBinderProviders.Insert(0, new UtcDateTimeModelBinderProvider());
+    })
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new UtcDateTimeJsonConverter());
+    });
 builder.Services.AddSignalR();
 
 
