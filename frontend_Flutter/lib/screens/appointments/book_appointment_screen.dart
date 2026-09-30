@@ -14,12 +14,14 @@ class BookAppointmentScreen extends StatefulWidget {
   final int doctorId;
   final String slotStart;
   final int durationMinutes;
+  final int initialPriority;
 
   const BookAppointmentScreen({
     super.key,
     required this.doctorId,
     required this.slotStart,
     required this.durationMinutes,
+    this.initialPriority = 1,
   });
 
   @override
@@ -32,7 +34,13 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
 
   final int _appointmentType = 1;
   // Matches the backend AppointmentPriority values: Normal=1, Urgent=2, Emergency=3.
-  int _priority = 1;
+  late int _priority;
+
+  @override
+  void initState() {
+    super.initState();
+    _priority = widget.initialPriority.clamp(1, 3).toInt();
+  }
 
   @override
   void dispose() {

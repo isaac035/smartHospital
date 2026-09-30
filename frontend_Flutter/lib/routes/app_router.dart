@@ -266,6 +266,7 @@ class AppRouter {
               doctorId: extra['doctorId'] as int,
               slotStart: extra['slotStart'] as String,
               durationMinutes: extra['durationMinutes'] as int,
+              initialPriority: extra['initialPriority'] as int? ?? 1,
             );
           },
         ),
