@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/api_datetime.dart';
 import '../../models/smart_care/smart_care_result.dart';
 import '../../services/smart_care_service.dart';
 import '../../widgets/app_button.dart';
@@ -43,6 +44,10 @@ class _SmartCareScreenState extends State<SmartCareScreen> {
   String? _inputError;
   String? _errorMessage;
   SmartCareResult? _result;
+  SmartCareOptimization? _optimization;
+  bool _optimizing = false;
+  int? _optimizingDoctorId;
+  String? _optimizationError;
 
   @override
   void dispose() {
@@ -107,6 +112,8 @@ class _SmartCareScreenState extends State<SmartCareScreen> {
   void _startOver() => setState(() {
     _stage = _Stage.input;
     _result = null;
+    _optimization = null;
+    _optimizationError = null;
     _errorMessage = null;
   });
 
@@ -115,6 +122,49 @@ class _SmartCareScreenState extends State<SmartCareScreen> {
   void _selectDoctor(SmartCareDoctor doctor) => context.push(
     '/appointments/doctor/${doctor.doctorProfileId}?userId=${doctor.doctorId}',
   );
+
+  Future<void> _findAppointmentTime(SmartCareDoctor doctor, SmartCareResult result) async {
+    setState(() {
+      _optimizing = true;
+      _optimizingDoctorId = doctor.doctorId;
+      _optimization = null;
+      _optimizationError = null;
+    });
+    try {
+      final optimized = await SmartCareService(context.read<ApiClient>()).optimizeAppointments(
+        category: result.category!,
+        priority: result.priority ?? 'Normal',
+        doctors: [doctor],
+      );
+      if (!mounted) return;
+      setState(() => _optimization = optimized);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _optimizationError = e.statusCode == 429
+          ? e.message
+          : 'Appointment suggestions are unavailable right now. You can browse doctors and slots manually.');
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _optimizationError =
+          'Appointment suggestions are unavailable right now. You can browse doctors and slots manually.');
+    } finally {
+      if (mounted) setState(() => _optimizing = false);
+    }
+  }
+
+  void _bookSuggestedSlot(SmartCareSlot slot, String? priority) {
+    final appointmentPriority = switch (priority) {
+      'Emergency' => 3,
+      'Urgent' => 2,
+      _ => 1,
+    };
+    context.push('/appointments/book', extra: {
+      'doctorId': slot.doctorId,
+      'slotStart': slot.slotStart,
+      'durationMinutes': slot.durationMinutes,
+      'initialPriority': appointmentPriority,
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -270,11 +320,48 @@ class _SmartCareScreenState extends State<SmartCareScreen> {
                 'No doctors in this specialty are available for online booking right now.',
           )
         else ...[
-          SectionHeader('Recommended doctors', subtitle: 'Choose a doctor to see available times.'),
+          SectionHeader('Recommended doctors', subtitle: 'Find a real available time or browse slots manually.'),
           const SizedBox(height: 12),
           for (final doctor in result.recommendedDoctors) ...[
-            _DoctorCard(doctor: doctor, onSelect: () => _selectDoctor(doctor)),
+            _DoctorCard(
+              doctor: doctor,
+              isOptimizing: _optimizing && _optimizingDoctorId == doctor.doctorId,
+              onFindTime: () => _findAppointmentTime(doctor, result),
+              onBrowse: () => _selectDoctor(doctor),
+            ),
             const SizedBox(height: 10),
+          ],
+          if (_optimizationError != null) ...[
+            ErrorState(message: _optimizationError!),
+            _BrowseManuallyButton(onPressed: _browseManually),
+          ],
+          if (_optimization != null) ...[
+            const SizedBox(height: 8),
+            if (_optimization!.recommendedSlot == null)
+              EmptyState(
+                icon: Icons.event_busy_rounded,
+                title: 'No available times found',
+                message: _optimization!.message ?? 'Try another recommended doctor or browse manually.',
+                action: OutlinedButton(onPressed: _browseManually, child: const Text('Browse doctors')),
+              )
+            else ...[
+              SectionHeader('Suggested appointment time', subtitle: 'Availability was checked just now.'),
+              const SizedBox(height: 10),
+              _SuggestedSlotCard(
+                slot: _optimization!.recommendedSlot!,
+                featured: true,
+                onBook: () => _bookSuggestedSlot(_optimization!.recommendedSlot!, result.priority),
+              ),
+              for (final slot in _optimization!.alternativeSlots) ...[
+                const SizedBox(height: 8),
+                _SuggestedSlotCard(
+                  slot: slot,
+                  onBook: () => _bookSuggestedSlot(slot, result.priority),
+                ),
+              ],
+              const SizedBox(height: 8),
+              _BrowseManuallyButton(onPressed: _browseManually),
+            ],
           ],
         ],
       ],
@@ -300,9 +387,11 @@ class _SmartCareScreenState extends State<SmartCareScreen> {
 }
 
 class _DoctorCard extends StatelessWidget {
-  const _DoctorCard({required this.doctor, required this.onSelect});
+  const _DoctorCard({required this.doctor, required this.onFindTime, required this.onBrowse, required this.isOptimizing});
   final SmartCareDoctor doctor;
-  final VoidCallback onSelect;
+  final VoidCallback onFindTime;
+  final VoidCallback onBrowse;
+  final bool isOptimizing;
 
   @override
   Widget build(BuildContext context) {
@@ -336,10 +425,59 @@ class _DoctorCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
+          AppButton(
+            text: 'Find an appointment time',
+            onPressed: onFindTime,
+            isLoading: isOptimizing,
+          ),
+          if (isOptimizing) ...[
+            const SizedBox(height: 6),
+            const Center(child: Text('Checking availability · Finding the best time')),
+          ],
           Align(
             alignment: Alignment.centerRight,
-            child: FilledButton(onPressed: onSelect, child: const Text('Select Doctor')),
+            child: TextButton(onPressed: onBrowse, child: const Text('Browse this doctor\'s slots manually')),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SuggestedSlotCard extends StatelessWidget {
+  const _SuggestedSlotCard({required this.slot, required this.onBook, this.featured = false});
+  final SmartCareSlot slot;
+  final VoidCallback onBook;
+  final bool featured;
+
+  @override
+  Widget build(BuildContext context) {
+    final local = ApiDateTime.parseUtcToLocal(slot.slotStart);
+    final hour = local.hour > 12 ? local.hour - 12 : (local.hour == 0 ? 12 : local.hour);
+    final period = local.hour >= 12 ? 'PM' : 'AM';
+    final label = '${local.day}/${local.month}/${local.year} at $hour:${local.minute.toString().padLeft(2, '0')} $period';
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(children: [
+            IconBadge(
+              icon: Icons.event_available_rounded,
+              tint: featured ? AppTheme.serviceAppointmentsTint : AppTheme.serviceDoctorsTint,
+              foreground: featured ? AppTheme.serviceAppointmentsForeground : AppTheme.serviceDoctorsForeground,
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(featured ? 'Recommended time' : 'Alternative time', style: Theme.of(context).textTheme.labelLarge),
+              Text(label, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+            ])),
+          ]),
+          if (slot.reason case final reason? when reason.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(reason, style: Theme.of(context).textTheme.bodySmall),
+          ],
+          const SizedBox(height: 12),
+          FilledButton(onPressed: onBook, child: const Text('Continue to booking')),
         ],
       ),
     );

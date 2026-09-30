@@ -2,6 +2,10 @@
 bin/
 obj/
 
+# Python generated files
+__pycache__/
+*.py[cod]
+
 # Visual Studio
 .vs/
 *.user

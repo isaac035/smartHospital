@@ -18,4 +18,26 @@ class SmartCareService {
     );
     return SmartCareResult.fromJson(response as Map<String, dynamic>);
   }
+
+  Future<SmartCareOptimization> optimizeAppointments({
+    required String category,
+    required String priority,
+    required List<SmartCareDoctor> doctors,
+  }) async {
+    final response = await _apiClient.post(
+      ApiConstants.smartCareAppointmentOptimization,
+      data: {
+        'category': category,
+        'priority': priority,
+        'recommendedDoctors': doctors
+            .map((doctor) => {
+                  'doctorId': doctor.doctorId,
+                  'doctorProfileId': doctor.doctorProfileId,
+                })
+            .toList(),
+      },
+      receiveTimeout: const Duration(seconds: 60),
+    );
+    return SmartCareOptimization.fromJson(response as Map<String, dynamic>);
+  }
 }
