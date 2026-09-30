@@ -240,4 +240,14 @@ export const completeMaintenance = async (id, data) => {
   return response.data
 }
 
+export const updateScheduledMaintenance = async (id, data) => {
+  const response = await api.put(`/resource-maintenances/${id}`, data)
+  return response.data
+}
+
+export const cancelScheduledMaintenance = async (id, data = {}) => {
+  const response = await api.post(`/resource-maintenances/${id}/cancel`, data)
+  return response.data
+}
+
 

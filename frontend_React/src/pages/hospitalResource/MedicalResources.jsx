@@ -3,6 +3,7 @@ import DashboardLayout from '../../layouts/DashboardLayout'
 import ResourceNavigation from './ResourceNavigation'
 import { useAuth } from '../../hooks/useAuth'
 import { adminNavigation } from '../admin/adminNavigation'
+import { resourceAdminNavigation } from './resourceAdminNavigation'
 import {
   getMedicalResources,
   getAllWards,
@@ -34,7 +35,7 @@ function getPageNumbers(current, total) {
 export default function MedicalResources() {
   const { user } = useAuth()
   const role = user?.role || 'Staff'
-  const navigation = role === 'Admin' ? adminNavigation : staffNav
+  const navigation = role === 'ResourceAdmin' ? resourceAdminNavigation : role === 'Admin' ? adminNavigation : staffNav
 
   // Data states:
   // Concept A: Full resources dataset (used ONLY for overall KPI calculations)
@@ -340,7 +341,7 @@ export default function MedicalResources() {
           >
             {loading ? 'Refreshing...' : 'Refresh'}
           </button>
-          {(role === 'Admin' || role === 'Staff') && (
+          {(role === 'Admin' || role === 'Staff' || role === 'ResourceAdmin') && (
             <button
               type="button"
               onClick={() => setShowAddModal(true)}
@@ -633,7 +634,7 @@ export default function MedicalResources() {
                       {/* Actions */}
                       <td className="p-3 text-xs text-right whitespace-nowrap">
                         <div className="inline-flex items-center gap-1.5 justify-end">
-                          {(role === 'Admin' || role === 'Staff') && (
+                          {(role === 'Admin' || role === 'Staff' || role === 'ResourceAdmin') && (
                             <>
                               <button
                                 type="button"
@@ -651,7 +652,7 @@ export default function MedicalResources() {
                             </>
                           )}
 
-                          {role === 'Admin' && res.isActive && (
+                          {(role === 'Admin' || role === 'ResourceAdmin') && res.isActive && (
                             <button
                               type="button"
                               onClick={() => setDeactivateTarget(res)}

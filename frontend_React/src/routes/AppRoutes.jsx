@@ -58,6 +58,8 @@ export default function AppRoutes() {
         <Route path="/admin/consultation-types" element={<ConsultationTypeManagement />} />
         <Route path="/admin/schedules" element={<AvailabilityCalendar />} />
         <Route path="/admin/leaves" element={<LeaveManagement />} />
+      </Route>
+      <Route element={<RoleRoute allowedRoles={['Admin', 'Staff', 'ResourceAdmin']} />}>
         <Route path="/hospital-resources" element={<ResourceDashboard />} />
         <Route path="/hospital-resources/wards" element={<WardManagement />} />
         <Route path="/hospital-resources/beds" element={<BedManagement />} />

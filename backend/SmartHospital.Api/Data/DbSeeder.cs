@@ -43,6 +43,37 @@ public static class DbSeeder
             await context.SaveChangesAsync();
         }
 
+        var resourceAdminExists = await context.Users
+            .AnyAsync(u =>
+                u.Email == "resourceadmin@gmail.com");
+
+        if (!resourceAdminExists)
+        {
+            var seedPassword = Environment.GetEnvironmentVariable("RESOURCE_ADMIN_PASSWORD");
+            if (string.IsNullOrWhiteSpace(seedPassword))
+            {
+                Console.WriteLine("[DbSeeder] Notice: RESOURCE_ADMIN_PASSWORD environment variable is not configured. ResourceAdmin account was not seeded.");
+            }
+            else
+            {
+                var resourceAdmin = new User
+                {
+                    FirstName = "Resource",
+                    LastName = "Administrator",
+                    Email = "resourceadmin@gmail.com",
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(seedPassword),
+                    PhoneNumber = "0771112233",
+                    Role = UserRole.ResourceAdmin,
+                    Status = UserStatus.Active,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                context.Users.Add(resourceAdmin);
+                await context.SaveChangesAsync();
+            }
+        }
+
         var departmentExists = await context.Departments
             .AnyAsync(d => d.Name == "General Medicine");
 

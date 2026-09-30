@@ -146,7 +146,7 @@ export default function RoomManagementModal({ isOpen, onClose, ward, role, wards
             >
               {loading ? 'Refreshing...' : 'Refresh'}
             </button>
-            {(role === 'Admin' || role === 'Staff') && (
+            {(role === 'Admin' || role === 'Staff' || role === 'ResourceAdmin') && (
               <button
                 type="button"
                 onClick={handleOpenAdd}
@@ -255,7 +255,7 @@ export default function RoomManagementModal({ isOpen, onClose, ward, role, wards
 
                         <td className="p-3 text-xs text-right whitespace-nowrap">
                           <div className="inline-flex items-center gap-1.5 justify-end">
-                            {(role === 'Admin' || role === 'Staff') && (
+                            {(role === 'Admin' || role === 'Staff' || role === 'ResourceAdmin') && (
                               <EditIconButton
                                 onClick={() => handleOpenEdit(room)}
                                 title="Edit"
@@ -263,7 +263,7 @@ export default function RoomManagementModal({ isOpen, onClose, ward, role, wards
                               />
                             )}
 
-                            {role === 'Admin' && room.isActive && (
+                            {(role === 'Admin' || role === 'ResourceAdmin') && room.isActive && (
                               <button
                                 type="button"
                                 onClick={() => setDeactivatingRoom(room)}

@@ -11,6 +11,7 @@ import AdmissionDetailsModal from './components/AdmissionDetailsModal'
 import EditAdmissionModal from './components/EditAdmissionModal'
 import EditIconButton from './components/EditIconButton'
 import { adminNavigation } from '../admin/adminNavigation'
+import { resourceAdminNavigation } from './resourceAdminNavigation'
 
 const staffNav = ['Dashboard', 'Patients', 'Appointments', 'Queue Management', 'Resources']
 
@@ -40,7 +41,7 @@ function getPageNumbers(current, total) {
 export default function Admissions() {
   const { user } = useAuth()
   const role = user?.role || 'Staff'
-  const navigation = role === 'Admin' ? adminNavigation : staffNav
+  const navigation = role === 'ResourceAdmin' ? resourceAdminNavigation : role === 'Admin' ? adminNavigation : staffNav
 
   // Data states:
   // Concept A: Full admissions dataset (used ONLY for overall KPI totals)
@@ -660,7 +661,7 @@ export default function Admissions() {
                             />
                           )}
 
-                          {isActive && !hasBed && (role === 'Admin' || role === 'Staff') && (
+                          {isActive && !hasBed && (role === 'Admin' || role === 'Staff' || role === 'ResourceAdmin') && (
                             <button
                               type="button"
                               onClick={() => setAllocateTarget(admission)}
@@ -672,7 +673,7 @@ export default function Admissions() {
                             </button>
                           )}
 
-                          {isActive && hasBed && (role === 'Admin' || role === 'Staff') && (
+                          {isActive && hasBed && (role === 'Admin' || role === 'Staff' || role === 'ResourceAdmin') && (
                             <button
                               type="button"
                               onClick={() => setTransferTarget(admission)}

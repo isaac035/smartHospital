@@ -4,7 +4,11 @@ import NotFound from '../pages/NotFound'
 
 export default function RoleAwareNotFound() {
   const { user } = useAuth()
-  return user?.role === 'AppointmentManager'
-    ? <Navigate to="/admin/appointments" replace />
-    : <NotFound />
+  if (user?.role === 'AppointmentManager') {
+    return <Navigate to="/admin/appointments" replace />
+  }
+  if (user?.role === 'ResourceAdmin') {
+    return <Navigate to="/hospital-resources" replace />
+  }
+  return <NotFound />
 }
