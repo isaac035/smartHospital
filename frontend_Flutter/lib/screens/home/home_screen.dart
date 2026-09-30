@@ -294,6 +294,15 @@ class _HomeScreenState extends State<HomeScreen> {
       foreground: AppTheme.serviceAppointmentsForeground,
       onTap: () => context.go('/my-admission'),
     ),
+    _HomeService(
+      icon: Icons.health_and_safety_rounded,
+      title: 'Smart Care',
+      subtitle: 'Describe symptoms, get matched',
+      semanticDestination: 'Smart Care doctor matching',
+      tint: AppTheme.serviceAdmissionTint,
+      foreground: AppTheme.serviceAdmissionForeground,
+      onTap: () => context.push('/smart-care'),
+    ),
   ];
 
   Widget _entrance({required Widget child, required bool reduceMotion}) {

@@ -56,4 +56,7 @@ class ApiConstants {
   static const String labOrders = '/LabOrders';
   static const String patientProfiles = '/PatientProfiles';
   static const String medicalHistory = '/MedicalHistory';
+
+  // Smart Care (AI Agent 1: clinical triage + doctor matching)
+  static const String smartCareTriage = '/agent1/triage-doctor-match';
 }

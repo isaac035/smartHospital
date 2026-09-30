@@ -1,5 +1,8 @@
+using System.Security.Claims;
 using System.Text;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -8,6 +11,7 @@ using SmartHospital.Api.Configuration;
 using SmartHospital.Api.Data;
 using SmartHospital.Api.Middleware;
 using SmartHospital.Api.Services;
+using SmartHospital.Api.Services.Agent1;
 using SmartHospital.Api.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -145,6 +149,39 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();
 builder.Services.AddScoped<IQueueService, QueueService>();
 
+// AI Agent 1 - Clinical Triage + Doctor Matching (internal Python service)
+builder.Services.Configure<Agent1Settings>(builder.Configuration.GetSection(Agent1Settings.SectionName));
+var agent1Settings = builder.Configuration.GetSection(Agent1Settings.SectionName).Get<Agent1Settings>() ?? new Agent1Settings();
+builder.Services.AddHttpClient<IAgent1TriageService, Agent1TriageService>(client =>
+{
+    client.BaseAddress = new Uri(agent1Settings.BaseUrl.TrimEnd('/') + "/");
+    client.Timeout = TimeSpan.FromSeconds(agent1Settings.TimeoutSeconds);
+});
+
+// Per-patient limit on the Agent 1 endpoint only (controls LLM cost and abuse).
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        context.HttpContext.Response.ContentType = "application/json";
+        await context.HttpContext.Response.WriteAsync(
+            "{\"message\":\"You've reached the Smart Care limit for now. Please try again in a few minutes, or browse doctors directly.\"}",
+            cancellationToken);
+    };
+    options.AddPolicy(SmartHospital.Api.Controllers.Agent1Controller.RateLimitPolicy, httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? httpContext.Connection.RemoteIpAddress?.ToString()
+                ?? "anonymous",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = agent1Settings.RateLimitPermits,
+                Window = TimeSpan.FromMinutes(agent1Settings.RateLimitWindowMinutes),
+                QueueLimit = 0,
+            }));
+});
+
 
 // --------------------------------------------------
 // CORS
@@ -236,6 +273,7 @@ app.UseAuthentication();
 
 app.UseAuthorization();
 app.UseMiddleware<AppointmentManagerAuthorizationMiddleware>();
+app.UseRateLimiter();
 
 app.MapControllers();
 app.MapHub<SmartHospital.Api.Hubs.HospitalHub>("/hubs/hospital");

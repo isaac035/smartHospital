@@ -26,9 +26,14 @@ class ApiClient {
     }
   }
 
-  Future<dynamic> post(String path, {dynamic data}) async {
+  /// [receiveTimeout] overrides the default for slow endpoints (e.g. AI triage).
+  Future<dynamic> post(String path, {dynamic data, Duration? receiveTimeout}) async {
     try {
-      final response = await _dio.post(path, data: data);
+      final response = await _dio.post(
+        path,
+        data: data,
+        options: receiveTimeout == null ? null : Options(receiveTimeout: receiveTimeout),
+      );
       return response.data;
     } on DioException catch (e) {
       throw _handleError(e);

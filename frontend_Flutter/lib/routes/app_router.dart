@@ -25,6 +25,7 @@ import '../screens/appointments/doctor_slots_screen.dart';
 import '../screens/appointments/book_appointment_screen.dart';
 import '../screens/appointments/reschedule_screen.dart';
 import '../screens/queue/queue_status_screen.dart';
+import '../screens/smart_care/smart_care_screen.dart';
 import '../screens/admissions/my_admission_screen.dart';
 import '../widgets/patient_navigation_shell.dart';
 
@@ -192,6 +193,13 @@ class AppRouter {
           parentNavigatorKey: _rootNavigatorKey,
           path: '/queue',
           builder: (context, state) => const QueueStatusScreen(),
+        ),
+
+        // Smart Care (AI-assisted triage + doctor matching; hands off to booking)
+        GoRoute(
+          parentNavigatorKey: _rootNavigatorKey,
+          path: '/smart-care',
+          builder: (context, state) => const SmartCareScreen(),
         ),
 
         // Search Doctors for Appointment Booking
