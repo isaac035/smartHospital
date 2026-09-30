@@ -15,10 +15,16 @@ public class UserService : IUserService
         _context = context;
     }
 
-    public async Task<List<UserResponse>> GetAllAsync()
+    public async Task<List<UserResponse>> GetAllAsync(UserRole? role = null)
     {
-        return await _context.Users
-            .AsNoTracking()
+        var query = _context.Users.AsNoTracking();
+
+        if (role.HasValue)
+        {
+            query = query.Where(u => u.Role == role.Value);
+        }
+
+        return await query
             .OrderBy(u => u.Id)
             .Select(u => new UserResponse
             {

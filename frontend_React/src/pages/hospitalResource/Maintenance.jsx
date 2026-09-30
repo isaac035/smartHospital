@@ -3,12 +3,16 @@ import DashboardLayout from '../../layouts/DashboardLayout'
 import ResourceNavigation from './ResourceNavigation'
 import { useAuth } from '../../hooks/useAuth'
 import { adminNavigation } from '../admin/adminNavigation'
+import { resourceAdminNavigation } from './resourceAdminNavigation'
 import {
   getMaintenanceRecords,
 } from '../../services/hospitalResourceService'
 import ScheduleMaintenanceModal from './components/ScheduleMaintenanceModal'
 import CompleteMaintenanceModal from './components/CompleteMaintenanceModal'
 import MaintenanceDetailsModal from './components/MaintenanceDetailsModal'
+import EditScheduledMaintenanceModal from './components/EditScheduledMaintenanceModal'
+import CancelMaintenanceModal from './components/CancelMaintenanceModal'
+import EditIconButton from './components/EditIconButton'
 
 const staffNav = ['Dashboard', 'Patients', 'Appointments', 'Queue Management', 'Resources']
 
@@ -38,7 +42,7 @@ function getPageNumbers(current, total) {
 export default function Maintenance() {
   const { user } = useAuth()
   const role = user?.role || 'Staff'
-  const navigation = role === 'Admin' ? adminNavigation : staffNav
+  const navigation = role === 'ResourceAdmin' ? resourceAdminNavigation : role === 'Admin' ? adminNavigation : staffNav
 
   const [records, setRecords] = useState([])
   const [loading, setLoading] = useState(true)
@@ -72,6 +76,8 @@ export default function Maintenance() {
   const [showScheduleModal, setShowScheduleModal] = useState(false)
   const [completeTarget, setCompleteTarget] = useState(null)
   const [detailsTarget, setDetailsTarget] = useState(null)
+  const [editTarget, setEditTarget] = useState(null)
+  const [cancelTarget, setCancelTarget] = useState(null)
 
   // Fetch maintenance records
   const fetchRecords = useCallback(async () => {
@@ -271,7 +277,7 @@ export default function Maintenance() {
           >
             {loading ? 'Refreshing...' : 'Refresh'}
           </button>
-          {(role === 'Admin' || role === 'Staff') && (
+          {(role === 'Admin' || role === 'Staff' || role === 'ResourceAdmin') && (
             <button
               type="button"
               onClick={() => setShowScheduleModal(true)}
@@ -507,8 +513,31 @@ export default function Maintenance() {
                       {/* Actions */}
                       <td className="p-3 text-xs text-right whitespace-nowrap">
                         <div className="inline-flex items-center gap-1.5 justify-end">
+                          {/* Scheduled Actions: Edit & Cancel */}
+                          {isScheduled && (role === 'Admin' || role === 'Staff' || role === 'ResourceAdmin') && (
+                            <>
+                              <EditIconButton
+                                onClick={() => setEditTarget(rec)}
+                                title="Edit scheduled maintenance"
+                                aria-label="Edit Scheduled Maintenance"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setCancelTarget(rec)}
+                                className="secondary-button text-xs px-2.5 py-1"
+                                style={{
+                                  borderColor: '#dc2626',
+                                  color: '#dc2626',
+                                }}
+                                title="Cancel scheduled maintenance"
+                              >
+                                Cancel
+                              </button>
+                            </>
+                          )}
+
                           {/* InProgress Actions: Complete & Details */}
-                          {isInProgress && (role === 'Admin' || role === 'Staff') && (
+                          {isInProgress && (role === 'Admin' || role === 'Staff' || role === 'ResourceAdmin') && (
                             <button
                               type="button"
                               onClick={() => setCompleteTarget(rec)}
@@ -640,6 +669,22 @@ export default function Maintenance() {
       <ScheduleMaintenanceModal
         isOpen={showScheduleModal}
         onClose={() => setShowScheduleModal(false)}
+        onSuccess={handleSuccess}
+      />
+
+      {/* Modal: Edit Scheduled Maintenance */}
+      <EditScheduledMaintenanceModal
+        isOpen={Boolean(editTarget)}
+        onClose={() => setEditTarget(null)}
+        record={editTarget}
+        onSuccess={handleSuccess}
+      />
+
+      {/* Modal: Cancel Scheduled Maintenance */}
+      <CancelMaintenanceModal
+        isOpen={Boolean(cancelTarget)}
+        onClose={() => setCancelTarget(null)}
+        record={cancelTarget}
         onSuccess={handleSuccess}
       />
 

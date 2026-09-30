@@ -20,7 +20,7 @@ export default function DashboardLayout({ role, navigation, title, subtitle, chi
       <nav className="sidebar-nav" aria-label={`${role} navigation`}>
         {navigation.map((item) => {
           const hasChildren = item.children && item.children.length > 0;
-          const isExpanded = menuOpenState[item.label];
+          const isExpanded = menuOpenState[item.label] ?? (hasChildren && (navigation.length === 1 || item.children.some(c => c.path === location.pathname)));
           
           let isActive = false;
           if (item.path === '/hospital-resources') {

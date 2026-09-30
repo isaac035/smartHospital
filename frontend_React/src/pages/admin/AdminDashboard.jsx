@@ -3,20 +3,35 @@ import DashboardLayout from '../../layouts/DashboardLayout'
 import DashboardCards from '../DashboardCards'
 import { adminNavigation } from './adminNavigation'
 import { getDashboardSummary } from '../../services/dashboardService'
+import { getOccupancyOverview, getAdmissions } from '../../services/hospitalResourceService'
 import { useSignalR } from '../../hooks/useSignalR'
 
-const cardRoutes = {
+const coreCardRoutes = {
   totalPatients: '/admin/users',
   totalDoctors: '/admin/doctors',
   totalStaff: '/admin/users',
   todaysAppointments: '/admin/appointments',
 }
 
-const cardLabels = [
+const coreCardLabels = [
   ['totalPatients', 'Total Patients'],
   ['totalDoctors', 'Total Doctors'],
   ['totalStaff', 'Total Staff'],
   ['todaysAppointments', "Today's Appointments"],
+]
+
+const resourceCardRoutes = {
+  activeAdmissions: '/hospital-resources/admissions',
+  activeWards: '/hospital-resources/wards',
+  totalBeds: '/hospital-resources/beds',
+  totalMedicalResources: '/hospital-resources/medical-resources',
+}
+
+const resourceCardLabels = [
+  ['activeAdmissions', 'Active Admissions'],
+  ['activeWards', 'Active Wards'],
+  ['totalBeds', 'Total Beds'],
+  ['totalMedicalResources', 'Total Medical Resources'],
 ]
 
 export default function AdminDashboard() {
@@ -28,7 +43,49 @@ export default function AdminDashboard() {
   const refreshSummary = useCallback(async ({ showLoading = false } = {}) => {
     if (showLoading || !summaryRef.current) setLoading(true)
     try {
-      const nextSummary = await getDashboardSummary()
+      const [dashData, occData, admissionsData] = await Promise.all([
+        getDashboardSummary(),
+        getOccupancyOverview(),
+        getAdmissions({ status: 1, pageSize: 100 }),
+      ])
+
+      let activeAdmissionsCount = Array.isArray(admissionsData)
+        ? admissionsData.filter((a) => a.status?.toLowerCase() === 'admitted').length
+        : 0
+
+      // If there are more than 100 admitted patients, fetch subsequent pages
+      if (Array.isArray(admissionsData) && admissionsData.length === 100) {
+        let pageNum = 2
+        let hasMore = true
+        while (hasMore) {
+          const nextPage = await getAdmissions({ page: pageNum, pageSize: 100, status: 1 })
+          if (Array.isArray(nextPage) && nextPage.length > 0) {
+            activeAdmissionsCount += nextPage.filter((a) => a.status?.toLowerCase() === 'admitted').length
+            if (nextPage.length < 100 || pageNum >= 20) {
+              hasMore = false
+            } else {
+              pageNum++
+            }
+          } else {
+            hasMore = false
+          }
+        }
+      }
+
+      const nextSummary = {
+        // Core dashboard metrics
+        totalPatients: dashData?.totalPatients ?? 0,
+        totalDoctors: dashData?.totalDoctors ?? 0,
+        totalStaff: dashData?.totalStaff ?? 0,
+        todaysAppointments: dashData?.todaysAppointments ?? 0,
+
+        // Resource module metrics (consistent with Resource Dashboard)
+        activeAdmissions: activeAdmissionsCount,
+        activeWards: occData?.activeWards ?? occData?.ActiveWards ?? 0,
+        totalBeds: occData?.totalBeds ?? occData?.TotalBeds ?? 0,
+        totalMedicalResources: occData?.totalMedicalResources ?? occData?.TotalMedicalResources ?? 0,
+      }
+
       summaryRef.current = nextSummary
       setSummary(nextSummary)
       setError(false)
@@ -63,13 +120,39 @@ export default function AdminDashboard() {
     ConsultationCompleted: () => refreshSummary(),
   })
 
-  const cards = cardLabels.map(([key, label]) => ({
+  const coreCards = coreCardLabels.map(([key, label]) => ({
     label,
     value: summary?.[key] ?? 0,
-    to: cardRoutes[key],
+    to: coreCardRoutes[key],
   }))
 
-  return <DashboardLayout role="Admin" navigation={adminNavigation} title="Dashboard" subtitle="An overview of hospital operations.">
-    <DashboardCards cards={cards} loading={loading} error={error} onRetry={() => refreshSummary({ showLoading: true })} />
-  </DashboardLayout>
+  const resourceCards = resourceCardLabels.map(([key, label]) => ({
+    label,
+    value: summary?.[key] ?? 0,
+    to: resourceCardRoutes[key],
+  }))
+
+  return (
+    <DashboardLayout
+      role="Admin"
+      navigation={adminNavigation}
+      title="Dashboard"
+      subtitle="An overview of hospital operations."
+    >
+      <div style={{ display: 'grid', gap: '20px' }}>
+        <DashboardCards
+          cards={coreCards}
+          loading={loading}
+          error={error}
+          onRetry={() => refreshSummary({ showLoading: true })}
+        />
+        <DashboardCards
+          cards={resourceCards}
+          loading={loading}
+          error={error}
+          onRetry={() => refreshSummary({ showLoading: true })}
+        />
+      </div>
+    </DashboardLayout>
+  )
 }

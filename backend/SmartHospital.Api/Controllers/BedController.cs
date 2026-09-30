@@ -19,7 +19,7 @@ public class BedController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin,Staff")]
+    [Authorize(Roles = "Admin,Staff,ResourceAdmin")]
     public async Task<IActionResult> CreateBed([FromBody] CreateBedRequest request)
     {
         try
@@ -63,7 +63,7 @@ public class BedController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
-    [Authorize(Roles = "Admin,Staff")]
+    [Authorize(Roles = "Admin,Staff,ResourceAdmin")]
     public async Task<IActionResult> UpdateBed(int id, [FromBody] UpdateBedRequest request)
     {
         try
@@ -83,7 +83,7 @@ public class BedController : ControllerBase
     }
 
     [HttpPatch("{id:int}/status")]
-    [Authorize(Roles = "Admin,Staff")]
+    [Authorize(Roles = "Admin,Staff,ResourceAdmin")]
     public async Task<IActionResult> UpdateBedStatus(int id, [FromBody] UpdateBedStatusRequest request)
     {
         try
@@ -103,7 +103,7 @@ public class BedController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,ResourceAdmin")]
     public async Task<IActionResult> DeactivateBed(int id)
     {
         try

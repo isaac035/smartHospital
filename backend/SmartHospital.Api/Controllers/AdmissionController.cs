@@ -19,7 +19,7 @@ public class AdmissionController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin,Staff,Doctor")]
+    [Authorize(Roles = "Admin,Staff,Doctor,ResourceAdmin")]
     public async Task<IActionResult> CreateAdmission([FromBody] CreateAdmissionRequest request)
     {
         try
@@ -34,7 +34,7 @@ public class AdmissionController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize(Roles = "Admin,Staff,Doctor")]
+    [Authorize(Roles = "Admin,Staff,Doctor,ResourceAdmin")]
     public async Task<IActionResult> GetAdmissions([FromQuery] AdmissionQueryFilter filter)
     {
         var admissions = await _admissionService.GetAdmissionsAsync(filter);
@@ -106,7 +106,7 @@ public class AdmissionController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
-    [Authorize(Roles = "Admin,Staff,Doctor")]
+    [Authorize(Roles = "Admin,Staff,Doctor,ResourceAdmin")]
     public async Task<IActionResult> UpdateAdmission(int id, [FromBody] UpdateAdmissionRequest request)
     {
         try
@@ -126,7 +126,7 @@ public class AdmissionController : ControllerBase
     }
 
     [HttpPost("{id:int}/allocate-bed")]
-    [Authorize(Roles = "Admin,Staff")]
+    [Authorize(Roles = "Admin,Staff,ResourceAdmin")]
     public async Task<IActionResult> AllocateBed(int id, [FromBody] AllocateBedRequest request)
     {
         try
@@ -142,7 +142,7 @@ public class AdmissionController : ControllerBase
     }
 
     [HttpPost("{id:int}/transfer")]
-    [Authorize(Roles = "Admin,Staff")]
+    [Authorize(Roles = "Admin,Staff,ResourceAdmin")]
     public async Task<IActionResult> TransferPatient(int id, [FromBody] TransferPatientRequest request)
     {
         try
@@ -157,7 +157,7 @@ public class AdmissionController : ControllerBase
     }
 
     [HttpPost("{id:int}/discharge")]
-    [Authorize(Roles = "Admin,Staff,Doctor")]
+    [Authorize(Roles = "Admin,Staff,Doctor,ResourceAdmin")]
     public async Task<IActionResult> DischargePatient(int id, [FromBody] DischargePatientRequest request)
     {
         try

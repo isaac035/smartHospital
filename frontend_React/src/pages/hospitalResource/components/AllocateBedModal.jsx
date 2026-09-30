@@ -24,7 +24,8 @@ export default function AllocateBedModal({ isOpen, onClose, admission, onSuccess
       setLoadingBeds(true)
       setError(null)
       const beds = await getAvailableBeds()
-      setAvailableBeds(beds || [])
+      const activeOnly = (beds || []).filter((b) => b.isActive !== false)
+      setAvailableBeds(activeOnly)
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load available beds.')
     } finally {
