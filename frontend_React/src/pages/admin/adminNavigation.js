@@ -15,6 +15,6 @@ export const adminNavigation = [
       { label: 'Queue Management', path: '/admin/queue-management' }
     ]
   },
-  { label: 'Reports' },
+  { label: 'Reports', path: '/admin/reports' },
   { label: 'Settings' },
 ]
