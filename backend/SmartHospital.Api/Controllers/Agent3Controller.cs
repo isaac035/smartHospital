@@ -1,7 +1,9 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using SmartHospital.Api.DTOs.Agent3;
+using SmartHospital.Api.Hubs;
 using SmartHospital.Api.Services.Agent3;
 using SmartHospital.Api.Services.Interfaces;
 
@@ -14,7 +16,8 @@ public class Agent3Controller : ControllerBase
 {
     private readonly IAgent3ResourceAllocationService _service;
     private readonly ILogger<Agent3Controller> _logger;
-    public Agent3Controller(IAgent3ResourceAllocationService service, ILogger<Agent3Controller> logger) { _service = service; _logger = logger; }
+    private readonly IHubContext<HospitalHub> _hub;
+    public Agent3Controller(IAgent3ResourceAllocationService service, ILogger<Agent3Controller> logger, IHubContext<HospitalHub> hub) { _service = service; _logger = logger; _hub = hub; }
 
     [HttpPost("recommendations")]
     public async Task<IActionResult> Recommend([FromBody] RecommendResourcesRequest request, CancellationToken ct)
@@ -30,7 +33,16 @@ public class Agent3Controller : ControllerBase
     public async Task<IActionResult> Allocate([FromBody] SelectResourceRequest request, CancellationToken ct)
     {
         if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var patientId)) return Unauthorized();
-        try { return Ok(await _service.AllocateAsync(patientId, request.AppointmentId, request.SelectedResourceId, request.Kind, request.AdmissionDate!.Value, ct)); }
+        try
+        {
+            var allocation = await _service.AllocateAsync(patientId, request.AppointmentId, request.SelectedResourceId, request.Kind, request.CheckupDate!.Value, ct);
+            if (string.Equals(request.Kind, "bed", StringComparison.OrdinalIgnoreCase))
+            {
+                try { await _hub.Clients.Group("admin").SendAsync("AdmissionReserved", request.AppointmentId, CancellationToken.None); }
+                catch (Exception ex) { _logger.LogWarning(ex, "Admission reservation saved but dashboard notification failed for appointment {AppointmentId}.", request.AppointmentId); }
+            }
+            return Ok(allocation);
+        }
         catch (ResourceUnavailableException ex)
         {
             _logger.LogInformation("Agent 3 resource {ResourceId} ({Kind}) became unavailable for appointment {AppointmentId}.", request.SelectedResourceId, request.Kind, request.AppointmentId);

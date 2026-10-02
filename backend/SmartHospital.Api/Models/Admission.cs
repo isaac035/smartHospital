@@ -14,6 +14,8 @@ public class Admission
 
     public DateTime AdmissionDate { get; set; }
 
+    public DateTime? CheckupDate { get; set; }
+
     public DateTime? DischargeDate { get; set; }
 
     public AdmissionStatus Status { get; set; } = AdmissionStatus.Admitted;

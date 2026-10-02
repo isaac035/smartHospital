@@ -20,7 +20,7 @@ class _CheckupFlowScreenState extends State<CheckupFlowScreen> {
   String? _error;
   bool _loading = false;
   int? _allocatingId;
-  DateTime? _admissionDate;
+  DateTime? _checkupDate;
 
   @override
   void initState() {
@@ -44,29 +44,29 @@ class _CheckupFlowScreenState extends State<CheckupFlowScreen> {
     }
   }
 
-  Future<void> _chooseAdmissionDate() async {
+  Future<void> _chooseCheckupDate() async {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final selected = await showDatePicker(
       context: context,
-      initialDate: _admissionDate ?? today,
+      initialDate: _checkupDate ?? today,
       firstDate: today,
       lastDate: DateTime(today.year + 2, today.month, today.day),
-      helpText: 'Choose an admission date',
+      helpText: 'Choose a checkup date',
     );
     if (selected == null || !mounted) return;
     // Keep the calendar's local year/month/day; the API transports this as a
     // date-only string so UTC conversion cannot move it to another day.
-    setState(() => _admissionDate = DateTime(selected.year, selected.month, selected.day));
+    setState(() => _checkupDate = DateTime(selected.year, selected.month, selected.day));
     await _checkResources();
   }
 
   Future<void> _select(ResourceCandidateModel resource) async {
     setState(() { _allocatingId = resource.resourceId; _error = null; });
     try {
-      final admissionDate = _admissionDate;
-      if (admissionDate == null) throw StateError('Choose an admission date first.');
-      await context.read<AppointmentProvider>().allocateResource(widget.appointmentId, resource, admissionDate);
+      final checkupDate = _checkupDate;
+      if (checkupDate == null) throw StateError('Choose a checkup date first.');
+      await context.read<AppointmentProvider>().allocateResource(widget.appointmentId, resource, checkupDate);
       if (!mounted) return;
       await context.read<AppointmentProvider>().loadAppointmentDetail(widget.appointmentId);
       if (mounted) context.go('/appointments/${widget.appointmentId}');
@@ -108,7 +108,7 @@ class _CheckupFlowScreenState extends State<CheckupFlowScreen> {
           if (_result == null) Row(children: [
             OutlinedButton(onPressed: _loading ? null : _finish, child: const Text('No, Finish')),
             const SizedBox(width: 12),
-            FilledButton(onPressed: _loading ? null : _chooseAdmissionDate, child: const Text('Yes, Continue')),
+            FilledButton(onPressed: _loading ? null : _chooseCheckupDate, child: const Text('Yes, Continue')),
           ]),
         ]))),
         if (_loading) const Padding(padding: EdgeInsets.all(24), child: Column(children: [CircularProgressIndicator(), SizedBox(height: 12), Text('Checking available resources...')])),
@@ -118,8 +118,8 @@ class _CheckupFlowScreenState extends State<CheckupFlowScreen> {
         ],
         if (_result case final result?) ...[
           const SizedBox(height: 8),
-          if (_admissionDate != null)
-            Text('Admission date: ${_formatCalendarDate(_admissionDate!)}', style: Theme.of(context).textTheme.bodyMedium),
+          if (_checkupDate != null)
+            Text('Checkup Date: ${_formatCalendarDate(_checkupDate!)}', style: Theme.of(context).textTheme.bodyMedium),
           Text('Available resources for ${result.specialty}', style: Theme.of(context).textTheme.titleLarge),
           if (result.message.isNotEmpty)
             Card(child: Padding(padding: const EdgeInsets.all(16), child: Text(result.message))),

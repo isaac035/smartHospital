@@ -4,7 +4,7 @@ namespace SmartHospital.Api.Services.Interfaces;
 
 public interface IAdmissionService
 {
-    Task<AdmissionResponse> CreateAdmissionAsync(CreateAdmissionRequest request, int? appointmentId = null, bool reserveStatus = false, DateTime? admissionDateUtc = null);
+    Task<AdmissionResponse> CreateAdmissionAsync(CreateAdmissionRequest request, int? appointmentId = null, bool reserveStatus = false, DateTime? checkupDateUtc = null);
     Task<List<AdmissionResponse>> GetAdmissionsAsync(AdmissionQueryFilter filter);
     Task<AdmissionResponse?> GetAdmissionByIdAsync(int id);
     Task<PatientAdmissionSummaryResponse?> GetActiveAdmissionByPatientIdAsync(int patientId);

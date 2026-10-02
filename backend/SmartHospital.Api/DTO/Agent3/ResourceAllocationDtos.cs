@@ -13,7 +13,7 @@ public class SelectResourceRequest
     [Range(1, int.MaxValue)] public int SelectedResourceId { get; set; }
     [Required] public string Kind { get; set; } = string.Empty;
     // A date-only value preserves the day selected in the patient's local calendar.
-    [Required] public DateOnly? AdmissionDate { get; set; }
+    [Required] public DateOnly? CheckupDate { get; set; }
 }
 
 public class ResourceCandidateDto

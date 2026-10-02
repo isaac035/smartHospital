@@ -33,6 +33,9 @@ namespace SmartHospital.Api.Migrations
                     b.Property<DateTime>("AdmissionDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("CheckupDate")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("AdmissionNumber")
                         .IsRequired()
                         .HasMaxLength(40)

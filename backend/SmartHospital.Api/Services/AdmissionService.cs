@@ -15,7 +15,7 @@ public class AdmissionService : IAdmissionService
         _context = context;
     }
 
-    public async Task<AdmissionResponse> CreateAdmissionAsync(CreateAdmissionRequest request, int? appointmentId = null, bool reserveStatus = false, DateTime? admissionDateUtc = null)
+    public async Task<AdmissionResponse> CreateAdmissionAsync(CreateAdmissionRequest request, int? appointmentId = null, bool reserveStatus = false, DateTime? checkupDateUtc = null)
     {
         var patient = await _context.Users
             .FirstOrDefaultAsync(u => u.Id == request.PatientId && u.Role == UserRole.Patient);
@@ -66,7 +66,7 @@ public class AdmissionService : IAdmissionService
             existingForAppointment.Diagnosis = request.Diagnosis?.Trim();
             existingForAppointment.DischargeDate = null;
             existingForAppointment.DischargeSummary = null;
-            if (admissionDateUtc.HasValue) existingForAppointment.AdmissionDate = admissionDateUtc.Value;
+            if (checkupDateUtc.HasValue) existingForAppointment.CheckupDate = checkupDateUtc.Value;
             existingForAppointment.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
             return MapToAdmissionResponse(existingForAppointment);
@@ -95,7 +95,8 @@ public class AdmissionService : IAdmissionService
             AdmissionNumber = admissionNumber,
             PatientId = request.PatientId,
             AdmittingDoctorId = request.AdmittingDoctorId,
-            AdmissionDate = admissionDateUtc ?? DateTime.UtcNow,
+            AdmissionDate = DateTime.UtcNow,
+            CheckupDate = checkupDateUtc,
             AppointmentId = appointmentId,
             Appointment = appointment,
             Status = reserveStatus ? AdmissionStatus.Reserved : AdmissionStatus.Admitted,
@@ -122,7 +123,7 @@ public class AdmissionService : IAdmissionService
             DoctorName = appointment?.Doctor != null ? $"{appointment.Doctor.FirstName} {appointment.Doctor.LastName}".Trim() : (doctor != null ? $"{doctor.FirstName} {doctor.LastName}".Trim() : null),
             AppointmentId = appointmentId,
             AdmissionDate = admission.AdmissionDate,
-            CheckupDate = appointment?.ScheduledStart,
+            CheckupDate = admission.CheckupDate,
             DischargeDate = admission.DischargeDate,
             Status = admission.Status.ToString(),
             Priority = admission.Priority.ToString(),
@@ -607,7 +608,7 @@ public class AdmissionService : IAdmissionService
                 : admission.AdmittingDoctor != null ? $"{admission.AdmittingDoctor.FirstName} {admission.AdmittingDoctor.LastName}".Trim() : null,
             AppointmentId = admission.AppointmentId,
             AdmissionDate = admission.AdmissionDate,
-            CheckupDate = admission.Appointment?.ScheduledStart,
+            CheckupDate = admission.CheckupDate,
             DischargeDate = admission.DischargeDate,
             Status = admission.Status.ToString(),
             Priority = admission.Priority.ToString(),
