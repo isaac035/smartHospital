@@ -1,5 +1,7 @@
 namespace SmartHospital.Api.DTOs.Appointments;
 
+using SmartHospital.Api.DTOs.Agent3;
+
 public class AppointmentResponse
 {
     public int Id { get; set; }
@@ -45,4 +47,6 @@ public class AppointmentResponse
     public DateTime CreatedAt { get; set; }
 
     public DateTime UpdatedAt { get; set; }
+
+    public List<AllocationResponse> ReservedResources { get; set; } = new();
 }

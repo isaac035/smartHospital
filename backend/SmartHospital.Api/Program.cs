@@ -13,6 +13,7 @@ using SmartHospital.Api.Middleware;
 using SmartHospital.Api.Services;
 using SmartHospital.Api.Services.Agent1;
 using SmartHospital.Api.Services.Agent2;
+using SmartHospital.Api.Services.Agent3;
 using SmartHospital.Api.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -166,6 +167,15 @@ builder.Services.AddHttpClient<IAgent2OptimizationService, Agent2OptimizationSer
 {
     client.BaseAddress = new Uri(agent2Settings.BaseUrl.TrimEnd('/') + "/");
     client.Timeout = TimeSpan.FromSeconds(agent2Settings.TimeoutSeconds);
+});
+
+// AI Agent 3 - post-booking resource recommendations (ASP.NET retains database ownership).
+builder.Services.Configure<Agent3Settings>(builder.Configuration.GetSection(Agent3Settings.SectionName));
+var agent3Settings = builder.Configuration.GetSection(Agent3Settings.SectionName).Get<Agent3Settings>() ?? new Agent3Settings();
+builder.Services.AddHttpClient<IAgent3ResourceAllocationService, Agent3ResourceAllocationService>(client =>
+{
+    client.BaseAddress = new Uri(agent3Settings.BaseUrl.TrimEnd('/') + "/");
+    client.Timeout = TimeSpan.FromSeconds(agent3Settings.TimeoutSeconds);
 });
 
 // Per-patient limit on the Agent 1 endpoint only (controls LLM cost and abuse).

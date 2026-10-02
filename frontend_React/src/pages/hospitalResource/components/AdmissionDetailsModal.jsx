@@ -1,5 +1,6 @@
 export default function AdmissionDetailsModal({ isOpen, onClose, admission }) {
   if (!isOpen || !admission) return null
+  const isCheckupAdmission = admission.reasonForAdmission?.toLowerCase().includes('medical checkup')
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '—'
@@ -9,6 +10,18 @@ export default function AdmissionDetailsModal({ isOpen, onClose, admission }) {
     } catch {
       return dateStr
     }
+  }
+
+  const formatAdmissionDate = (dateStr) => {
+    if (!dateStr) return '—'
+    if (isCheckupAdmission) {
+      const match = String(dateStr).match(/^(\d{4})-(\d{2})-(\d{2})/)
+      if (match) {
+        const [, year, month, day] = match
+        return new Date(Number(year), Number(month) - 1, Number(day)).toLocaleDateString()
+      }
+    }
+    return formatDate(dateStr)
   }
 
   const getPriorityBadge = (priority) => {
@@ -40,6 +53,12 @@ export default function AdmissionDetailsModal({ isOpen, onClose, admission }) {
         return (
           <span className="inline-block px-2.5 py-0.5 rounded text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
             Admitted
+          </span>
+        )
+      case 'Reserved':
+        return (
+          <span className="inline-block px-2.5 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
+            Reserved
           </span>
         )
       case 'Discharged':
@@ -80,6 +99,7 @@ export default function AdmissionDetailsModal({ isOpen, onClose, admission }) {
             <p className="text-xs font-mono mt-1" style={{ color: 'color-mix(in srgb, var(--color-secondary) 70%, var(--color-primary))' }}>
               {admission.admissionNumber}
             </p>
+            {isCheckupAdmission && <p className="text-xs mt-1 text-sky-700">Created for a medical checkup</p>}
           </div>
           <button
             type="button"
@@ -145,12 +165,16 @@ export default function AdmissionDetailsModal({ isOpen, onClose, admission }) {
                 <div>
                   <span className="font-semibold block opacity-70">Admitting Doctor:</span>
                   <span className="text-sm font-medium">
-                    {admission.admittingDoctorName || (admission.admittingDoctorId ? `Doctor #${admission.admittingDoctorId}` : 'Not Assigned')}
+                    {admission.doctorName || admission.admittingDoctorName || (admission.admittingDoctorId ? `Doctor #${admission.admittingDoctorId}` : 'Not linked to an appointment')}
                   </span>
                 </div>
                 <div>
-                  <span className="font-semibold block opacity-70">Admission Date & Time:</span>
-                  <span>{formatDate(admission.admissionDate)}</span>
+                  <span className="font-semibold block opacity-70">Admission Date:</span>
+                  <span>{formatAdmissionDate(admission.admissionDate)}</span>
+                </div>
+                <div>
+                  <span className="font-semibold block opacity-70">Checkup Date:</span>
+                  <span>{admission.checkupDate ? formatDate(admission.checkupDate) : 'Not linked to an appointment'}</span>
                 </div>
                 <div>
                   <span className="font-semibold block opacity-70">Discharge Date & Time:</span>

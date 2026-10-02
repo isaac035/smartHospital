@@ -573,6 +573,7 @@ export default function BedManagement() {
               ) : (
                 paginatedBeds.map((bed) => {
                   const isOccupied = bed.status?.toLowerCase() === 'occupied'
+                  const hasLinkedPatient = Boolean(bed.currentPatientName)
 
                   return (
                     <tr
@@ -605,7 +606,7 @@ export default function BedManagement() {
                       </td>
 
                       <td className="p-3 text-xs">
-                        {isOccupied && bed.currentPatientName ? (
+                        {(isOccupied || bed.status?.toLowerCase() === 'reserved') && hasLinkedPatient ? (
                           <div>
                             <span className="font-semibold text-emerald-800">
                               {bed.currentPatientName}
