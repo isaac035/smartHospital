@@ -41,6 +41,10 @@ public class DashboardController : ControllerBase
                 appointment.ScheduledStart < utcNextDayStart &&
                 appointment.Status != AppointmentStatus.Cancelled &&
                 appointment.Status != AppointmentStatus.Rescheduled);
+        var activeAdmissions = await _context.Admissions
+            .CountAsync(admission =>
+                admission.Status == AdmissionStatus.Admitted ||
+                admission.Status == AdmissionStatus.Reserved);
 
         return Ok(new DashboardSummaryResponse
         {
@@ -48,6 +52,7 @@ public class DashboardController : ControllerBase
             TotalDoctors = totalDoctors,
             TotalStaff = totalStaff,
             TodaysAppointments = todaysAppointments,
+            ActiveAdmissions = activeAdmissions,
         });
     }
 

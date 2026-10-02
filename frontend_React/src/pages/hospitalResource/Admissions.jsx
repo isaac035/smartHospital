@@ -283,13 +283,23 @@ export default function Admissions() {
     }
   }
 
-  // Agent 3 admission dates are persisted as UTC midnight for the selected
-  // local calendar date. Format their date component directly to avoid shifts.
-  const formatAdmissionDate = (dateStr, reason) => {
+  // AdmissionDate remains the UTC booking timestamp; show its date in the
+  // hospital's calendar rather than the browser's potentially different zone.
+  const formatAdmissionDate = (dateStr) => {
     if (!dateStr) return '—'
-    const match = reason?.toLowerCase().includes('medical checkup')
-      ? String(dateStr).match(/^(\d{4})-(\d{2})-(\d{2})/)
-      : null
+    try {
+      return new Date(dateStr).toLocaleDateString(undefined, {
+        timeZone: 'Asia/Colombo', month: 'short', day: 'numeric', year: 'numeric',
+      })
+    } catch {
+      return formatDate(dateStr)
+    }
+  }
+
+  // CheckupDate is stored as UTC midnight for a selected date-only value.
+  const formatCheckupDate = (dateStr) => {
+    if (!dateStr) return '—'
+    const match = String(dateStr).match(/^(\d{4})-(\d{2})-(\d{2})/)
     if (!match) return formatDate(dateStr)
     const [, year, month, day] = match
     return new Date(Number(year), Number(month) - 1, Number(day)).toLocaleDateString(undefined, {
@@ -651,11 +661,11 @@ export default function Admissions() {
                       </td>
 
                       <td className="p-3 text-xs">
-                        {formatAdmissionDate(admission.admissionDate, admission.reasonForAdmission)}
+                        {formatAdmissionDate(admission.admissionDate)}
                       </td>
 
                       <td className="p-3 text-xs">
-                        {admission.checkupDate ? formatDate(admission.checkupDate) : '—'}
+                        {formatCheckupDate(admission.checkupDate)}
                       </td>
 
                       <td className="p-3 text-xs">

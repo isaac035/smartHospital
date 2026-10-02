@@ -865,6 +865,9 @@ public class AppDbContext : DbContext
             entity.Property(a => a.AdmissionDate)
                 .IsRequired();
 
+            entity.Property(a => a.CheckupDate)
+                .HasColumnType("timestamp with time zone");
+
             entity.Property(a => a.CreatedAt)
                 .IsRequired();
 

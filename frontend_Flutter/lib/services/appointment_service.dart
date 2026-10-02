@@ -17,12 +17,12 @@ class AppointmentService {
     return ResourceRecommendationModel.fromJson(response as Map<String, dynamic>);
   }
 
-  Future<ReservedResourceModel> allocateResource(int appointmentId, ResourceCandidateModel resource, DateTime admissionDate) async {
+  Future<ReservedResourceModel> allocateResource(int appointmentId, ResourceCandidateModel resource, DateTime checkupDate) async {
     final response = await _apiClient.post('/agent3/allocations', data: {
       'appointmentId': appointmentId,
       'selectedResourceId': resource.resourceId,
       'kind': resource.kind,
-      'admissionDate': _dateOnly(admissionDate),
+      'checkupDate': _dateOnly(checkupDate),
     });
     return ReservedResourceModel.fromJson(response as Map<String, dynamic>);
   }

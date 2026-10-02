@@ -14,14 +14,19 @@ export default function AdmissionDetailsModal({ isOpen, onClose, admission }) {
 
   const formatAdmissionDate = (dateStr) => {
     if (!dateStr) return '—'
-    if (isCheckupAdmission) {
-      const match = String(dateStr).match(/^(\d{4})-(\d{2})-(\d{2})/)
-      if (match) {
-        const [, year, month, day] = match
-        return new Date(Number(year), Number(month) - 1, Number(day)).toLocaleDateString()
-      }
+    try {
+      return new Date(dateStr).toLocaleDateString(undefined, { timeZone: 'Asia/Colombo' })
+    } catch {
+      return formatDate(dateStr)
     }
-    return formatDate(dateStr)
+  }
+
+  const formatCheckupDate = (dateStr) => {
+    if (!dateStr) return 'Not linked to an appointment'
+    const match = String(dateStr).match(/^(\d{4})-(\d{2})-(\d{2})/)
+    if (!match) return formatDate(dateStr)
+    const [, year, month, day] = match
+    return new Date(Number(year), Number(month) - 1, Number(day)).toLocaleDateString()
   }
 
   const getPriorityBadge = (priority) => {
@@ -174,7 +179,7 @@ export default function AdmissionDetailsModal({ isOpen, onClose, admission }) {
                 </div>
                 <div>
                   <span className="font-semibold block opacity-70">Checkup Date:</span>
-                  <span>{admission.checkupDate ? formatDate(admission.checkupDate) : 'Not linked to an appointment'}</span>
+                  <span>{formatCheckupDate(admission.checkupDate)}</span>
                 </div>
                 <div>
                   <span className="font-semibold block opacity-70">Discharge Date & Time:</span>

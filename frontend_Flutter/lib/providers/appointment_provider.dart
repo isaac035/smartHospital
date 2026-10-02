@@ -15,7 +15,7 @@ class AppointmentProvider extends ChangeNotifier {
   AppointmentProvider(this._service);
 
   Future<ResourceRecommendationModel> recommendResources(int id) => _service.recommendResources(id);
-  Future<ReservedResourceModel> allocateResource(int id, ResourceCandidateModel resource, DateTime admissionDate) => _service.allocateResource(id, resource, admissionDate);
+  Future<ReservedResourceModel> allocateResource(int id, ResourceCandidateModel resource, DateTime checkupDate) => _service.allocateResource(id, resource, checkupDate);
 
   // --- My Appointments state ---
   List<AppointmentModel> _appointments = [];

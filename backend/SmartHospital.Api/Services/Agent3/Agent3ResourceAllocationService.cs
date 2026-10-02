@@ -77,7 +77,7 @@ public class Agent3ResourceAllocationService : IAgent3ResourceAllocationService
         return result;
     }
 
-    public async Task<AllocationResponse> AllocateAsync(int patientId, int appointmentId, int resourceId, string kind, DateOnly admissionDate, CancellationToken ct)
+    public async Task<AllocationResponse> AllocateAsync(int patientId, int appointmentId, int resourceId, string kind, DateOnly checkupDate, CancellationToken ct)
     {
         var (appointment, department, doctorSpecialty, departmentId) = await LoadContext(patientId, appointmentId, ct);
         var specialty = appointment.Department?.Name ?? department ?? doctorSpecialty;
@@ -110,7 +110,7 @@ public class Agent3ResourceAllocationService : IAgent3ResourceAllocationService
                 ReasonForAdmission = "AI-assisted medical checkup resource reservation",
                 Diagnosis = specialty
             }, appointmentId, reserveStatus: true,
-                admissionDateUtc: DateTime.SpecifyKind(admissionDate.ToDateTime(TimeOnly.MinValue), DateTimeKind.Utc));
+                checkupDateUtc: DateTime.SpecifyKind(checkupDate.ToDateTime(TimeOnly.MinValue), DateTimeKind.Utc));
 
             await _admissionService.AllocateBedAsync(new AllocateBedRequest
             {
