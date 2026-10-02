@@ -14,6 +14,7 @@ using SmartHospital.Api.Services;
 using SmartHospital.Api.Services.Agent1;
 using SmartHospital.Api.Services.Agent2;
 using SmartHospital.Api.Services.Agent3;
+using SmartHospital.Api.Services.Agent4;
 using SmartHospital.Api.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -176,6 +177,15 @@ builder.Services.AddHttpClient<IAgent3ResourceAllocationService, Agent3ResourceA
 {
     client.BaseAddress = new Uri(agent3Settings.BaseUrl.TrimEnd('/') + "/");
     client.Timeout = TimeSpan.FromSeconds(agent3Settings.TimeoutSeconds);
+});
+
+// AI Agent 4 - medical report reasoning (API assembles persisted facts and owns report storage).
+builder.Services.Configure<Agent4Settings>(builder.Configuration.GetSection(Agent4Settings.SectionName));
+var agent4Settings = builder.Configuration.GetSection(Agent4Settings.SectionName).Get<Agent4Settings>() ?? new Agent4Settings();
+builder.Services.AddHttpClient<IAgent4MedicalReportService, Agent4MedicalReportService>(client =>
+{
+    client.BaseAddress = new Uri(agent4Settings.BaseUrl.TrimEnd('/') + "/");
+    client.Timeout = TimeSpan.FromSeconds(agent4Settings.TimeoutSeconds);
 });
 
 // Per-patient limit on the Agent 1 endpoint only (controls LLM cost and abuse).

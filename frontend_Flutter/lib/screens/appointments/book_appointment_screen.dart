@@ -15,6 +15,7 @@ class BookAppointmentScreen extends StatefulWidget {
   final String slotStart;
   final int durationMinutes;
   final int initialPriority;
+  final int? triageResultId;
 
   const BookAppointmentScreen({
     super.key,
@@ -22,6 +23,7 @@ class BookAppointmentScreen extends StatefulWidget {
     required this.slotStart,
     required this.durationMinutes,
     this.initialPriority = 1,
+    this.triageResultId,
   });
 
   @override
@@ -65,6 +67,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
       estimatedDurationMinutes: widget.durationMinutes,
       priority: _priority,
       notes: _notesController.text.trim(),
+      triageResultId: widget.triageResultId,
     );
 
     if (!mounted) return;

@@ -61,7 +61,7 @@ public class Agent1TriageService : IAgent1TriageService
         if (categories.Count == 0)
         {
             _logger.LogWarning("Agent 1: no active departments to triage against.");
-            return Unavailable(patientId, redFlag);
+            return await PersistResultAsync(patientId, text, Unavailable(patientId, redFlag), cancellationToken);
         }
 
         var defaultCategory = categories.FirstOrDefault(c =>
@@ -91,7 +91,7 @@ public class Agent1TriageService : IAgent1TriageService
 
         if (agentResult.Response is not { } result)
         {
-            return Unavailable(patientId, redFlag || agentResult.PossibleEmergency);
+            return await PersistResultAsync(patientId, text, Unavailable(patientId, redFlag || agentResult.PossibleEmergency), cancellationToken);
         }
 
         // Treat the service's output as untrusted: re-validate category and priority.
@@ -115,7 +115,7 @@ public class Agent1TriageService : IAgent1TriageService
 
         var doctors = await VerifyDoctorsAsync(result.RecommendedDoctors, category, cancellationToken);
 
-        return new TriageDoctorMatchResponse
+        var response = new TriageDoctorMatchResponse
         {
             Status = doctors.Count > 0 ? TriageStatus.Ok : TriageStatus.NoDoctors,
             PatientId = patientId,
@@ -131,6 +131,22 @@ public class Agent1TriageService : IAgent1TriageService
                 ? null
                 : $"No {category} doctors are available for online booking right now. You can browse all doctors instead.",
         };
+        return await PersistResultAsync(patientId, text, response, cancellationToken);
+    }
+
+    private async Task<TriageDoctorMatchResponse> PersistResultAsync(int patientId, string symptoms, TriageDoctorMatchResponse response, CancellationToken ct)
+    {
+        var entity = new Agent1TriageResult
+        {
+            PatientId = patientId, Symptoms = symptoms, Status = response.Status, Category = response.Category,
+            Priority = response.Priority, Reason = response.Reason, Confidence = response.Confidence,
+            PossibleEmergency = response.PossibleEmergency, EmergencyNotice = response.EmergencyNotice,
+            UsedDefaultCategory = response.UsedDefaultCategory, CreatedAt = DateTime.UtcNow
+        };
+        _context.Agent1TriageResults.Add(entity);
+        await _context.SaveChangesAsync(ct);
+        response.TriageResultId = entity.Id;
+        return response;
     }
 
     /// <summary>

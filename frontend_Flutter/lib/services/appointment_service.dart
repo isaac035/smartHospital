@@ -81,6 +81,7 @@ class AppointmentService {
     required int estimatedDurationMinutes,
     required int priority,
     String? notes,
+    int? triageResultId,
   }) async {
     final response = await _apiClient.post(
       '/appointments',
@@ -92,6 +93,7 @@ class AppointmentService {
         'estimatedDurationMinutes': estimatedDurationMinutes,
         'priority': priority,
         if (notes != null && notes.isNotEmpty) 'notes': notes,
+        if (triageResultId != null) 'triageResultId': triageResultId,
       },
     );
     return AppointmentModel.fromJson(response as Map<String, dynamic>);

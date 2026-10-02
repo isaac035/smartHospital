@@ -22,6 +22,49 @@ namespace SmartHospital.Api.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("SmartHospital.Api.Models.AiMedicalReport", b =>
+                {
+                    b.Property<int>("Id").ValueGeneratedOnAdd().HasColumnType("integer");
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+                    b.Property<int?>("AppointmentId").HasColumnType("integer");
+                    b.Property<string>("ContentJson").IsRequired().HasColumnType("jsonb");
+                    b.Property<Guid?>("ClientGenerationId").HasColumnType("uuid");
+                    b.Property<DateTime>("CreatedAt").HasColumnType("timestamp with time zone");
+                    b.Property<int>("PatientId").HasColumnType("integer");
+                    b.Property<Guid>("ReportId").HasColumnType("uuid");
+                    b.Property<int>("VersionNumber").HasColumnType("integer");
+                    b.HasKey("Id");
+                    b.HasIndex("AppointmentId");
+                    b.HasIndex("PatientId", "CreatedAt");
+                    b.HasIndex("PatientId", "ClientGenerationId").IsUnique().HasFilter("\"ClientGenerationId\" IS NOT NULL");
+                    b.HasIndex("PatientId", "VersionNumber").IsUnique();
+                    b.HasIndex("ReportId").IsUnique();
+                    b.ToTable("AiMedicalReports");
+                });
+
+            modelBuilder.Entity("SmartHospital.Api.Models.Agent1TriageResult", b =>
+                {
+                    b.Property<int>("Id").ValueGeneratedOnAdd().HasColumnType("integer");
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+                    b.Property<int?>("AppointmentId").HasColumnType("integer");
+                    b.Property<string>("Category").HasMaxLength(150).HasColumnType("character varying(150)");
+                    b.Property<double?>("Confidence").HasColumnType("double precision");
+                    b.Property<DateTime>("CreatedAt").HasColumnType("timestamp with time zone");
+                    b.Property<string>("EmergencyNotice").HasMaxLength(1000).HasColumnType("character varying(1000)");
+                    b.Property<int>("PatientId").HasColumnType("integer");
+                    b.Property<string>("Priority").HasMaxLength(30).HasColumnType("character varying(30)");
+                    b.Property<bool>("PossibleEmergency").HasColumnType("boolean");
+                    b.Property<string>("Reason").HasMaxLength(2000).HasColumnType("character varying(2000)");
+                    b.Property<string>("Status").IsRequired().HasMaxLength(40).HasColumnType("character varying(40)");
+                    b.Property<string>("Symptoms").IsRequired().HasMaxLength(1000).HasColumnType("character varying(1000)");
+                    b.Property<bool>("UsedDefaultCategory").HasColumnType("boolean");
+                    b.HasKey("Id");
+                    b.HasIndex("AppointmentId").IsUnique().HasFilter("\"AppointmentId\" IS NOT NULL");
+                    b.HasIndex("PatientId");
+                    b.HasIndex("PatientId", "CreatedAt");
+                    b.ToTable("Agent1TriageResults");
+                });
+
             modelBuilder.Entity("SmartHospital.Api.Models.Admission", b =>
                 {
                     b.Property<int>("Id")
@@ -92,6 +135,16 @@ namespace SmartHospital.Api.Migrations
                     b.HasIndex("PatientId");
 
                     b.ToTable("Admissions");
+                });
+
+            modelBuilder.Entity("SmartHospital.Api.Models.AiMedicalReport", b =>
+                {
+                    b.HasOne("SmartHospital.Api.Models.Appointment", "Appointment")
+                        .WithMany().HasForeignKey("AppointmentId").OnDelete(DeleteBehavior.SetNull);
+                    b.HasOne("SmartHospital.Api.Models.User", "Patient")
+                        .WithMany().HasForeignKey("PatientId").OnDelete(DeleteBehavior.Restrict).IsRequired();
+                    b.Navigation("Appointment");
+                    b.Navigation("Patient");
                 });
 
             modelBuilder.Entity("SmartHospital.Api.Models.Appointment", b =>
@@ -1734,6 +1787,8 @@ namespace SmartHospital.Api.Migrations
                         .HasForeignKey("RescheduledFromId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.Navigation("Agent1TriageResult");
+
                     b.Navigation("Department");
 
                     b.Navigation("Doctor");
@@ -1741,6 +1796,22 @@ namespace SmartHospital.Api.Migrations
                     b.Navigation("Patient");
 
                     b.Navigation("RescheduledFrom");
+                });
+
+            modelBuilder.Entity("SmartHospital.Api.Models.Agent1TriageResult", b =>
+                {
+                    b.HasOne("SmartHospital.Api.Models.Appointment", "Appointment")
+                        .WithOne("Agent1TriageResult")
+                        .HasForeignKey("SmartHospital.Api.Models.Agent1TriageResult", "AppointmentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("SmartHospital.Api.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("PatientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Appointment");
                 });
 
             modelBuilder.Entity("SmartHospital.Api.Models.AppointmentNotification", b =>

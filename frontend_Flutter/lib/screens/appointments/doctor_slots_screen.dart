@@ -16,11 +16,13 @@ import 'widgets/slot_picker_grid.dart';
 class DoctorSlotsScreen extends StatefulWidget {
   final int doctorProfileId;
   final int bookingDoctorId;
+  final int? triageResultId;
 
   const DoctorSlotsScreen({
     super.key,
     required this.doctorProfileId,
     required this.bookingDoctorId,
+    this.triageResultId,
   });
 
   @override
@@ -305,6 +307,7 @@ class _DoctorSlotsScreenState extends State<DoctorSlotsScreen> {
                             _selectedSlot!.slotStart,
                           ),
                           'durationMinutes': _selectedSlot!.durationMinutes,
+                          if (widget.triageResultId != null) 'triageResultId': widget.triageResultId,
                         },
                       ),
                       child: const Text(
