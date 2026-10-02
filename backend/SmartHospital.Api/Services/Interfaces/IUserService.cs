@@ -7,6 +7,8 @@ public interface IUserService
 {
     Task<List<UserResponse>> GetAllAsync(UserRole? role = null);
 
+    Task<List<PatientSearchResult>> SearchPatientsAsync(string query, int limit = 10);
+
     Task<UserResponse?> GetByIdAsync(int id);
 
     Task<UserResponse> CreateAppointmentManagerAsync(CreateAppointmentManagerRequest request);

@@ -18,6 +18,7 @@ import '../screens/emr/patient_clinical_history_screen.dart';
 import '../screens/emr/patient_vitals_screen.dart';
 import '../screens/emr/patient_prescriptions_screen.dart';
 import '../screens/emr/patient_lab_reports_screen.dart';
+import '../screens/emr/ai_medical_reports_screen.dart';
 import '../screens/appointments/my_appointments_screen.dart';
 import '../screens/appointments/appointment_details_screen.dart';
 import '../screens/appointments/search_doctors_screen.dart';
@@ -256,6 +257,18 @@ class AppRouter {
           path: '/medical-records/lab-reports',
           builder: (context, state) => const PatientLabReportsScreen(),
         ),
+        GoRoute(
+          parentNavigatorKey: _rootNavigatorKey,
+          path: '/medical-records/ai-reports',
+          builder: (context, state) => const AiMedicalReportsScreen(),
+        ),
+        GoRoute(
+          parentNavigatorKey: _rootNavigatorKey,
+          path: '/medical-records/ai-reports/:reportId',
+          builder: (context, state) => AiMedicalReportDetailScreen(
+            reportId: state.pathParameters['reportId']!,
+          ),
+        ),
 
         // Appointment Booking Flows (full screen on root navigator)
         GoRoute(
@@ -275,6 +288,7 @@ class AppRouter {
               slotStart: extra['slotStart'] as String,
               durationMinutes: extra['durationMinutes'] as int,
               initialPriority: extra['initialPriority'] as int? ?? 1,
+              triageResultId: extra['triageResultId'] as int?,
             );
           },
         ),
@@ -299,6 +313,7 @@ class AppRouter {
             return DoctorSlotsScreen(
               doctorProfileId: doctorProfileId,
               bookingDoctorId: bookingDoctorId,
+              triageResultId: int.tryParse(state.uri.queryParameters['triageResultId'] ?? ''),
             );
           },
         ),

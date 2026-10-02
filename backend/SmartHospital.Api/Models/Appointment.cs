@@ -68,4 +68,6 @@ public class Appointment
 
     public ICollection<AppointmentResourceAllocation> ResourceAllocations { get; set; }
         = new List<AppointmentResourceAllocation>();
+
+    public Agent1TriageResult? Agent1TriageResult { get; set; }
 }

@@ -13,6 +13,7 @@ class SmartCareResult {
   final bool usedDefaultCategory;
   final List<SmartCareDoctor> recommendedDoctors;
   final String? message;
+  final int? triageResultId;
 
   const SmartCareResult({
     required this.status,
@@ -25,6 +26,7 @@ class SmartCareResult {
     required this.usedDefaultCategory,
     required this.recommendedDoctors,
     this.message,
+    this.triageResultId,
   });
 
   bool get hasRecommendation => status != 'ai_unavailable' && category != null;
@@ -47,6 +49,7 @@ class SmartCareResult {
                 .toList()
           : const [],
       message: json['message'] as String?,
+      triageResultId: (json['triageResultId'] as num?)?.toInt(),
     );
   }
 }

@@ -25,6 +25,9 @@ public class CreateAppointmentRequest
 
     public AppointmentPriority Priority { get; set; } = AppointmentPriority.Normal;
 
+    [Range(1, int.MaxValue)]
+    public int? TriageResultId { get; set; }
+
     [MaxLength(1000)]
     public string? Notes { get; set; }
 }

@@ -46,6 +46,15 @@ public class UsersController : ControllerBase
         return Ok(users);
     }
 
+    [HttpGet("patients/search")]
+    [Authorize(Roles = "Admin,Staff")]
+    public async Task<IActionResult> SearchPatients([FromQuery] string query, [FromQuery] int limit = 10)
+    {
+        if (string.IsNullOrWhiteSpace(query)) return Ok(Array.Empty<PatientSearchResult>());
+        var patients = await _userService.SearchPatientsAsync(query, limit);
+        return Ok(patients);
+    }
+
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)
     {

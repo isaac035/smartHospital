@@ -41,6 +41,31 @@ public class UserService : IUserService
             .ToListAsync();
     }
 
+    public async Task<List<PatientSearchResult>> SearchPatientsAsync(string query, int limit = 10)
+    {
+        var normalizedQuery = string.Join(' ', query.Split(' ', StringSplitOptions.RemoveEmptyEntries)).Trim().ToLowerInvariant();
+        if (normalizedQuery.Length == 0) return new List<PatientSearchResult>();
+
+        var pattern = $"%{normalizedQuery}%";
+        return await _context.Users
+            .AsNoTracking()
+            .Where(user => user.Role == UserRole.Patient &&
+                (EF.Functions.ILike(user.FirstName, pattern) ||
+                 EF.Functions.ILike(user.LastName, pattern) ||
+                 EF.Functions.ILike(user.FirstName + " " + user.LastName, pattern) ||
+                 EF.Functions.ILike(user.LastName + " " + user.FirstName, pattern)))
+            .OrderBy(user => user.FirstName)
+            .ThenBy(user => user.LastName)
+            .ThenBy(user => user.Id)
+            .Take(Math.Clamp(limit, 1, 20))
+            .Select(user => new PatientSearchResult
+            {
+                Id = user.Id,
+                DisplayName = (user.FirstName + " " + user.LastName).Trim()
+            })
+            .ToListAsync();
+    }
+
     public async Task<UserResponse?> GetByIdAsync(int id)
     {
         return await _context.Users

@@ -226,6 +226,7 @@ class AppointmentProvider extends ChangeNotifier {
     required int estimatedDurationMinutes,
     required int priority,
     String? notes,
+    int? triageResultId,
   }) async {
     _actionLoading = true;
     _actionError = null;
@@ -239,6 +240,7 @@ class AppointmentProvider extends ChangeNotifier {
         estimatedDurationMinutes: estimatedDurationMinutes,
         priority: priority,
         notes: notes,
+        triageResultId: triageResultId,
       );
       // Reload list so the new appointment shows up
       await loadMyAppointments();

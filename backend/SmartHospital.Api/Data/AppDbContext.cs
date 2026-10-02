@@ -22,6 +22,8 @@ public class AppDbContext : DbContext
     public DbSet<ClinicalTreatmentPlan> ClinicalTreatmentPlans => Set<ClinicalTreatmentPlan>();
     public DbSet<MedicalRecordVersion> MedicalRecordVersions => Set<MedicalRecordVersion>();
     public DbSet<EmrAuditLog> EmrAuditLogs => Set<EmrAuditLog>();
+    public DbSet<AiMedicalReport> AiMedicalReports => Set<AiMedicalReport>();
+    public DbSet<Agent1TriageResult> Agent1TriageResults => Set<Agent1TriageResult>();
 
     // ── Smart Appointment & Queue Management ──────────────────────────────────
     public DbSet<Department>               Departments                => Set<Department>();
@@ -204,6 +206,36 @@ public class AppDbContext : DbContext
                 .WithOne(v => v.MedicalRecord)
                 .HasForeignKey(v => v.MedicalRecordId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AiMedicalReport>(entity =>
+        {
+            entity.HasKey(r => r.Id);
+            entity.Property(r => r.ReportId).IsRequired();
+            entity.Property(r => r.VersionNumber).IsRequired();
+            entity.Property(r => r.CreatedAt).IsRequired();
+            entity.Property(r => r.ContentJson).IsRequired().HasColumnType("jsonb");
+            entity.HasIndex(r => r.ReportId).IsUnique();
+            entity.HasIndex(r => new { r.PatientId, r.VersionNumber }).IsUnique();
+            entity.HasIndex(r => new { r.PatientId, r.CreatedAt });
+            entity.HasIndex(r => new { r.PatientId, r.ClientGenerationId }).IsUnique().HasFilter("\"ClientGenerationId\" IS NOT NULL");
+            entity.HasOne(r => r.Patient).WithMany().HasForeignKey(r => r.PatientId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(r => r.Appointment).WithMany().HasForeignKey(r => r.AppointmentId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<Agent1TriageResult>(entity =>
+        {
+            entity.HasKey(r => r.Id);
+            entity.Property(r => r.Symptoms).IsRequired().HasMaxLength(1000);
+            entity.Property(r => r.Status).IsRequired().HasMaxLength(40);
+            entity.Property(r => r.Category).HasMaxLength(150);
+            entity.Property(r => r.Priority).HasMaxLength(30);
+            entity.Property(r => r.Reason).HasMaxLength(2000);
+            entity.Property(r => r.EmergencyNotice).HasMaxLength(1000);
+            entity.HasIndex(r => r.AppointmentId).IsUnique().HasFilter("\"AppointmentId\" IS NOT NULL");
+            entity.HasIndex(r => new { r.PatientId, r.CreatedAt });
+            entity.HasOne<User>().WithMany().HasForeignKey(r => r.PatientId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(r => r.Appointment).WithOne(a => a.Agent1TriageResult).HasForeignKey<Agent1TriageResult>(r => r.AppointmentId).OnDelete(DeleteBehavior.SetNull);
         });
 
         // --------------------------------------------------

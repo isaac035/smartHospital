@@ -85,6 +85,21 @@ export async function getPatientTimeline(patientId) {
   return response.data
 }
 
+export async function getAiMedicalReports(patientId) {
+  const response = await api.get('/agent4/reports', { params: { patientId } })
+  return response.data
+}
+
+export async function getAiMedicalReport(reportId) {
+  const response = await api.get(`/agent4/reports/${reportId}`)
+  return response.data
+}
+
+export async function generateAiMedicalReport(patientId, appointmentId = null) {
+  const response = await api.post('/agent4/reports', { patientId, appointmentId })
+  return response.data
+}
+
 export async function searchMedicalRecords(filters = {}) {
   const response = await api.get('/medicalrecords', { params: filters })
   return response.data

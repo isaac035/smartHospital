@@ -5,6 +5,13 @@ export const listUsers = async (params = {}) => {
   return response.data
 }
 
+export const searchPatients = async (query, limit = 10) => {
+  const response = await api.get('/users/patients/search', {
+    params: { query, limit },
+  })
+  return response.data
+}
+
 export const updateUser = async (id, payload) => {
   const response = await api.put(`/users/${id}`, payload)
   return response.data

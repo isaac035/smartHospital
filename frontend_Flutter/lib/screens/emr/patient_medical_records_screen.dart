@@ -172,6 +172,13 @@ class _PatientMedicalRecordsScreenState
           color: Colors.indigo.shade700,
           onTap: () => context.push('/medical-records/timeline'),
         ),
+        _buildNavCard(
+          title: 'AI Medical Reports',
+          subtitle: 'View generated reports',
+          icon: Icons.summarize_rounded,
+          color: Colors.deepPurple.shade600,
+          onTap: () => context.push('/medical-records/ai-reports'),
+        ),
       ],
     );
   }

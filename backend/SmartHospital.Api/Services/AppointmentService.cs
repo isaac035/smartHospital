@@ -132,6 +132,17 @@ public class AppointmentService : IAppointmentService
                 throw new InvalidOperationException(
                     "The requested slot is already booked. Please choose another time.");
 
+            Agent1TriageResult? triageResult = null;
+            if (request.TriageResultId.HasValue)
+            {
+                triageResult = await _context.Agent1TriageResults.FirstOrDefaultAsync(r =>
+                    r.Id == request.TriageResultId.Value && r.PatientId == request.PatientId);
+                if (triageResult == null)
+                    throw new InvalidOperationException("The supplied clinical triage result was not found for this patient.");
+                if (triageResult.AppointmentId.HasValue)
+                    throw new InvalidOperationException("This clinical triage result is already linked to an appointment.");
+            }
+
             // 7. Generate unique reference number
             string referenceNumber;
             do
@@ -166,6 +177,11 @@ public class AppointmentService : IAppointmentService
 
             _context.Appointments.Add(appointment);
             await _context.SaveChangesAsync();
+            if (triageResult != null)
+            {
+                triageResult.AppointmentId = appointment.Id;
+                await _context.SaveChangesAsync();
+            }
 
             // A queue entry is created at check-in, once the patient arrives.
             // 9. Initial status history

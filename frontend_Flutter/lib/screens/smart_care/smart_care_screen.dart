@@ -120,7 +120,7 @@ class _SmartCareScreenState extends State<SmartCareScreen> {
   void _browseManually() => context.push('/appointments/search');
 
   void _selectDoctor(SmartCareDoctor doctor) => context.push(
-    '/appointments/doctor/${doctor.doctorProfileId}?userId=${doctor.doctorId}',
+    '/appointments/doctor/${doctor.doctorProfileId}?userId=${doctor.doctorId}&triageResultId=${_result?.triageResultId}',
   );
 
   Future<void> _findAppointmentTime(SmartCareDoctor doctor, SmartCareResult result) async {
@@ -163,6 +163,7 @@ class _SmartCareScreenState extends State<SmartCareScreen> {
       'slotStart': slot.slotStart,
       'durationMinutes': slot.durationMinutes,
       'initialPriority': appointmentPriority,
+      'triageResultId': _result?.triageResultId,
     });
   }
 
