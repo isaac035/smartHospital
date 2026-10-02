@@ -4,5 +4,6 @@ public enum AdmissionStatus
 {
     Admitted = 1,
     Discharged = 2,
-    Cancelled = 3
+    Cancelled = 3,
+    Reserved = 4
 }

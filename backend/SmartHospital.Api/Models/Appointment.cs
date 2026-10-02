@@ -65,4 +65,7 @@ public class Appointment
 
     public ICollection<AppointmentNotification> Notifications { get; set; }
         = new List<AppointmentNotification>();
+
+    public ICollection<AppointmentResourceAllocation> ResourceAllocations { get; set; }
+        = new List<AppointmentResourceAllocation>();
 }

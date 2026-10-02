@@ -5,11 +5,30 @@ import '../models/appointments/appointment_slot_model.dart';
 import '../models/appointments/appointment_history_model.dart';
 import '../models/appointments/queue_entry_model.dart';
 import '../models/appointments/doctor_summary_model.dart';
+import '../models/appointments/resource_allocation_model.dart';
 
 class AppointmentService {
   final ApiClient _apiClient;
 
   AppointmentService(this._apiClient);
+
+  Future<ResourceRecommendationModel> recommendResources(int appointmentId) async {
+    final response = await _apiClient.post('/agent3/recommendations', data: {'appointmentId': appointmentId});
+    return ResourceRecommendationModel.fromJson(response as Map<String, dynamic>);
+  }
+
+  Future<ReservedResourceModel> allocateResource(int appointmentId, ResourceCandidateModel resource, DateTime admissionDate) async {
+    final response = await _apiClient.post('/agent3/allocations', data: {
+      'appointmentId': appointmentId,
+      'selectedResourceId': resource.resourceId,
+      'kind': resource.kind,
+      'admissionDate': _dateOnly(admissionDate),
+    });
+    return ReservedResourceModel.fromJson(response as Map<String, dynamic>);
+  }
+
+  String _dateOnly(DateTime value) =>
+      '${value.year.toString().padLeft(4, '0')}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
 
   // --- Appointment endpoints ---
 

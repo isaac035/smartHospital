@@ -10,6 +10,8 @@ public class Admission
 
     public int? AdmittingDoctorId { get; set; }
 
+    public int? AppointmentId { get; set; }
+
     public DateTime AdmissionDate { get; set; }
 
     public DateTime? DischargeDate { get; set; }
@@ -32,6 +34,8 @@ public class Admission
     public User? Patient { get; set; }
 
     public User? AdmittingDoctor { get; set; }
+
+    public Appointment? Appointment { get; set; }
 
     public ICollection<BedAllocation> BedAllocations { get; set; } = new List<BedAllocation>();
 }

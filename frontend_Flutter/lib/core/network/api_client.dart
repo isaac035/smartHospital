@@ -57,10 +57,16 @@ class ApiClient {
       
       final data = e.response?.data;
       String message = 'An unexpected error occurred.';
+      String? code;
+      var refreshRecommendations = false;
       if (data is Map<String, dynamic> && data.containsKey('message')) {
-        message = data['message'];
+        final responseMessage = data['message'];
+        if (responseMessage is String && responseMessage.isNotEmpty) message = responseMessage;
+        final responseCode = data['code'];
+        if (responseCode is String) code = responseCode;
+        refreshRecommendations = data['refreshRecommendations'] == true;
       }
-      return ApiException(message, e.response?.statusCode);
+      return ApiException(message, e.response?.statusCode, code, refreshRecommendations);
     } else if (e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.receiveTimeout) {
       return ApiException('Connection timed out. Please try again later.');
     } else if (e.type == DioExceptionType.connectionError) {

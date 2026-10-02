@@ -15,6 +15,8 @@ export default function DischargePatientModal({ isOpen, onClose, admission, onSu
 
   if (!isOpen || !admission) return null
 
+  const isReservation = admission.status?.toLowerCase() === 'reserved'
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError(null)
@@ -29,7 +31,7 @@ export default function DischargePatientModal({ isOpen, onClose, admission, onSu
       await dischargePatient(admission.id, {
         dischargeSummary: dischargeSummary.trim(),
       })
-      onSuccess(`Patient discharged successfully for admission ${admission.admissionNumber}.`)
+      onSuccess(`${isReservation ? 'Reservation released' : 'Patient discharged'} successfully for admission ${admission.admissionNumber}.`)
       onClose()
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to discharge patient.')
@@ -50,10 +52,10 @@ export default function DischargePatientModal({ isOpen, onClose, admission, onSu
         <div className="flex items-center justify-between pb-4 mb-4 border-b" style={{ borderColor: 'color-mix(in srgb, var(--color-secondary) 15%, var(--color-primary))' }}>
           <div>
             <h2 className="text-xl font-bold" style={{ color: 'var(--color-accent)' }}>
-              Discharge Patient
+              {isReservation ? 'Release Reserved Bed' : 'Discharge Patient'}
             </h2>
             <p className="text-xs mt-1" style={{ color: 'color-mix(in srgb, var(--color-secondary) 70%, var(--color-primary))' }}>
-              Finalize stay and release assigned bed for {admission.patientName || `Patient #${admission.patientId}`}.
+              {isReservation ? 'Cancel the AI bed reservation and release the assigned bed for' : 'Finalize stay and release assigned bed for'} {admission.patientName || `Patient #${admission.patientId}`}.
             </p>
           </div>
           <button
@@ -90,7 +92,7 @@ export default function DischargePatientModal({ isOpen, onClose, admission, onSu
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <div>
             <label htmlFor="discharge-summary" className="block text-xs font-semibold mb-1">
-              Discharge Summary <span className="text-red-500">*</span>
+              {isReservation ? 'Release Reason' : 'Discharge Summary'} <span className="text-red-500">*</span>
             </label>
             <textarea
               id="discharge-summary"
@@ -99,7 +101,7 @@ export default function DischargePatientModal({ isOpen, onClose, admission, onSu
               rows={4}
               value={dischargeSummary}
               onChange={(e) => setDischargeSummary(e.target.value)}
-              placeholder="Clinical condition at discharge, medications prescribed, follow-up advice (max 1000 characters)"
+              placeholder={isReservation ? 'Reason for releasing this reservation (max 1000 characters)' : 'Clinical condition at discharge, medications prescribed, follow-up advice (max 1000 characters)'}
               className="w-full px-3 py-2 text-sm border rounded-lg outline-none"
               style={{ borderColor: 'color-mix(in srgb, var(--color-secondary) 25%, var(--color-primary))' }}
             />
@@ -124,7 +126,7 @@ export default function DischargePatientModal({ isOpen, onClose, admission, onSu
                 borderColor: '#b91c1c',
               }}
             >
-              {submitting ? 'Processing...' : 'Confirm Discharge'}
+              {submitting ? 'Processing...' : isReservation ? 'Confirm Release' : 'Confirm Discharge'}
             </button>
           </div>
         </form>

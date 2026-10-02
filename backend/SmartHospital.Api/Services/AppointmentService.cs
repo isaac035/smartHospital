@@ -303,7 +303,24 @@ public class AppointmentService : IAppointmentService
         if (requestingUserRole == nameof(UserRole.Doctor) && appointment.DoctorId != requestingUserId)
             throw new UnauthorizedAccessException("Doctors can only view their own appointments.");
 
-        return MapToResponse(appointment);
+        var response = MapToResponse(appointment);
+        response.ReservedResources = await _context.AppointmentResourceAllocations.AsNoTracking()
+            .Where(a => a.AppointmentId == id && a.IsActive)
+            .Include(a => a.Bed)!.ThenInclude(b => b!.Room)!.ThenInclude(r => r!.Ward)
+            .Include(a => a.MedicalResource)!.ThenInclude(r => r!.Ward)
+            .Select(a => new SmartHospital.Api.DTOs.Agent3.AllocationResponse
+            {
+                Id = a.Id,
+                ResourceId = a.BedId ?? a.MedicalResourceId!.Value,
+                Kind = a.BedId.HasValue ? "bed" : "equipment",
+                Name = a.BedId.HasValue ? $"Bed {a.Bed!.BedNumber}" : a.MedicalResource!.Name,
+                Code = a.BedId.HasValue ? a.Bed!.BedNumber : a.MedicalResource!.ResourceCode,
+                Type = a.BedId.HasValue ? $"{a.Bed!.Type} · {a.Bed.Room!.Ward!.Name}" : a.MedicalResource!.Category.ToString(),
+                Location = a.BedId.HasValue ? $"Room {a.Bed!.Room!.RoomNumber} · {a.Bed.Room.Ward!.Name}" : a.MedicalResource!.LocationDescription,
+                Status = a.BedId.HasValue ? a.Bed!.Status.ToString() : a.MedicalResource!.Status.ToString(),
+                AllocatedAt = a.AllocatedAt
+            }).ToListAsync();
+        return response;
     }
 
     // ── Update ────────────────────────────────────────────────────────────────

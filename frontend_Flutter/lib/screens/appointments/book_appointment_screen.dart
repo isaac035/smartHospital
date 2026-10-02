@@ -75,7 +75,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
           backgroundColor: AppTheme.successColor,
         ),
       );
-      context.go('/appointments/${result.id}');
+      context.go('/appointments/confirmed/${result.id}');
     }
   }
 

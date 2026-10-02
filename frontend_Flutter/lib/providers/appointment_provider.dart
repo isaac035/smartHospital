@@ -6,12 +6,16 @@ import '../models/appointments/appointment_slot_model.dart';
 import '../models/appointments/appointment_history_model.dart';
 import '../models/appointments/queue_entry_model.dart';
 import '../models/appointments/doctor_summary_model.dart';
+import '../models/appointments/resource_allocation_model.dart';
 import '../services/appointment_service.dart';
 
 class AppointmentProvider extends ChangeNotifier {
   final AppointmentService _service;
 
   AppointmentProvider(this._service);
+
+  Future<ResourceRecommendationModel> recommendResources(int id) => _service.recommendResources(id);
+  Future<ReservedResourceModel> allocateResource(int id, ResourceCandidateModel resource, DateTime admissionDate) => _service.allocateResource(id, resource, admissionDate);
 
   // --- My Appointments state ---
   List<AppointmentModel> _appointments = [];

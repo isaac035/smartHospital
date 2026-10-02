@@ -1,4 +1,5 @@
 import '../../core/utils/api_datetime.dart';
+import 'resource_allocation_model.dart';
 
 class AppointmentModel {
   final int id;
@@ -18,6 +19,7 @@ class AppointmentModel {
   final String? notes;
   final String? cancelledReason;
   final DateTime createdAt;
+  final List<ReservedResourceModel> reservedResources;
 
   const AppointmentModel({
     required this.id,
@@ -37,6 +39,7 @@ class AppointmentModel {
     this.notes,
     this.cancelledReason,
     required this.createdAt,
+    this.reservedResources = const [],
   });
 
   factory AppointmentModel.fromJson(Map<String, dynamic> json) {
@@ -66,6 +69,7 @@ class AppointmentModel {
       notes: json['notes'] as String?,
       cancelledReason: json['cancelledReason'] as String?,
       createdAt: DateTime.parse(json['createdAt'] as String),
+      reservedResources: (json['reservedResources'] as List? ?? []).whereType<Map<String, dynamic>>().map(ReservedResourceModel.fromJson).toList(),
     );
   }
 
