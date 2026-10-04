@@ -11,16 +11,18 @@ import AdmissionDetailsModal from './components/AdmissionDetailsModal'
 import EditAdmissionModal from './components/EditAdmissionModal'
 import EditIconButton from './components/EditIconButton'
 import { adminNavigation } from '../admin/adminNavigation'
+import { resourceAdminNavigation } from './resourceAdminNavigation'
 
 const staffNav = ['Dashboard', 'Patients', 'Appointments', 'Queue Management', 'Resources']
 
-// Ranking for status sorting: 1. Admitted, 2. Discharged, 3. Cancelled
+// Ranking for status sorting: Admitted, Reserved, Discharged, Cancelled.
 const getStatusRank = (status) => {
   const s = String(status || '').toLowerCase()
   if (s === 'admitted') return 1
-  if (s === 'discharged') return 2
-  if (s === 'cancelled') return 3
-  return 4
+  if (s === 'reserved') return 2
+  if (s === 'discharged') return 3
+  if (s === 'cancelled') return 4
+  return 5
 }
 
 // Generate pagination numbers with ellipsis when needed
@@ -40,7 +42,7 @@ function getPageNumbers(current, total) {
 export default function Admissions() {
   const { user } = useAuth()
   const role = user?.role || 'Staff'
-  const navigation = role === 'Admin' ? adminNavigation : staffNav
+  const navigation = role === 'ResourceAdmin' ? resourceAdminNavigation : role === 'Admin' ? adminNavigation : staffNav
 
   // Data states:
   // Concept A: Full admissions dataset (used ONLY for overall KPI totals)
@@ -52,10 +54,10 @@ export default function Admissions() {
   const [error, setError] = useState(null)
   const [successMessage, setSuccessMessage] = useState(null)
 
-  // Filter states - Default to "1" (Admitted / Active)
+  // Start with all statuses visible so AI reservations appear alongside admitted stays.
   const [patientSearch, setPatientSearch] = useState('')
   const [debouncedPatientSearch, setDebouncedPatientSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState('1')
+  const [statusFilter, setStatusFilter] = useState('')
   const [wardFilter, setWardFilter] = useState('')
   const [priorityFilter, setPriorityFilter] = useState('')
 
@@ -217,7 +219,7 @@ export default function Admissions() {
   const handleResetFilters = () => {
     setPatientSearch('')
     setDebouncedPatientSearch('')
-    setStatusFilter('1')
+    setStatusFilter('')
     setWardFilter('')
     setPriorityFilter('')
     setCurrentPage(1)
@@ -234,7 +236,7 @@ export default function Admissions() {
   // Summary Metrics (Calculated strictly from the full, unfiltered admissions dataset)
   const totalAdmissionsCount = fullAdmissions.length
   const activeAdmissionsCount = fullAdmissions.filter(
-    (a) => a.status?.toLowerCase() === 'admitted'
+    (a) => ['admitted', 'reserved'].includes(a.status?.toLowerCase())
   ).length
   const dischargedAdmissionsCount = fullAdmissions.filter(
     (a) => a.status?.toLowerCase() === 'discharged'
@@ -281,6 +283,30 @@ export default function Admissions() {
     }
   }
 
+  // AdmissionDate remains the UTC booking timestamp; show its date in the
+  // hospital's calendar rather than the browser's potentially different zone.
+  const formatAdmissionDate = (dateStr) => {
+    if (!dateStr) return '—'
+    try {
+      return new Date(dateStr).toLocaleDateString(undefined, {
+        timeZone: 'Asia/Colombo', month: 'short', day: 'numeric', year: 'numeric',
+      })
+    } catch {
+      return formatDate(dateStr)
+    }
+  }
+
+  // CheckupDate is stored as UTC midnight for a selected date-only value.
+  const formatCheckupDate = (dateStr) => {
+    if (!dateStr) return '—'
+    const match = String(dateStr).match(/^(\d{4})-(\d{2})-(\d{2})/)
+    if (!match) return formatDate(dateStr)
+    const [, year, month, day] = match
+    return new Date(Number(year), Number(month) - 1, Number(day)).toLocaleDateString(undefined, {
+      month: 'short', day: 'numeric', year: 'numeric',
+    })
+  }
+
   const renderPriorityBadge = (priority) => {
     const p = (priority || '').toLowerCase()
     if (p === 'emergency') {
@@ -310,6 +336,13 @@ export default function Admissions() {
       return (
         <span className="inline-block px-2 py-0.5 rounded text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
           Admitted
+        </span>
+      )
+    }
+    if (s === 'reserved') {
+      return (
+        <span className="inline-block px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
+          Reserved
         </span>
       )
     }
@@ -405,7 +438,7 @@ export default function Admissions() {
         <article className="stat-card">
           <p>Active Admissions</p>
           <strong style={{ color: '#0d7a42' }}>{activeAdmissionsCount}</strong>
-          <span className="text-xs opacity-60">Currently admitted</span>
+          <span className="text-xs opacity-60">Admitted or reserved</span>
         </article>
 
         <article className="stat-card">
@@ -460,6 +493,7 @@ export default function Admissions() {
               <option value="1">Admitted (Active)</option>
               <option value="2">Discharged</option>
               <option value="3">Cancelled</option>
+              <option value="4">Reserved (AI bed reservation)</option>
             </select>
           </div>
 
@@ -514,7 +548,7 @@ export default function Admissions() {
           </div>
         </div>
 
-        {(patientSearch || statusFilter !== '1' || wardFilter || priorityFilter) && (
+        {(patientSearch || statusFilter || wardFilter || priorityFilter) && (
           <div className="flex justify-end pt-1">
             <button
               type="button"
@@ -533,7 +567,7 @@ export default function Admissions() {
           <table
             className="w-full text-left border-collapse transition-opacity duration-150"
             style={{
-              minWidth: '850px',
+              minWidth: '940px',
               opacity: loading && tableAdmissions.length > 0 ? 0.65 : 1,
             }}
           >
@@ -551,7 +585,13 @@ export default function Admissions() {
                   Patient
                 </th>
                 <th className="p-3 text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--color-accent)' }}>
+                  Doctor
+                </th>
+                <th className="p-3 text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--color-accent)' }}>
                   Admission Date
+                </th>
+                <th className="p-3 text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--color-accent)' }}>
+                  Checkup Date
                 </th>
                 <th className="p-3 text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--color-accent)' }}>
                   Priority
@@ -576,19 +616,21 @@ export default function Admissions() {
             <tbody>
               {loading && tableAdmissions.length === 0 ? (
                 <tr>
-                  <td colSpan="9" className="p-8 text-center" style={{ color: 'color-mix(in srgb, var(--color-secondary) 50%, var(--color-primary))' }}>
+                  <td colSpan="11" className="p-8 text-center" style={{ color: 'color-mix(in srgb, var(--color-secondary) 50%, var(--color-primary))' }}>
                     Loading admissions data...
                   </td>
                 </tr>
               ) : paginatedAdmissions.length === 0 ? (
                 <tr>
-                  <td colSpan="9" className="p-8 text-center" style={{ color: 'color-mix(in srgb, var(--color-secondary) 50%, var(--color-primary))' }}>
+                  <td colSpan="11" className="p-8 text-center" style={{ color: 'color-mix(in srgb, var(--color-secondary) 50%, var(--color-primary))' }}>
                     No admissions found for the selected filters.
                   </td>
                 </tr>
               ) : (
                 paginatedAdmissions.map((admission) => {
-                  const isActive = admission.status?.toLowerCase() === 'admitted'
+                  const status = admission.status?.toLowerCase()
+                  const isActive = status === 'admitted' || status === 'reserved'
+                  const isAdmitted = status === 'admitted'
                   const hasBed = Boolean(admission.activeBedId)
 
                   return (
@@ -606,13 +648,24 @@ export default function Admissions() {
                         <div className="font-semibold text-sm">
                           {admission.patientName || `Patient #${admission.patientId}`}
                         </div>
+                        {admission.reasonForAdmission?.toLowerCase().includes('medical checkup') && (
+                          <div className="text-[11px] text-sky-700">Created for a medical checkup</div>
+                        )}
                         {admission.patientPhone && (
                           <div className="opacity-60 text-xs">{admission.patientPhone}</div>
                         )}
                       </td>
 
                       <td className="p-3 text-xs">
-                        {formatDate(admission.admissionDate)}
+                        {admission.doctorName || admission.admittingDoctorName || <span className="italic opacity-60">Not linked to an appointment</span>}
+                      </td>
+
+                      <td className="p-3 text-xs">
+                        {formatAdmissionDate(admission.admissionDate)}
+                      </td>
+
+                      <td className="p-3 text-xs">
+                        {formatCheckupDate(admission.checkupDate)}
                       </td>
 
                       <td className="p-3 text-xs">
@@ -660,7 +713,7 @@ export default function Admissions() {
                             />
                           )}
 
-                          {isActive && !hasBed && (role === 'Admin' || role === 'Staff') && (
+                          {isAdmitted && !hasBed && (role === 'Admin' || role === 'Staff' || role === 'ResourceAdmin') && (
                             <button
                               type="button"
                               onClick={() => setAllocateTarget(admission)}
@@ -672,7 +725,7 @@ export default function Admissions() {
                             </button>
                           )}
 
-                          {isActive && hasBed && (role === 'Admin' || role === 'Staff') && (
+                          {isAdmitted && hasBed && (role === 'Admin' || role === 'Staff' || role === 'ResourceAdmin') && (
                             <button
                               type="button"
                               onClick={() => setTransferTarget(admission)}
@@ -692,7 +745,7 @@ export default function Admissions() {
                               style={{ borderColor: '#b91c1c', color: '#b91c1c' }}
                               title="Discharge patient and free bed"
                             >
-                              Discharge
+                              {status === 'reserved' ? 'Release Reservation' : 'Discharge'}
                             </button>
                           )}
                         </div>

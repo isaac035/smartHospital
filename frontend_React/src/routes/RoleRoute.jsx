@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 // Limited-admin roles are sent back to their own home instead of an error page.
 const limitedRoleHome = {
   AppointmentManager: '/admin/appointments',
+  ResourceAdmin: '/hospital-resources',
   DoctorManager: '/admin/doctors',
 }
 

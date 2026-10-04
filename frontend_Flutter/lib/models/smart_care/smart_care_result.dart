@@ -13,6 +13,7 @@ class SmartCareResult {
   final bool usedDefaultCategory;
   final List<SmartCareDoctor> recommendedDoctors;
   final String? message;
+  final int? triageResultId;
 
   const SmartCareResult({
     required this.status,
@@ -25,6 +26,7 @@ class SmartCareResult {
     required this.usedDefaultCategory,
     required this.recommendedDoctors,
     this.message,
+    this.triageResultId,
   });
 
   bool get hasRecommendation => status != 'ai_unavailable' && category != null;
@@ -47,6 +49,7 @@ class SmartCareResult {
                 .toList()
           : const [],
       message: json['message'] as String?,
+      triageResultId: (json['triageResultId'] as num?)?.toInt(),
     );
   }
 }
@@ -76,4 +79,63 @@ class SmartCareDoctor {
     specialization: json['specialization'] as String? ?? '',
     department: json['department'] as String? ?? '',
   );
+}
+
+class SmartCareOptimization {
+  final int patientId;
+  final int doctorId;
+  final SmartCareSlot? recommendedSlot;
+  final List<SmartCareSlot> alternativeSlots;
+  final String? message;
+
+  const SmartCareOptimization({
+    required this.patientId,
+    required this.doctorId,
+    this.recommendedSlot,
+    required this.alternativeSlots,
+    this.message,
+  });
+
+  factory SmartCareOptimization.fromJson(Map<String, dynamic> json) =>
+      SmartCareOptimization(
+        patientId: json['patientId'] as int? ?? 0,
+        doctorId: json['doctorId'] as int? ?? 0,
+        recommendedSlot: json['recommendedSlot'] is Map<String, dynamic>
+            ? SmartCareSlot.fromJson(json['recommendedSlot'] as Map<String, dynamic>)
+            : null,
+        alternativeSlots: json['alternativeSlots'] is List
+            ? (json['alternativeSlots'] as List)
+                .whereType<Map<String, dynamic>>()
+                .map(SmartCareSlot.fromJson)
+                .toList()
+            : const [],
+        message: json['message'] as String?,
+      );
+}
+
+class SmartCareSlot {
+  final int doctorId;
+  final int doctorProfileId;
+  final String slotStart;
+  final String slotEnd;
+  final int durationMinutes;
+  final String? reason;
+
+  const SmartCareSlot({
+    required this.doctorId,
+    required this.doctorProfileId,
+    required this.slotStart,
+    required this.slotEnd,
+    required this.durationMinutes,
+    this.reason,
+  });
+
+  factory SmartCareSlot.fromJson(Map<String, dynamic> json) => SmartCareSlot(
+        doctorId: json['doctorId'] as int? ?? 0,
+        doctorProfileId: json['doctorProfileId'] as int? ?? 0,
+        slotStart: json['slotStart'] as String? ?? '',
+        slotEnd: json['slotEnd'] as String? ?? '',
+        durationMinutes: json['durationMinutes'] as int? ?? 30,
+        reason: json['reason'] as String?,
+      );
 }

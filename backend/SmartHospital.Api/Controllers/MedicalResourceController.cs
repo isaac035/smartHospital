@@ -18,7 +18,7 @@ public class MedicalResourceController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin,Staff")]
+    [Authorize(Roles = "Admin,Staff,ResourceAdmin")]
     public async Task<IActionResult> CreateResource([FromBody] CreateResourceRequest request)
     {
         try
@@ -52,7 +52,7 @@ public class MedicalResourceController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
-    [Authorize(Roles = "Admin,Staff")]
+    [Authorize(Roles = "Admin,Staff,ResourceAdmin")]
     public async Task<IActionResult> UpdateResource(int id, [FromBody] UpdateResourceRequest request)
     {
         try
@@ -72,7 +72,7 @@ public class MedicalResourceController : ControllerBase
     }
 
     [HttpPost("{id:int}/assign")]
-    [Authorize(Roles = "Admin,Staff")]
+    [Authorize(Roles = "Admin,Staff,ResourceAdmin")]
     public async Task<IActionResult> AssignResource(int id, [FromBody] AssignResourceRequest request)
     {
         try
@@ -92,7 +92,7 @@ public class MedicalResourceController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,ResourceAdmin")]
     public async Task<IActionResult> DeactivateResource(int id)
     {
         try

@@ -132,6 +132,17 @@ public class AppointmentService : IAppointmentService
                 throw new InvalidOperationException(
                     "The requested slot is already booked. Please choose another time.");
 
+            Agent1TriageResult? triageResult = null;
+            if (request.TriageResultId.HasValue)
+            {
+                triageResult = await _context.Agent1TriageResults.FirstOrDefaultAsync(r =>
+                    r.Id == request.TriageResultId.Value && r.PatientId == request.PatientId);
+                if (triageResult == null)
+                    throw new InvalidOperationException("The supplied clinical triage result was not found for this patient.");
+                if (triageResult.AppointmentId.HasValue)
+                    throw new InvalidOperationException("This clinical triage result is already linked to an appointment.");
+            }
+
             // 7. Generate unique reference number
             string referenceNumber;
             do
@@ -166,6 +177,11 @@ public class AppointmentService : IAppointmentService
 
             _context.Appointments.Add(appointment);
             await _context.SaveChangesAsync();
+            if (triageResult != null)
+            {
+                triageResult.AppointmentId = appointment.Id;
+                await _context.SaveChangesAsync();
+            }
 
             // A queue entry is created at check-in, once the patient arrives.
             // 9. Initial status history
@@ -303,7 +319,24 @@ public class AppointmentService : IAppointmentService
         if (requestingUserRole == nameof(UserRole.Doctor) && appointment.DoctorId != requestingUserId)
             throw new UnauthorizedAccessException("Doctors can only view their own appointments.");
 
-        return MapToResponse(appointment);
+        var response = MapToResponse(appointment);
+        response.ReservedResources = await _context.AppointmentResourceAllocations.AsNoTracking()
+            .Where(a => a.AppointmentId == id && a.IsActive)
+            .Include(a => a.Bed)!.ThenInclude(b => b!.Room)!.ThenInclude(r => r!.Ward)
+            .Include(a => a.MedicalResource)!.ThenInclude(r => r!.Ward)
+            .Select(a => new SmartHospital.Api.DTOs.Agent3.AllocationResponse
+            {
+                Id = a.Id,
+                ResourceId = a.BedId ?? a.MedicalResourceId!.Value,
+                Kind = a.BedId.HasValue ? "bed" : "equipment",
+                Name = a.BedId.HasValue ? $"Bed {a.Bed!.BedNumber}" : a.MedicalResource!.Name,
+                Code = a.BedId.HasValue ? a.Bed!.BedNumber : a.MedicalResource!.ResourceCode,
+                Type = a.BedId.HasValue ? $"{a.Bed!.Type} · {a.Bed.Room!.Ward!.Name}" : a.MedicalResource!.Category.ToString(),
+                Location = a.BedId.HasValue ? $"Room {a.Bed!.Room!.RoomNumber} · {a.Bed.Room.Ward!.Name}" : a.MedicalResource!.LocationDescription,
+                Status = a.BedId.HasValue ? a.Bed!.Status.ToString() : a.MedicalResource!.Status.ToString(),
+                AllocatedAt = a.AllocatedAt
+            }).ToListAsync();
+        return response;
     }
 
     // ── Update ────────────────────────────────────────────────────────────────

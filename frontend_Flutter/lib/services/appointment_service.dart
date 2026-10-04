@@ -5,11 +5,30 @@ import '../models/appointments/appointment_slot_model.dart';
 import '../models/appointments/appointment_history_model.dart';
 import '../models/appointments/queue_entry_model.dart';
 import '../models/appointments/doctor_summary_model.dart';
+import '../models/appointments/resource_allocation_model.dart';
 
 class AppointmentService {
   final ApiClient _apiClient;
 
   AppointmentService(this._apiClient);
+
+  Future<ResourceRecommendationModel> recommendResources(int appointmentId) async {
+    final response = await _apiClient.post('/agent3/recommendations', data: {'appointmentId': appointmentId});
+    return ResourceRecommendationModel.fromJson(response as Map<String, dynamic>);
+  }
+
+  Future<ReservedResourceModel> allocateResource(int appointmentId, ResourceCandidateModel resource, DateTime checkupDate) async {
+    final response = await _apiClient.post('/agent3/allocations', data: {
+      'appointmentId': appointmentId,
+      'selectedResourceId': resource.resourceId,
+      'kind': resource.kind,
+      'checkupDate': _dateOnly(checkupDate),
+    });
+    return ReservedResourceModel.fromJson(response as Map<String, dynamic>);
+  }
+
+  String _dateOnly(DateTime value) =>
+      '${value.year.toString().padLeft(4, '0')}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
 
   // --- Appointment endpoints ---
 
@@ -62,6 +81,7 @@ class AppointmentService {
     required int estimatedDurationMinutes,
     required int priority,
     String? notes,
+    int? triageResultId,
   }) async {
     final response = await _apiClient.post(
       '/appointments',
@@ -73,6 +93,7 @@ class AppointmentService {
         'estimatedDurationMinutes': estimatedDurationMinutes,
         'priority': priority,
         if (notes != null && notes.isNotEmpty) 'notes': notes,
+        if (triageResultId != null) 'triageResultId': triageResultId,
       },
     );
     return AppointmentModel.fromJson(response as Map<String, dynamic>);

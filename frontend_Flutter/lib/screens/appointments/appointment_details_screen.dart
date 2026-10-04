@@ -298,6 +298,18 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
                   ],
                 ),
 
+                if (apt.reservedResources.isNotEmpty) ...[
+                  const SizedBox(height: 20),
+                  Text('Reserved Resources', style: TextStyle(fontSize: AppTheme.fontTitleMedium, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+                  const SizedBox(height: 10),
+                  _InfoCard(children: [
+                    for (final resource in apt.reservedResources) ...[
+                      _DetailRow(icon: resource.kind == 'bed' ? Icons.bed : Icons.medical_services, label: resource.kind == 'equipment' && resource.code.isNotEmpty ? '${resource.name} · ${resource.code}' : resource.name, value: '${resource.type}\n${resource.location}\nStatus: ${resource.status}'),
+                      if (resource != apt.reservedResources.last) const Divider(height: 16),
+                    ],
+                  ]),
+                ],
+
                 // History Timeline
                 if (history.isNotEmpty) ...[
                   const SizedBox(height: 24),

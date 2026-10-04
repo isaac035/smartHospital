@@ -9,6 +9,7 @@ import DeactivateWardModal from './components/DeactivateWardModal'
 import RoomManagementModal from './components/RoomManagementModal'
 import EditIconButton from './components/EditIconButton'
 import { adminNavigation } from '../admin/adminNavigation'
+import { resourceAdminNavigation } from './resourceAdminNavigation'
 
 const staffNav = ['Dashboard', 'Patients', 'Appointments', 'Queue Management', 'Resources']
 
@@ -25,7 +26,7 @@ const WARD_TYPE_OPTIONS = [
 export default function WardManagement() {
   const { user } = useAuth()
   const role = user?.role || 'Staff'
-  const navigation = role === 'Admin' ? adminNavigation : staffNav
+  const navigation = role === 'ResourceAdmin' ? resourceAdminNavigation : role === 'Admin' ? adminNavigation : staffNav
 
   const [wards, setWards] = useState([])
   const [loading, setLoading] = useState(true)
@@ -156,7 +157,7 @@ export default function WardManagement() {
           >
             {loading ? 'Refreshing...' : 'Refresh'}
           </button>
-          {(role === 'Admin' || role === 'Staff') && (
+          {(role === 'Admin' || role === 'Staff' || role === 'ResourceAdmin') && (
             <button
               type="button"
               onClick={() => setShowAddModal(true)}
@@ -395,7 +396,7 @@ export default function WardManagement() {
                           Rooms
                         </button>
 
-                        {(role === 'Admin' || role === 'Staff') && (
+                        {(role === 'Admin' || role === 'Staff' || role === 'ResourceAdmin') && (
                           <EditIconButton
                             onClick={() => setEditWardTarget(ward)}
                             title="Edit"
@@ -403,7 +404,7 @@ export default function WardManagement() {
                           />
                         )}
 
-                        {role === 'Admin' && ward.isActive && (
+                        {(role === 'Admin' || role === 'ResourceAdmin') && ward.isActive && (
                           <button
                             type="button"
                             onClick={() => setDeactivateTarget(ward)}

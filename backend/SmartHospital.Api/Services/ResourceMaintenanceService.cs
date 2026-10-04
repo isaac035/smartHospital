@@ -304,6 +304,88 @@ public class ResourceMaintenanceService : IResourceMaintenanceService
         return MapToMaintenanceResponse(m, m.Bed, m.MedicalResource, m.PerformedByStaff);
     }
 
+    public async Task<MaintenanceResponse?> UpdateScheduledMaintenanceAsync(int id, UpdateMaintenanceRequest request, int? staffUserId = null)
+    {
+        var m = await _context.ResourceMaintenances
+            .Include(x => x.Bed)
+                .ThenInclude(b => b!.Room)
+                    .ThenInclude(r => r!.Ward)
+            .Include(x => x.MedicalResource)
+                .ThenInclude(mr => mr!.Ward)
+            .Include(x => x.MedicalResource)
+                .ThenInclude(mr => mr!.Room)
+            .Include(x => x.PerformedByStaff)
+            .FirstOrDefaultAsync(x => x.Id == id);
+
+        if (m == null)
+        {
+            return null;
+        }
+
+        if (m.Status != MaintenanceStatus.Scheduled)
+        {
+            throw new InvalidOperationException($"Cannot edit maintenance record with status '{m.Status}'. Only Scheduled maintenance can be edited.");
+        }
+
+        if (request.ScheduledEnd.HasValue && request.ScheduledEnd.Value <= request.ScheduledStart)
+        {
+            throw new InvalidOperationException("Scheduled end time must be after scheduled start time.");
+        }
+
+        m.Type = request.Type;
+        m.Description = request.Description.Trim();
+        m.ScheduledStart = request.ScheduledStart;
+        m.ScheduledEnd = request.ScheduledEnd;
+        if (staffUserId.HasValue)
+        {
+            m.PerformedByStaffId = staffUserId.Value;
+        }
+        m.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+
+        return MapToMaintenanceResponse(m, m.Bed, m.MedicalResource, m.PerformedByStaff);
+    }
+
+    public async Task<MaintenanceResponse?> CancelScheduledMaintenanceAsync(int id, CancelMaintenanceRequest? request = null, int? staffUserId = null)
+    {
+        var m = await _context.ResourceMaintenances
+            .Include(x => x.Bed)
+                .ThenInclude(b => b!.Room)
+                    .ThenInclude(r => r!.Ward)
+            .Include(x => x.MedicalResource)
+                .ThenInclude(mr => mr!.Ward)
+            .Include(x => x.MedicalResource)
+                .ThenInclude(mr => mr!.Room)
+            .Include(x => x.PerformedByStaff)
+            .FirstOrDefaultAsync(x => x.Id == id);
+
+        if (m == null)
+        {
+            return null;
+        }
+
+        if (m.Status != MaintenanceStatus.Scheduled)
+        {
+            throw new InvalidOperationException($"Cannot cancel maintenance record with status '{m.Status}'. Only Scheduled maintenance can be cancelled.");
+        }
+
+        m.Status = MaintenanceStatus.Cancelled;
+        if (!string.IsNullOrWhiteSpace(request?.Reason))
+        {
+            m.ResolutionNotes = request.Reason.Trim();
+        }
+        if (staffUserId.HasValue)
+        {
+            m.PerformedByStaffId = staffUserId.Value;
+        }
+        m.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+
+        return MapToMaintenanceResponse(m, m.Bed, m.MedicalResource, m.PerformedByStaff);
+    }
+
     public async Task<int> ProcessScheduledMaintenanceAutoStartAsync(CancellationToken cancellationToken = default)
     {
         var nowUtc = DateTime.UtcNow;

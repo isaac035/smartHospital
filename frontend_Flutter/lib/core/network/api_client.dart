@@ -57,12 +57,32 @@ class ApiClient {
       
       final data = e.response?.data;
       String message = 'An unexpected error occurred.';
+      String? code;
+      var refreshRecommendations = false;
       if (data is Map<String, dynamic> && data.containsKey('message')) {
-        message = data['message'];
+        final responseMessage = data['message'];
+        if (responseMessage is String && responseMessage.isNotEmpty) message = responseMessage;
+        final responseCode = data['code'];
+        if (responseCode is String) code = responseCode;
+        refreshRecommendations = data['refreshRecommendations'] == true;
       }
-      return ApiException(message, e.response?.statusCode);
+      if (message == 'An unexpected error occurred.' && data is Map<String, dynamic>) {
+        final detail = data['detail'] ?? data['title'];
+        if (detail is String && detail.isNotEmpty) message = detail;
+      }
+      if (message == 'An unexpected error occurred.') {
+        message = switch (e.response?.statusCode ?? 0) {
+          400 => 'The report request was not accepted. Check the selected patient and try again.',
+          403 => 'You are not allowed to generate this patient report.',
+          404 => 'The patient or appointment record could not be found.',
+          429 => 'Too many requests. Please wait a moment and try again.',
+          >= 500 => 'The report service is temporarily unavailable. Please try again.',
+          _ => 'The report request failed. Please try again.',
+        };
+      }
+      return ApiException(message, e.response?.statusCode, code, refreshRecommendations);
     } else if (e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.receiveTimeout) {
-      return ApiException('Connection timed out. Please try again later.');
+      return ApiException('The report service took too long to respond. Please retry; a saved report will remain available in your list.', null, 'NETWORK_TIMEOUT');
     } else if (e.type == DioExceptionType.connectionError) {
       return ApiException('Unable to connect to the server. Please check your internet connection.');
     }

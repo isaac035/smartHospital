@@ -15,10 +15,16 @@ public class UserService : IUserService
         _context = context;
     }
 
-    public async Task<List<UserResponse>> GetAllAsync()
+    public async Task<List<UserResponse>> GetAllAsync(UserRole? role = null)
     {
-        return await _context.Users
-            .AsNoTracking()
+        var query = _context.Users.AsNoTracking();
+
+        if (role.HasValue)
+        {
+            query = query.Where(u => u.Role == role.Value);
+        }
+
+        return await query
             .OrderBy(u => u.Id)
             .Select(u => new UserResponse
             {
@@ -31,6 +37,31 @@ public class UserService : IUserService
                 Status = u.Status.ToString(),
                 CreatedAt = u.CreatedAt,
                 UpdatedAt = u.UpdatedAt
+            })
+            .ToListAsync();
+    }
+
+    public async Task<List<PatientSearchResult>> SearchPatientsAsync(string query, int limit = 10)
+    {
+        var normalizedQuery = string.Join(' ', query.Split(' ', StringSplitOptions.RemoveEmptyEntries)).Trim().ToLowerInvariant();
+        if (normalizedQuery.Length == 0) return new List<PatientSearchResult>();
+
+        var pattern = $"%{normalizedQuery}%";
+        return await _context.Users
+            .AsNoTracking()
+            .Where(user => user.Role == UserRole.Patient &&
+                (EF.Functions.ILike(user.FirstName, pattern) ||
+                 EF.Functions.ILike(user.LastName, pattern) ||
+                 EF.Functions.ILike(user.FirstName + " " + user.LastName, pattern) ||
+                 EF.Functions.ILike(user.LastName + " " + user.FirstName, pattern)))
+            .OrderBy(user => user.FirstName)
+            .ThenBy(user => user.LastName)
+            .ThenBy(user => user.Id)
+            .Take(Math.Clamp(limit, 1, 20))
+            .Select(user => new PatientSearchResult
+            {
+                Id = user.Id,
+                DisplayName = (user.FirstName + " " + user.LastName).Trim()
             })
             .ToListAsync();
     }

@@ -1,7 +1,14 @@
 import api from './api'
 
-export const listUsers = async () => {
-  const response = await api.get('/users')
+export const listUsers = async (params = {}) => {
+  const response = await api.get('/users', { params })
+  return response.data
+}
+
+export const searchPatients = async (query, limit = 10) => {
+  const response = await api.get('/users/patients/search', {
+    params: { query, limit },
+  })
   return response.data
 }
 

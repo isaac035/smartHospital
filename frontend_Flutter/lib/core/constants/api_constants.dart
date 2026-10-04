@@ -59,4 +59,5 @@ class ApiConstants {
 
   // Smart Care (AI Agent 1: clinical triage + doctor matching)
   static const String smartCareTriage = '/agent1/triage-doctor-match';
+  static const String smartCareAppointmentOptimization = '/agent2/optimize-appointment';
 }

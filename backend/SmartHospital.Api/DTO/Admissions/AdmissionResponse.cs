@@ -18,7 +18,13 @@ public class AdmissionResponse
 
     public string? AdmittingDoctorName { get; set; }
 
+    public string? DoctorName { get; set; }
+
+    public int? AppointmentId { get; set; }
+
     public DateTime AdmissionDate { get; set; }
+
+    public DateTime? CheckupDate { get; set; }
 
     public DateTime? DischargeDate { get; set; }
 

@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import Login from '../pages/auth/Login'
 import AdminDashboard from '../pages/admin/AdminDashboard'
+import AdminReportsPage from '../pages/admin/AdminReportsPage'
 import UserManagement from '../pages/admin/UserManagement'
 import DoctorManagement from '../pages/admin/DoctorManagement'
 import DepartmentManagement from '../pages/admin/DepartmentManagement'
@@ -44,6 +45,7 @@ export default function AppRoutes() {
         <Route path="/admin/users" element={<UserManagement />} />
         <Route path="/admin/appointments/book" element={<BookAppointment />} />
         <Route path="/admin/appointments/calendar" element={<NotFound />} />
+        <Route path="/admin/reports" element={<AdminReportsPage />} />
       </Route>
       <Route element={<RoleRoute allowedRoles={['Admin', 'AppointmentManager']} />}>
         <Route path="/admin/appointments" element={<AppointmentsDashboard />} />
@@ -60,6 +62,8 @@ export default function AppRoutes() {
       <Route element={<RoleRoute allowedRoles={['Admin', 'Staff']} />}>
         <Route path="/admin/departments" element={<DepartmentManagement />} />
         <Route path="/admin/consultation-types" element={<ConsultationTypeManagement />} />
+      </Route>
+      <Route element={<RoleRoute allowedRoles={['Admin', 'Staff', 'ResourceAdmin']} />}>
         <Route path="/hospital-resources" element={<ResourceDashboard />} />
         <Route path="/hospital-resources/wards" element={<WardManagement />} />
         <Route path="/hospital-resources/beds" element={<BedManagement />} />

@@ -15,7 +15,7 @@ public class AdmissionService : IAdmissionService
         _context = context;
     }
 
-    public async Task<AdmissionResponse> CreateAdmissionAsync(CreateAdmissionRequest request)
+    public async Task<AdmissionResponse> CreateAdmissionAsync(CreateAdmissionRequest request, int? appointmentId = null, bool reserveStatus = false, DateTime? checkupDateUtc = null)
     {
         var patient = await _context.Users
             .FirstOrDefaultAsync(u => u.Id == request.PatientId && u.Role == UserRole.Patient);
@@ -25,14 +25,52 @@ public class AdmissionService : IAdmissionService
             throw new InvalidOperationException("Patient user not found.");
         }
 
+        Appointment? appointment = null;
+        if (appointmentId.HasValue)
+        {
+            appointment = await _context.Appointments.Include(a => a.Doctor)
+                .FirstOrDefaultAsync(a => a.Id == appointmentId.Value && a.PatientId == request.PatientId);
+            if (appointment == null)
+            {
+                throw new InvalidOperationException("Appointment not found for this patient.");
+            }
+            if (request.AdmittingDoctorId.HasValue && request.AdmittingDoctorId.Value != appointment.DoctorId)
+            {
+                throw new InvalidOperationException("Admitting doctor must match the selected appointment's doctor.");
+            }
+        }
+
+        var existingForAppointment = appointmentId.HasValue
+            ? await _context.Admissions.Include(a => a.Patient).Include(a => a.AdmittingDoctor)
+                .Include(a => a.Appointment).ThenInclude(a => a!.Doctor)
+                .Include(a => a.BedAllocations).ThenInclude(ba => ba.Bed!).ThenInclude(b => b.Room!).ThenInclude(r => r.Ward)
+                .FirstOrDefaultAsync(a => a.AppointmentId == appointmentId.Value)
+            : null;
+
         var hasActiveAdmission = await _context.Admissions
-            .AnyAsync(a => a.PatientId == request.PatientId && a.Status == AdmissionStatus.Admitted);
+            .AnyAsync(a => a.PatientId == request.PatientId &&
+                (a.Status == AdmissionStatus.Admitted || a.Status == AdmissionStatus.Reserved) &&
+                (!appointmentId.HasValue || a.AppointmentId != appointmentId.Value));
 
         if (hasActiveAdmission)
         {
             throw new InvalidOperationException("This patient already has an active inpatient admission.");
         }
 
+        if (existingForAppointment != null)
+        {
+            existingForAppointment.Status = reserveStatus ? AdmissionStatus.Reserved : AdmissionStatus.Admitted;
+            existingForAppointment.AdmittingDoctorId = request.AdmittingDoctorId;
+            existingForAppointment.Priority = request.Priority;
+            existingForAppointment.ReasonForAdmission = request.ReasonForAdmission.Trim();
+            existingForAppointment.Diagnosis = request.Diagnosis?.Trim();
+            existingForAppointment.DischargeDate = null;
+            existingForAppointment.DischargeSummary = null;
+            if (checkupDateUtc.HasValue) existingForAppointment.CheckupDate = checkupDateUtc.Value;
+            existingForAppointment.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+            return MapToAdmissionResponse(existingForAppointment);
+        }
 
         User? doctor = null;
         if (request.AdmittingDoctorId.HasValue)
@@ -58,7 +96,10 @@ public class AdmissionService : IAdmissionService
             PatientId = request.PatientId,
             AdmittingDoctorId = request.AdmittingDoctorId,
             AdmissionDate = DateTime.UtcNow,
-            Status = AdmissionStatus.Admitted,
+            CheckupDate = checkupDateUtc,
+            AppointmentId = appointmentId,
+            Appointment = appointment,
+            Status = reserveStatus ? AdmissionStatus.Reserved : AdmissionStatus.Admitted,
             Priority = request.Priority,
             ReasonForAdmission = request.ReasonForAdmission.Trim(),
             Diagnosis = request.Diagnosis?.Trim(),
@@ -79,7 +120,10 @@ public class AdmissionService : IAdmissionService
             PatientPhone = patient.PhoneNumber,
             AdmittingDoctorId = doctor?.Id,
             AdmittingDoctorName = doctor != null ? $"{doctor.FirstName} {doctor.LastName}".Trim() : null,
+            DoctorName = appointment?.Doctor != null ? $"{appointment.Doctor.FirstName} {appointment.Doctor.LastName}".Trim() : (doctor != null ? $"{doctor.FirstName} {doctor.LastName}".Trim() : null),
+            AppointmentId = appointmentId,
             AdmissionDate = admission.AdmissionDate,
+            CheckupDate = admission.CheckupDate,
             DischargeDate = admission.DischargeDate,
             Status = admission.Status.ToString(),
             Priority = admission.Priority.ToString(),
@@ -97,6 +141,7 @@ public class AdmissionService : IAdmissionService
             .AsNoTracking()
             .Include(a => a.Patient)
             .Include(a => a.AdmittingDoctor)
+            .Include(a => a.Appointment).ThenInclude(a => a!.Doctor)
             .Include(a => a.BedAllocations)
                 .ThenInclude(ba => ba.Bed!)
                     .ThenInclude(b => b.Room!)
@@ -135,11 +180,11 @@ public class AdmissionService : IAdmissionService
         {
             var targetWardId = filter.WardId.Value;
             query = query.Where(a =>
-                (a.Status == AdmissionStatus.Admitted && a.BedAllocations.Any(ba =>
+                ((a.Status == AdmissionStatus.Admitted || a.Status == AdmissionStatus.Reserved) && a.BedAllocations.Any(ba =>
                     ba.Status == BedAllocationStatus.Active &&
                     ba.Bed!.Room!.WardId == targetWardId))
                 ||
-                (a.Status != AdmissionStatus.Admitted && a.BedAllocations
+                (a.Status != AdmissionStatus.Admitted && a.Status != AdmissionStatus.Reserved && a.BedAllocations
                     .OrderByDescending(ba => ba.ReleasedAt ?? ba.AllocatedAt)
                     .ThenByDescending(ba => ba.AllocatedAt)
                     .ThenByDescending(ba => ba.Id)
@@ -165,6 +210,7 @@ public class AdmissionService : IAdmissionService
             .AsNoTracking()
             .Include(a => a.Patient)
             .Include(a => a.AdmittingDoctor)
+            .Include(a => a.Appointment).ThenInclude(a => a!.Doctor)
             .Include(a => a.BedAllocations)
                 .ThenInclude(ba => ba.Bed!)
                     .ThenInclude(b => b.Room!)
@@ -257,6 +303,7 @@ public class AdmissionService : IAdmissionService
         var admission = await _context.Admissions
             .Include(a => a.Patient)
             .Include(a => a.AdmittingDoctor)
+            .Include(a => a.Appointment).ThenInclude(a => a!.Doctor)
             .Include(a => a.BedAllocations)
                 .ThenInclude(ba => ba.Bed!)
                     .ThenInclude(b => b.Room!)
@@ -291,24 +338,43 @@ public class AdmissionService : IAdmissionService
         return MapToAdmissionResponse(admission);
     }
 
-    public async Task<AdmissionResponse> AllocateBedAsync(AllocateBedRequest request, int? staffUserId = null)
+    public async Task<AdmissionResponse> AllocateBedAsync(AllocateBedRequest request, int? staffUserId = null, bool reserveBed = false)
     {
         var admission = await _context.Admissions
             .Include(a => a.Patient)
             .Include(a => a.AdmittingDoctor)
+            .Include(a => a.Appointment).ThenInclude(a => a!.Doctor)
             .Include(a => a.BedAllocations)
                 .ThenInclude(ba => ba.Bed!)
                     .ThenInclude(b => b.Room!)
                         .ThenInclude(r => r.Ward)
             .FirstOrDefaultAsync(a => a.Id == request.AdmissionId);
 
-        if (admission == null || admission.Status != AdmissionStatus.Admitted)
+        if (admission == null || (admission.Status != AdmissionStatus.Admitted && !(reserveBed && admission.Status == AdmissionStatus.Reserved)))
         {
             throw new InvalidOperationException("Active admitted patient stay not found.");
         }
 
+        var existingAdmissionAllocation = admission.BedAllocations.FirstOrDefault(ba => ba.Status == BedAllocationStatus.Active);
+        if (reserveBed && existingAdmissionAllocation?.BedId == request.BedId && existingAdmissionAllocation.Bed?.Status == BedStatus.Reserved)
+        {
+            return MapToAdmissionResponse(admission);
+        }
+
+        if (reserveBed && existingAdmissionAllocation != null)
+        {
+            existingAdmissionAllocation.Status = BedAllocationStatus.Released;
+            existingAdmissionAllocation.ReleasedAt = DateTime.UtcNow;
+            existingAdmissionAllocation.UpdatedAt = DateTime.UtcNow;
+            if (existingAdmissionAllocation.Bed != null)
+            {
+                existingAdmissionAllocation.Bed.Status = BedStatus.Available;
+                existingAdmissionAllocation.Bed.UpdatedAt = DateTime.UtcNow;
+            }
+        }
+
         var patientHasActiveBed = await _context.BedAllocations
-            .AnyAsync(ba => ba.Admission!.PatientId == admission.PatientId && ba.Status == BedAllocationStatus.Active);
+            .AnyAsync(ba => ba.Admission!.PatientId == admission.PatientId && ba.Status == BedAllocationStatus.Active && ba.AdmissionId != admission.Id);
 
         if (patientHasActiveBed)
         {
@@ -338,7 +404,8 @@ public class AdmissionService : IAdmissionService
         var wardId = bed.Room?.WardId ?? 0;
 
         var occupiedInWard = await _context.Beds
-            .CountAsync(b => b.Room!.WardId == wardId && b.Status == BedStatus.Occupied);
+            .CountAsync(b => b.Room!.WardId == wardId &&
+                (b.Status == BedStatus.Occupied || (reserveBed && b.Status == BedStatus.Reserved)));
 
         if (occupiedInWard >= wardCapacity)
         {
@@ -357,7 +424,7 @@ public class AdmissionService : IAdmissionService
             UpdatedAt = DateTime.UtcNow
         };
 
-        bed.Status = BedStatus.Occupied;
+        bed.Status = reserveBed ? BedStatus.Reserved : BedStatus.Occupied;
         bed.UpdatedAt = DateTime.UtcNow;
 
         _context.BedAllocations.Add(allocation);
@@ -373,6 +440,7 @@ public class AdmissionService : IAdmissionService
         var admission = await _context.Admissions
             .Include(a => a.Patient)
             .Include(a => a.AdmittingDoctor)
+            .Include(a => a.Appointment).ThenInclude(a => a!.Doctor)
             .Include(a => a.BedAllocations)
                 .ThenInclude(ba => ba.Bed!)
                     .ThenInclude(b => b.Room!)
@@ -461,13 +529,14 @@ public class AdmissionService : IAdmissionService
         var admission = await _context.Admissions
             .Include(a => a.Patient)
             .Include(a => a.AdmittingDoctor)
+            .Include(a => a.Appointment).ThenInclude(a => a!.Doctor)
             .Include(a => a.BedAllocations)
                 .ThenInclude(ba => ba.Bed!)
                     .ThenInclude(b => b.Room!)
                         .ThenInclude(r => r.Ward)
             .FirstOrDefaultAsync(a => a.Id == admissionId);
 
-        if (admission == null || admission.Status != AdmissionStatus.Admitted)
+        if (admission == null || (admission.Status != AdmissionStatus.Admitted && admission.Status != AdmissionStatus.Reserved))
         {
             throw new InvalidOperationException("Active admitted patient stay not found.");
         }
@@ -492,6 +561,18 @@ public class AdmissionService : IAdmissionService
         admission.DischargeSummary = request.DischargeSummary.Trim();
         admission.UpdatedAt = DateTime.UtcNow;
 
+        if (admission.AppointmentId.HasValue)
+        {
+            var appointmentAllocations = await _context.AppointmentResourceAllocations
+                .Where(a => a.AppointmentId == admission.AppointmentId.Value && a.BedId.HasValue && a.IsActive)
+                .ToListAsync();
+            foreach (var resourceAllocation in appointmentAllocations)
+            {
+                resourceAllocation.IsActive = false;
+                resourceAllocation.ReleasedAt = DateTime.UtcNow;
+            }
+        }
+
         await _context.SaveChangesAsync();
         await tx.CommitAsync();
 
@@ -500,7 +581,7 @@ public class AdmissionService : IAdmissionService
 
     private static AdmissionResponse MapToAdmissionResponse(Admission admission)
     {
-        var activeAlloc = admission.Status == AdmissionStatus.Admitted
+        var activeAlloc = admission.Status == AdmissionStatus.Admitted || admission.Status == AdmissionStatus.Reserved
             ? admission.BedAllocations.FirstOrDefault(ba => ba.Status == BedAllocationStatus.Active)
             : null;
 
@@ -522,7 +603,12 @@ public class AdmissionService : IAdmissionService
             AdmittingDoctorName = admission.AdmittingDoctor != null
                 ? $"{admission.AdmittingDoctor.FirstName} {admission.AdmittingDoctor.LastName}".Trim()
                 : null,
+            DoctorName = admission.Appointment?.Doctor != null
+                ? $"{admission.Appointment.Doctor.FirstName} {admission.Appointment.Doctor.LastName}".Trim()
+                : admission.AdmittingDoctor != null ? $"{admission.AdmittingDoctor.FirstName} {admission.AdmittingDoctor.LastName}".Trim() : null,
+            AppointmentId = admission.AppointmentId,
             AdmissionDate = admission.AdmissionDate,
+            CheckupDate = admission.CheckupDate,
             DischargeDate = admission.DischargeDate,
             Status = admission.Status.ToString(),
             Priority = admission.Priority.ToString(),

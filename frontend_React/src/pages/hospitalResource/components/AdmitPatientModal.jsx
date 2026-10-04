@@ -49,7 +49,7 @@ export default function AdmitPatientModal({ isOpen, onClose, onSuccess }) {
       setDirectoryError(null)
 
       const [usersData, doctorsData] = await Promise.all([
-        listUsers(),
+        listUsers({ role: 'Patient' }),
         listDoctors().catch(() => []),
       ])
 

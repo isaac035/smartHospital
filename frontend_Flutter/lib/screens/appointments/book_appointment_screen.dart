@@ -14,12 +14,16 @@ class BookAppointmentScreen extends StatefulWidget {
   final int doctorId;
   final String slotStart;
   final int durationMinutes;
+  final int initialPriority;
+  final int? triageResultId;
 
   const BookAppointmentScreen({
     super.key,
     required this.doctorId,
     required this.slotStart,
     required this.durationMinutes,
+    this.initialPriority = 1,
+    this.triageResultId,
   });
 
   @override
@@ -32,7 +36,13 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
 
   final int _appointmentType = 1;
   // Matches the backend AppointmentPriority values: Normal=1, Urgent=2, Emergency=3.
-  int _priority = 1;
+  late int _priority;
+
+  @override
+  void initState() {
+    super.initState();
+    _priority = widget.initialPriority.clamp(1, 3).toInt();
+  }
 
   @override
   void dispose() {
@@ -57,6 +67,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
       estimatedDurationMinutes: widget.durationMinutes,
       priority: _priority,
       notes: _notesController.text.trim(),
+      triageResultId: widget.triageResultId,
     );
 
     if (!mounted) return;
@@ -67,7 +78,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
           backgroundColor: AppTheme.successColor,
         ),
       );
-      context.go('/appointments/${result.id}');
+      context.go('/appointments/confirmed/${result.id}');
     }
   }
 

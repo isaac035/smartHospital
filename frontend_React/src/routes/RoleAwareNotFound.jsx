@@ -4,6 +4,7 @@ import NotFound from '../pages/NotFound'
 
 const limitedRoleHome = {
   AppointmentManager: '/admin/appointments',
+  ResourceAdmin: '/hospital-resources',
   DoctorManager: '/admin/doctors',
 }
 

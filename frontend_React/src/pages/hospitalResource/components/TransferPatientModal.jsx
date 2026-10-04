@@ -24,8 +24,10 @@ export default function TransferPatientModal({ isOpen, onClose, admission, onSuc
       setLoadingBeds(true)
       setError(null)
       const beds = await getAvailableBeds()
-      // Filter out the currently assigned bed
-      const validBeds = (beds || []).filter((b) => b.id !== admission?.activeBedId)
+      // Filter out the currently assigned bed and ensure destination bed is active
+      const validBeds = (beds || []).filter(
+        (b) => b.id !== admission?.activeBedId && b.isActive !== false
+      )
       setAvailableBeds(validBeds)
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load available destination beds.')

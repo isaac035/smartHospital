@@ -104,7 +104,27 @@ public class BedService : IBedService
 
         if (filter.Status.HasValue)
         {
-            query = query.Where(b => b.Status == filter.Status.Value);
+            if (filter.Status.Value == BedStatus.Available)
+            {
+                query = query.Where(b => b.Status == BedStatus.Available
+                    && !b.Allocations.Any(a => a.Status == BedAllocationStatus.Active)
+                    && !_context.AppointmentResourceAllocations.Any(a => a.BedId == b.Id && a.IsActive));
+            }
+            else if (filter.Status.Value == BedStatus.Reserved)
+            {
+                query = query.Where(b => b.Status == BedStatus.Reserved
+                    || b.Allocations.Any(a => a.Status == BedAllocationStatus.Active && a.Admission!.Status == AdmissionStatus.Reserved)
+                    || _context.AppointmentResourceAllocations.Any(a => a.BedId == b.Id && a.IsActive));
+            }
+            else if (filter.Status.Value == BedStatus.Occupied)
+            {
+                query = query.Where(b => b.Status == BedStatus.Occupied
+                    || b.Allocations.Any(a => a.Status == BedAllocationStatus.Active));
+            }
+            else
+            {
+                query = query.Where(b => b.Status == filter.Status.Value);
+            }
         }
 
         if (filter.Type.HasValue)
@@ -115,8 +135,12 @@ public class BedService : IBedService
         if (filter.IsAvailable.HasValue)
         {
             query = filter.IsAvailable.Value
-                ? query.Where(b => b.IsActive && b.Status == BedStatus.Available)
-                : query.Where(b => b.Status != BedStatus.Available);
+                ? query.Where(b => b.IsActive && b.Status == BedStatus.Available
+                    && !b.Allocations.Any(a => a.Status == BedAllocationStatus.Active)
+                    && !_context.AppointmentResourceAllocations.Any(a => a.BedId == b.Id && a.IsActive))
+                : query.Where(b => b.Status != BedStatus.Available
+                    || b.Allocations.Any(a => a.Status == BedAllocationStatus.Active)
+                    || _context.AppointmentResourceAllocations.Any(a => a.BedId == b.Id && a.IsActive));
         }
 
         var page = filter.Page < 1 ? 1 : filter.Page;
@@ -130,7 +154,8 @@ public class BedService : IBedService
             .Take(pageSize)
             .ToListAsync();
 
-        return beds.Select(MapToBedResponse).ToList();
+        var agentReservations = await GetActiveAgentReservations(beds.Select(b => b.Id));
+        return beds.Select(b => MapToBedResponse(b, agentReservations.GetValueOrDefault(b.Id))).ToList();
     }
 
     public async Task<List<BedResponse>> GetAvailableBedsAsync(int? wardId = null, int? roomId = null, BedType? type = null)
@@ -139,7 +164,9 @@ public class BedService : IBedService
             .AsNoTracking()
             .Include(b => b.Room)
                 .ThenInclude(r => r!.Ward)
-            .Where(b => b.IsActive && b.Status == BedStatus.Available);
+            .Where(b => b.IsActive && b.Status == BedStatus.Available
+                && !b.Allocations.Any(a => a.Status == BedAllocationStatus.Active)
+                && !_context.AppointmentResourceAllocations.Any(a => a.BedId == b.Id && a.IsActive));
 
         if (wardId.HasValue)
         {
@@ -162,7 +189,7 @@ public class BedService : IBedService
             .ThenBy(b => b.BedNumber)
             .ToListAsync();
 
-        return beds.Select(MapToBedResponse).ToList();
+        return beds.Select(b => MapToBedResponse(b)).ToList();
     }
 
     public async Task<BedResponse?> GetBedByIdAsync(int id)
@@ -176,7 +203,9 @@ public class BedService : IBedService
                     .ThenInclude(adm => adm!.Patient)
             .FirstOrDefaultAsync(b => b.Id == id);
 
-        return bed == null ? null : MapToBedResponse(bed);
+        if (bed == null) return null;
+        var agentReservations = await GetActiveAgentReservations(new[] { bed.Id });
+        return MapToBedResponse(bed, agentReservations.GetValueOrDefault(bed.Id));
     }
 
     public async Task<BedResponse?> UpdateBedAsync(int id, UpdateBedRequest request)
@@ -199,6 +228,13 @@ public class BedService : IBedService
             throw new InvalidOperationException("Cannot deactivate a bed that is currently occupied.");
         }
 
+        if (!request.IsActive &&
+            (await _context.BedAllocations.AnyAsync(a => a.BedId == id && a.Status == BedAllocationStatus.Active)
+                || await _context.AppointmentResourceAllocations.AnyAsync(a => a.BedId == id && a.IsActive)))
+        {
+            throw new InvalidOperationException("Cannot deactivate a bed while an active reservation is linked to it.");
+        }
+
         var bedNumber = request.BedNumber.Trim().ToUpperInvariant();
         var duplicateExists = await _context.Beds.AnyAsync(b => b.RoomId == bed.RoomId && b.BedNumber == bedNumber && b.Id != id);
         if (duplicateExists)
@@ -213,7 +249,8 @@ public class BedService : IBedService
 
         await _context.SaveChangesAsync();
 
-        return MapToBedResponse(bed);
+        var activeAgentReservations = await GetActiveAgentReservations(new[] { bed.Id });
+        return MapToBedResponse(bed, activeAgentReservations.GetValueOrDefault(bed.Id));
     }
 
     public async Task<BedResponse?> UpdateBedStatusAsync(int id, UpdateBedStatusRequest request)
@@ -236,6 +273,12 @@ public class BedService : IBedService
             throw new InvalidOperationException("An occupied bed cannot be manually updated. Please transfer or discharge the patient instead.");
         }
 
+        if (await _context.BedAllocations.AnyAsync(a => a.BedId == id && a.Status == BedAllocationStatus.Active)
+            || await _context.AppointmentResourceAllocations.AnyAsync(a => a.BedId == id && a.IsActive))
+        {
+            throw new InvalidOperationException("This bed has an active reservation or allocation. Release it from Admissions before changing its status.");
+        }
+
         if (request.Status == BedStatus.Occupied)
         {
             throw new InvalidOperationException("A bed cannot be manually marked as Occupied. Occupancy is managed through patient bed allocation.");
@@ -246,7 +289,8 @@ public class BedService : IBedService
 
         await _context.SaveChangesAsync();
 
-        return MapToBedResponse(bed);
+        var agentReservations = await GetActiveAgentReservations(new[] { bed.Id });
+        return MapToBedResponse(bed, agentReservations.GetValueOrDefault(bed.Id));
     }
 
     public async Task<bool> DeactivateBedAsync(int id)
@@ -262,6 +306,12 @@ public class BedService : IBedService
             throw new InvalidOperationException("Cannot deactivate an occupied bed. Please transfer or discharge the patient first.");
         }
 
+        if (await _context.BedAllocations.AnyAsync(a => a.BedId == id && a.Status == BedAllocationStatus.Active)
+            || await _context.AppointmentResourceAllocations.AnyAsync(a => a.BedId == id && a.IsActive))
+        {
+            throw new InvalidOperationException("This bed has an active reservation or allocation. Release it from Admissions before deactivating the bed.");
+        }
+
         bed.IsActive = false;
         bed.UpdatedAt = DateTime.UtcNow;
 
@@ -269,9 +319,38 @@ public class BedService : IBedService
         return true;
     }
 
-    private static BedResponse MapToBedResponse(Bed bed)
+    private async Task<Dictionary<int, AgentBedReservationPatient>> GetActiveAgentReservations(IEnumerable<int> bedIds)
+    {
+        var ids = bedIds.ToArray();
+        if (ids.Length == 0) return new Dictionary<int, AgentBedReservationPatient>();
+        var reservations = await (
+            from allocation in _context.AppointmentResourceAllocations.AsNoTracking()
+            join patient in _context.Users.AsNoTracking() on allocation.PatientId equals patient.Id
+            where allocation.IsActive && allocation.BedId.HasValue && ids.Contains(allocation.BedId.Value)
+            select new
+            {
+                BedId = allocation.BedId!.Value,
+                PatientId = patient.Id,
+                PatientName = (patient.FirstName + " " + patient.LastName).Trim()
+            })
+            .ToListAsync();
+        return reservations.GroupBy(r => r.BedId).ToDictionary(
+            group => group.Key,
+            group => new AgentBedReservationPatient(group.First().PatientId, group.First().PatientName));
+    }
+
+    private static BedResponse MapToBedResponse(Bed bed, AgentBedReservationPatient? appointmentReservation = null)
     {
         var activeAlloc = bed.Allocations.FirstOrDefault(a => a.Status == BedAllocationStatus.Active);
+        var status = bed.Status;
+        if (status == BedStatus.Available && activeAlloc != null)
+        {
+            status = activeAlloc.Admission?.Status == AdmissionStatus.Reserved ? BedStatus.Reserved : BedStatus.Occupied;
+        }
+        else if (status == BedStatus.Available && appointmentReservation != null)
+        {
+            status = BedStatus.Reserved;
+        }
 
         return new BedResponse
         {
@@ -284,15 +363,17 @@ public class BedService : IBedService
             Floor = bed.Room?.Ward?.Floor ?? string.Empty,
             BedNumber = bed.BedNumber,
             Type = bed.Type.ToString(),
-            Status = bed.Status.ToString(),
+            Status = status.ToString(),
             IsActive = bed.IsActive,
-            CurrentPatientId = activeAlloc?.Admission?.PatientId,
+            CurrentPatientId = activeAlloc?.Admission?.PatientId ?? appointmentReservation?.PatientId,
             CurrentPatientName = activeAlloc?.Admission?.Patient != null
                 ? $"{activeAlloc.Admission.Patient.FirstName} {activeAlloc.Admission.Patient.LastName}".Trim()
-                : null,
+                : appointmentReservation?.PatientName,
             CurrentAdmissionId = activeAlloc?.AdmissionId,
             CreatedAt = bed.CreatedAt,
             UpdatedAt = bed.UpdatedAt
         };
     }
+
+    private sealed record AgentBedReservationPatient(int PatientId, string PatientName);
 }

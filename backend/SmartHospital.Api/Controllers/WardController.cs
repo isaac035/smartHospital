@@ -18,7 +18,7 @@ public class WardController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin,Staff")]
+    [Authorize(Roles = "Admin,Staff,ResourceAdmin")]
     public async Task<IActionResult> CreateWard([FromBody] CreateWardRequest request)
     {
         try
@@ -52,7 +52,7 @@ public class WardController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
-    [Authorize(Roles = "Admin,Staff")]
+    [Authorize(Roles = "Admin,Staff,ResourceAdmin")]
     public async Task<IActionResult> UpdateWard(int id, [FromBody] UpdateWardRequest request)
     {
         try
@@ -72,7 +72,7 @@ public class WardController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,ResourceAdmin")]
     public async Task<IActionResult> DeactivateWard(int id)
     {
         try

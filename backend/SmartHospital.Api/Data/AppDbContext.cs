@@ -22,6 +22,8 @@ public class AppDbContext : DbContext
     public DbSet<ClinicalTreatmentPlan> ClinicalTreatmentPlans => Set<ClinicalTreatmentPlan>();
     public DbSet<MedicalRecordVersion> MedicalRecordVersions => Set<MedicalRecordVersion>();
     public DbSet<EmrAuditLog> EmrAuditLogs => Set<EmrAuditLog>();
+    public DbSet<AiMedicalReport> AiMedicalReports => Set<AiMedicalReport>();
+    public DbSet<Agent1TriageResult> Agent1TriageResults => Set<Agent1TriageResult>();
 
     // ── Smart Appointment & Queue Management ──────────────────────────────────
     public DbSet<Department>               Departments                => Set<Department>();
@@ -39,6 +41,7 @@ public class AppDbContext : DbContext
     public DbSet<BedAllocation> BedAllocations => Set<BedAllocation>();
     public DbSet<MedicalResource> MedicalResources => Set<MedicalResource>();
     public DbSet<ResourceMaintenance> ResourceMaintenances => Set<ResourceMaintenance>();
+    public DbSet<AppointmentResourceAllocation> AppointmentResourceAllocations => Set<AppointmentResourceAllocation>();
 
     // ── Doctor & Clinical Schedule Management ─────────────────────────────────
     public DbSet<ConsultationType> ConsultationTypes => Set<ConsultationType>();
@@ -203,6 +206,36 @@ public class AppDbContext : DbContext
                 .WithOne(v => v.MedicalRecord)
                 .HasForeignKey(v => v.MedicalRecordId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AiMedicalReport>(entity =>
+        {
+            entity.HasKey(r => r.Id);
+            entity.Property(r => r.ReportId).IsRequired();
+            entity.Property(r => r.VersionNumber).IsRequired();
+            entity.Property(r => r.CreatedAt).IsRequired();
+            entity.Property(r => r.ContentJson).IsRequired().HasColumnType("jsonb");
+            entity.HasIndex(r => r.ReportId).IsUnique();
+            entity.HasIndex(r => new { r.PatientId, r.VersionNumber }).IsUnique();
+            entity.HasIndex(r => new { r.PatientId, r.CreatedAt });
+            entity.HasIndex(r => new { r.PatientId, r.ClientGenerationId }).IsUnique().HasFilter("\"ClientGenerationId\" IS NOT NULL");
+            entity.HasOne(r => r.Patient).WithMany().HasForeignKey(r => r.PatientId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(r => r.Appointment).WithMany().HasForeignKey(r => r.AppointmentId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<Agent1TriageResult>(entity =>
+        {
+            entity.HasKey(r => r.Id);
+            entity.Property(r => r.Symptoms).IsRequired().HasMaxLength(1000);
+            entity.Property(r => r.Status).IsRequired().HasMaxLength(40);
+            entity.Property(r => r.Category).HasMaxLength(150);
+            entity.Property(r => r.Priority).HasMaxLength(30);
+            entity.Property(r => r.Reason).HasMaxLength(2000);
+            entity.Property(r => r.EmergencyNotice).HasMaxLength(1000);
+            entity.HasIndex(r => r.AppointmentId).IsUnique().HasFilter("\"AppointmentId\" IS NOT NULL");
+            entity.HasIndex(r => new { r.PatientId, r.CreatedAt });
+            entity.HasOne<User>().WithMany().HasForeignKey(r => r.PatientId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(r => r.Appointment).WithOne(a => a.Agent1TriageResult).HasForeignKey<Agent1TriageResult>(r => r.AppointmentId).OnDelete(DeleteBehavior.SetNull);
         });
 
         // --------------------------------------------------
@@ -832,6 +865,15 @@ public class AppDbContext : DbContext
         {
             entity.HasKey(a => a.Id);
 
+            entity.HasIndex(a => a.AppointmentId)
+                .IsUnique()
+                .HasFilter("\"AppointmentId\" IS NOT NULL");
+
+            entity.HasOne(a => a.Appointment)
+                .WithOne()
+                .HasForeignKey<Admission>(a => a.AppointmentId)
+                .OnDelete(DeleteBehavior.SetNull);
+
             entity.Property(a => a.AdmissionNumber)
                 .IsRequired()
                 .HasMaxLength(40);
@@ -854,6 +896,9 @@ public class AppDbContext : DbContext
 
             entity.Property(a => a.AdmissionDate)
                 .IsRequired();
+
+            entity.Property(a => a.CheckupDate)
+                .HasColumnType("timestamp with time zone");
 
             entity.Property(a => a.CreatedAt)
                 .IsRequired();
@@ -921,6 +966,24 @@ public class AppDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(ba => ba.AllocatedByStaffId)
                 .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<AppointmentResourceAllocation>(entity =>
+        {
+            entity.ToTable("AppointmentResourceAllocations", table => table.HasCheckConstraint("CK_AppointmentResourceAllocation_OneResource", "(\"BedId\" IS NOT NULL AND \"MedicalResourceId\" IS NULL) OR (\"BedId\" IS NULL AND \"MedicalResourceId\" IS NOT NULL)"));
+            entity.HasKey(a => a.Id);
+            entity.Property(a => a.ClinicalSpecialty).IsRequired().HasMaxLength(150);
+            entity.Property(a => a.Priority).IsRequired();
+            entity.Property(a => a.AllocatedAt).IsRequired();
+            entity.HasOne(a => a.Appointment).WithMany(a => a.ResourceAllocations).HasForeignKey(a => a.AppointmentId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(a => a.Bed).WithMany().HasForeignKey(a => a.BedId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(a => a.MedicalResource).WithMany().HasForeignKey(a => a.MedicalResourceId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<User>().WithMany().HasForeignKey(a => a.PatientId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<User>().WithMany().HasForeignKey(a => a.DoctorId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<Department>().WithMany().HasForeignKey(a => a.DepartmentId).OnDelete(DeleteBehavior.SetNull);
+            entity.HasIndex(a => a.BedId).IsUnique().HasFilter("\"BedId\" IS NOT NULL AND \"IsActive\" = TRUE");
+            entity.HasIndex(a => a.MedicalResourceId).IsUnique().HasFilter("\"MedicalResourceId\" IS NOT NULL AND \"IsActive\" = TRUE");
+            entity.HasIndex(a => new { a.AppointmentId, a.IsActive });
         });
 
         // --------------------------------------------------

@@ -9,7 +9,7 @@ namespace SmartHospital.Api.Controllers;
 
 [ApiController]
 [Route("api/resource-maintenances")]
-[Authorize(Roles = "Admin,Staff")]
+[Authorize(Roles = "Admin,Staff,ResourceAdmin")]
 public class ResourceMaintenanceController : ControllerBase
 {
     private readonly IResourceMaintenanceService _maintenanceService;
@@ -81,6 +81,44 @@ public class ResourceMaintenanceController : ControllerBase
         try
         {
             var record = await _maintenanceService.CompleteMaintenanceAsync(id, request, GetCurrentUserId());
+            if (record == null)
+            {
+                return NotFound(new { message = "Maintenance record not found." });
+            }
+
+            return Ok(record);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> UpdateMaintenance(int id, [FromBody] UpdateMaintenanceRequest request)
+    {
+        try
+        {
+            var record = await _maintenanceService.UpdateScheduledMaintenanceAsync(id, request, GetCurrentUserId());
+            if (record == null)
+            {
+                return NotFound(new { message = "Maintenance record not found." });
+            }
+
+            return Ok(record);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("{id:int}/cancel")]
+    public async Task<IActionResult> CancelMaintenance(int id, [FromBody] CancelMaintenanceRequest? request = null)
+    {
+        try
+        {
+            var record = await _maintenanceService.CancelScheduledMaintenanceAsync(id, request, GetCurrentUserId());
             if (record == null)
             {
                 return NotFound(new { message = "Maintenance record not found." });

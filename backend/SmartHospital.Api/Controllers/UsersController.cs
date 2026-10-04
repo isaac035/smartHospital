@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SmartHospital.Api.DTOs.Users;
+using SmartHospital.Api.Models;
 using SmartHospital.Api.Services.Interfaces;
 
 namespace SmartHospital.Api.Controllers;
@@ -48,11 +49,25 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize(Roles = "Admin,Staff")]
-    public async Task<IActionResult> GetAll()
+    [Authorize(Roles = "Admin,Staff,ResourceAdmin")]
+    public async Task<IActionResult> GetAll([FromQuery] UserRole? role = null)
     {
-        var users = await _userService.GetAllAsync();
+        if (User.IsInRole("ResourceAdmin"))
+        {
+            role = UserRole.Patient;
+        }
+
+        var users = await _userService.GetAllAsync(role);
         return Ok(users);
+    }
+
+    [HttpGet("patients/search")]
+    [Authorize(Roles = "Admin,Staff")]
+    public async Task<IActionResult> SearchPatients([FromQuery] string query, [FromQuery] int limit = 10)
+    {
+        if (string.IsNullOrWhiteSpace(query)) return Ok(Array.Empty<PatientSearchResult>());
+        var patients = await _userService.SearchPatientsAsync(query, limit);
+        return Ok(patients);
     }
 
     [HttpGet("{id:int}")]

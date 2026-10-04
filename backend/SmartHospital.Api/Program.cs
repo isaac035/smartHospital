@@ -12,6 +12,9 @@ using SmartHospital.Api.Data;
 using SmartHospital.Api.Middleware;
 using SmartHospital.Api.Services;
 using SmartHospital.Api.Services.Agent1;
+using SmartHospital.Api.Services.Agent2;
+using SmartHospital.Api.Services.Agent3;
+using SmartHospital.Api.Services.Agent4;
 using SmartHospital.Api.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -158,6 +161,33 @@ builder.Services.AddHttpClient<IAgent1TriageService, Agent1TriageService>(client
     client.Timeout = TimeSpan.FromSeconds(agent1Settings.TimeoutSeconds);
 });
 
+// AI Agent 2 - Appointment Optimization (internal Python service)
+builder.Services.Configure<Agent2Settings>(builder.Configuration.GetSection(Agent2Settings.SectionName));
+var agent2Settings = builder.Configuration.GetSection(Agent2Settings.SectionName).Get<Agent2Settings>() ?? new Agent2Settings();
+builder.Services.AddHttpClient<IAgent2OptimizationService, Agent2OptimizationService>(client =>
+{
+    client.BaseAddress = new Uri(agent2Settings.BaseUrl.TrimEnd('/') + "/");
+    client.Timeout = TimeSpan.FromSeconds(agent2Settings.TimeoutSeconds);
+});
+
+// AI Agent 3 - post-booking resource recommendations (ASP.NET retains database ownership).
+builder.Services.Configure<Agent3Settings>(builder.Configuration.GetSection(Agent3Settings.SectionName));
+var agent3Settings = builder.Configuration.GetSection(Agent3Settings.SectionName).Get<Agent3Settings>() ?? new Agent3Settings();
+builder.Services.AddHttpClient<IAgent3ResourceAllocationService, Agent3ResourceAllocationService>(client =>
+{
+    client.BaseAddress = new Uri(agent3Settings.BaseUrl.TrimEnd('/') + "/");
+    client.Timeout = TimeSpan.FromSeconds(agent3Settings.TimeoutSeconds);
+});
+
+// AI Agent 4 - medical report reasoning (API assembles persisted facts and owns report storage).
+builder.Services.Configure<Agent4Settings>(builder.Configuration.GetSection(Agent4Settings.SectionName));
+var agent4Settings = builder.Configuration.GetSection(Agent4Settings.SectionName).Get<Agent4Settings>() ?? new Agent4Settings();
+builder.Services.AddHttpClient<IAgent4MedicalReportService, Agent4MedicalReportService>(client =>
+{
+    client.BaseAddress = new Uri(agent4Settings.BaseUrl.TrimEnd('/') + "/");
+    client.Timeout = TimeSpan.FromSeconds(agent4Settings.TimeoutSeconds);
+});
+
 // Per-patient limit on the Agent 1 endpoint only (controls LLM cost and abuse).
 builder.Services.AddRateLimiter(options =>
 {
@@ -178,6 +208,17 @@ builder.Services.AddRateLimiter(options =>
             {
                 PermitLimit = agent1Settings.RateLimitPermits,
                 Window = TimeSpan.FromMinutes(agent1Settings.RateLimitWindowMinutes),
+                QueueLimit = 0,
+            }));
+    options.AddPolicy(SmartHospital.Api.Controllers.Agent2Controller.RateLimitPolicy, httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? httpContext.Connection.RemoteIpAddress?.ToString()
+                ?? "anonymous",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = agent2Settings.RateLimitPermits,
+                Window = TimeSpan.FromMinutes(agent2Settings.RateLimitWindowMinutes),
                 QueueLimit = 0,
             }));
 });

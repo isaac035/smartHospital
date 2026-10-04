@@ -10,5 +10,7 @@ public interface IResourceMaintenanceService
     Task<MaintenanceResponse?> GetMaintenanceByIdAsync(int id);
     Task<MaintenanceResponse?> StartMaintenanceAsync(int id, int? staffUserId = null);
     Task<MaintenanceResponse?> CompleteMaintenanceAsync(int id, CompleteMaintenanceRequest request, int? staffUserId = null);
+    Task<MaintenanceResponse?> UpdateScheduledMaintenanceAsync(int id, UpdateMaintenanceRequest request, int? staffUserId = null);
+    Task<MaintenanceResponse?> CancelScheduledMaintenanceAsync(int id, CancelMaintenanceRequest? request = null, int? staffUserId = null);
     Task<int> ProcessScheduledMaintenanceAutoStartAsync(CancellationToken cancellationToken = default);
 }

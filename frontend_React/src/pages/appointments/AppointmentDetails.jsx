@@ -273,6 +273,21 @@ export default function AppointmentDetails() {
           </div>
         </div>
 
+        {appointment.reservedResources?.length > 0 && (
+          <div className="stat-card" style={{ padding: '24px' }}>
+            <h2 className="text-lg font-bold mb-4" style={{ color: 'var(--color-accent)' }}>Reserved Resources</h2>
+            <div className="grid gap-4">
+              {appointment.reservedResources.map((resource) => (
+                <div key={resource.id} className="border rounded p-3">
+                  <div className="font-semibold">{resource.name}{resource.kind === 'equipment' && resource.code ? ` · ${resource.code}` : ''}</div>
+                  <div className="text-sm">{resource.type} · {resource.status}</div>
+                  <div className="text-sm text-gray-600">{resource.location}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="stat-card" style={{ padding: '24px' }}>
           <h2 className="text-lg font-bold mb-4" style={{ color: 'var(--color-accent)' }}>Status History</h2>
           {history.length === 0 ? (

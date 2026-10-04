@@ -3,6 +3,7 @@ import DashboardLayout from '../../layouts/DashboardLayout'
 import ResourceNavigation from './ResourceNavigation'
 import { useAuth } from '../../hooks/useAuth'
 import { adminNavigation } from '../admin/adminNavigation'
+import { resourceAdminNavigation } from './resourceAdminNavigation'
 import { getBeds, getAllWards, getRoomsByWard } from '../../services/hospitalResourceService'
 import BedFormModal from './components/BedFormModal'
 import ChangeBedStatusModal from './components/ChangeBedStatusModal'
@@ -28,7 +29,7 @@ function getPageNumbers(current, total) {
 export default function BedManagement() {
   const { user } = useAuth()
   const role = user?.role || 'Staff'
-  const navigation = role === 'Admin' ? adminNavigation : staffNav
+  const navigation = role === 'ResourceAdmin' ? resourceAdminNavigation : role === 'Admin' ? adminNavigation : staffNav
 
   // Data states
   const [beds, setBeds] = useState([])
@@ -44,6 +45,7 @@ export default function BedManagement() {
   const [wardFilter, setWardFilter] = useState('')
   const [roomFilter, setRoomFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [activeStatusFilter, setActiveStatusFilter] = useState('all')
 
   // Pagination states - Default 10 records per page
   const [currentPage, setCurrentPage] = useState(1)
@@ -52,7 +54,7 @@ export default function BedManagement() {
   // Reset pagination to page 1 whenever any filter changes
   useEffect(() => {
     setCurrentPage(1)
-  }, [wardFilter, roomFilter, statusFilter])
+  }, [wardFilter, roomFilter, statusFilter, activeStatusFilter])
 
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false)
@@ -106,8 +108,15 @@ export default function BedManagement() {
         hasMore = false
       }
     }
+
+    if (activeStatusFilter === 'active') {
+      all = all.filter((b) => b.isActive === true)
+    } else if (activeStatusFilter === 'inactive') {
+      all = all.filter((b) => b.isActive === false)
+    }
+
     return all
-  }, [wardFilter, roomFilter, statusFilter])
+  }, [wardFilter, roomFilter, statusFilter, activeStatusFilter])
 
   // Initial load for full beds dataset (KPIs) and wards
   useEffect(() => {
@@ -217,6 +226,7 @@ export default function BedManagement() {
     setWardFilter('')
     setRoomFilter('')
     setStatusFilter('')
+    setActiveStatusFilter('all')
     setCurrentPage(1)
   }
 
@@ -228,11 +238,12 @@ export default function BedManagement() {
     }, 5000)
   }
 
-  // Summary Metrics (Calculated strictly from the complete, unfiltered beds dataset)
-  const totalBeds = fullBeds.length
-  const availableBeds = fullBeds.filter((b) => b.status?.toLowerCase() === 'available').length
-  const occupiedBeds = fullBeds.filter((b) => b.status?.toLowerCase() === 'occupied').length
-  const maintenanceBeds = fullBeds.filter((b) => b.status?.toLowerCase() === 'maintenance').length
+  // Summary Metrics (Calculated strictly from active beds in the complete dataset)
+  const activeBeds = useMemo(() => fullBeds.filter((b) => b.isActive === true), [fullBeds])
+  const totalBeds = activeBeds.length
+  const availableBeds = activeBeds.filter((b) => b.status?.toLowerCase() === 'available').length
+  const occupiedBeds = activeBeds.filter((b) => b.status?.toLowerCase() === 'occupied').length
+  const maintenanceBeds = activeBeds.filter((b) => b.status?.toLowerCase() === 'maintenance').length
 
   // Pagination calculations applied to currently filtered bed dataset
   const totalCount = beds.length
@@ -245,7 +256,14 @@ export default function BedManagement() {
     return beds.slice(startIndex, endIndex)
   }, [beds, startIndex, endIndex])
 
-  const renderStatusBadge = (status) => {
+  const renderStatusBadge = (status, isActive = true) => {
+    if (isActive === false) {
+      return (
+        <span className="inline-block px-2.5 py-0.5 rounded text-xs font-semibold bg-gray-100 text-gray-600 border border-gray-300">
+          Inactive
+        </span>
+      )
+    }
     const s = (status || '').toLowerCase()
     if (s === 'available') {
       return (
@@ -338,7 +356,7 @@ export default function BedManagement() {
           >
             {loading ? 'Refreshing...' : 'Refresh'}
           </button>
-          {(role === 'Admin' || role === 'Staff') && (
+          {(role === 'Admin' || role === 'Staff' || role === 'ResourceAdmin') && (
             <button
               type="button"
               onClick={() => setShowAddModal(true)}
@@ -386,7 +404,7 @@ export default function BedManagement() {
           borderColor: 'color-mix(in srgb, var(--color-secondary) 15%, var(--color-primary))',
         }}
       >
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Ward Filter */}
           <div>
             <label htmlFor="filter-ward-select" className="block text-xs font-semibold mb-1">
@@ -469,9 +487,30 @@ export default function BedManagement() {
               <option value="5">Blocked</option>
             </select>
           </div>
+
+          {/* Active Status Filter */}
+          <div>
+            <label htmlFor="filter-active-status-select" className="block text-xs font-semibold mb-1">
+              Active Status
+            </label>
+            <select
+              id="filter-active-status-select"
+              value={activeStatusFilter}
+              onChange={(e) => setActiveStatusFilter(e.target.value)}
+              className="w-full px-3 py-1.5 text-xs border rounded-lg outline-none bg-transparent"
+              style={{
+                borderColor: 'color-mix(in srgb, var(--color-secondary) 25%, var(--color-primary))',
+                color: 'var(--color-secondary)',
+              }}
+            >
+              <option value="all">All</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
         </div>
 
-        {(wardFilter || roomFilter || statusFilter) && (
+        {(wardFilter || roomFilter || statusFilter || activeStatusFilter !== 'all') && (
           <div className="flex justify-end pt-1">
             <button
               type="button"
@@ -534,6 +573,7 @@ export default function BedManagement() {
               ) : (
                 paginatedBeds.map((bed) => {
                   const isOccupied = bed.status?.toLowerCase() === 'occupied'
+                  const hasLinkedPatient = Boolean(bed.currentPatientName)
 
                   return (
                     <tr
@@ -544,11 +584,6 @@ export default function BedManagement() {
                     >
                       <td className="p-3 text-xs font-mono font-bold" style={{ color: 'var(--color-accent)' }}>
                         {bed.bedNumber}
-                        {!bed.isActive && (
-                          <span className="ml-2 text-xs font-normal text-red-600 bg-red-50 border border-red-200 rounded px-1.5 py-0.5">
-                            Inactive
-                          </span>
-                        )}
                       </td>
 
                       <td className="p-3 text-xs">
@@ -567,11 +602,11 @@ export default function BedManagement() {
                       </td>
 
                       <td className="p-3 text-xs">
-                        {renderStatusBadge(bed.status)}
+                        {renderStatusBadge(bed.status, bed.isActive)}
                       </td>
 
                       <td className="p-3 text-xs">
-                        {isOccupied && bed.currentPatientName ? (
+                        {(isOccupied || bed.status?.toLowerCase() === 'reserved') && hasLinkedPatient ? (
                           <div>
                             <span className="font-semibold text-emerald-800">
                               {bed.currentPatientName}
@@ -595,21 +630,23 @@ export default function BedManagement() {
                             aria-label="Edit Bed"
                           />
 
-                          <button
-                            type="button"
-                            onClick={() => setStatusBedTarget(bed)}
-                            disabled={isOccupied}
-                            className="secondary-button text-xs px-2.5 py-1"
-                            style={{
-                              opacity: isOccupied ? 0.5 : 1,
-                              cursor: isOccupied ? 'not-allowed' : 'pointer',
-                            }}
-                            title={isOccupied ? 'Occupied bed status managed in Admissions' : 'Change status'}
-                          >
-                            Change Status
-                          </button>
+                          {bed.isActive !== false && (
+                            <button
+                              type="button"
+                              onClick={() => setStatusBedTarget(bed)}
+                              disabled={isOccupied}
+                              className="secondary-button text-xs px-2.5 py-1"
+                              style={{
+                                opacity: isOccupied ? 0.5 : 1,
+                                cursor: isOccupied ? 'not-allowed' : 'pointer',
+                              }}
+                              title={isOccupied ? 'Occupied bed status managed in Admissions' : 'Change status'}
+                            >
+                              Change Status
+                            </button>
+                          )}
 
-                          {role === 'Admin' && (
+                          {(role === 'Admin' || role === 'ResourceAdmin') && bed.isActive !== false && (
                             <button
                               type="button"
                               onClick={() => setDeactivateBedTarget(bed)}

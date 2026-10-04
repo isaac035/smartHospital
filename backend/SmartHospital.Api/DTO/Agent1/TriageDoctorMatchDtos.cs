@@ -25,6 +25,7 @@ public static class TriageStatus
 
 public class TriageDoctorMatchResponse
 {
+    public int? TriageResultId { get; set; }
     public string Status { get; set; } = TriageStatus.Ok;
     public int PatientId { get; set; }
 
