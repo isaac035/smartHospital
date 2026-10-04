@@ -32,6 +32,21 @@ public class UsersController : ControllerBase
         }
     }
 
+    [HttpPost("doctor-manager")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> CreateDoctorManager(CreateDoctorManagerRequest request)
+    {
+        try
+        {
+            var user = await _userService.CreateDoctorManagerAsync(request);
+            return Created($"/api/users/{user.Id}", user);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+    }
+
     [HttpGet]
     [Authorize(Roles = "Admin,Staff")]
     public async Task<IActionResult> GetAll()

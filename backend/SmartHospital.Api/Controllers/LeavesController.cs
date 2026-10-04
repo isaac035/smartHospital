@@ -57,7 +57,7 @@ public class LeavesController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin,Staff,Doctor")]
+    [Authorize(Roles = "Admin,Staff,Doctor,DoctorManager")]
     public async Task<IActionResult> Create(CreateLeaveRequest request)
     {
         var isDoctor = User.IsInRole("Doctor");
@@ -94,7 +94,7 @@ public class LeavesController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
-    [Authorize(Roles = "Admin,Staff")]
+    [Authorize(Roles = "Admin,Staff,DoctorManager")]
     public async Task<IActionResult> Update(int id, UpdateLeaveRequest request)
     {
         try
@@ -121,7 +121,7 @@ public class LeavesController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
-    [Authorize(Roles = "Admin,Staff,Doctor")]
+    [Authorize(Roles = "Admin,Staff,Doctor,DoctorManager")]
     public async Task<IActionResult> Cancel(int id)
     {
         if (User.IsInRole("Doctor"))

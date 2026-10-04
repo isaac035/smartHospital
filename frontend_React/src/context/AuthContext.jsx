@@ -25,7 +25,7 @@ export function AuthProvider({ children }) {
 
   const loginUser = async (email, password) => {
     const response = await authService.login(email, password)
-    const allowedRoles = ['Admin', 'Doctor', 'Staff', 'AppointmentManager']
+    const allowedRoles = ['Admin', 'Doctor', 'Staff', 'AppointmentManager', 'DoctorManager']
 
     if (!allowedRoles.includes(response.role)) {
       const error = new Error('This account is not permitted to access the web application.')

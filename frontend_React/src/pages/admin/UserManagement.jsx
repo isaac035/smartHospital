@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import DashboardLayout from '../../layouts/DashboardLayout'
 import { adminNavigation as navigation } from './adminNavigation'
-import { listUsers, updateUser, deactivateUser } from '../../services/userService'
+import { listUsers, updateUser, deactivateUser, createDoctorManager } from '../../services/userService'
 
 function UserFormModal({ user, onClose, onSaved }) {
   const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm({
@@ -52,6 +52,62 @@ function UserFormModal({ user, onClose, onSaved }) {
   </div>
 }
 
+// Creates a Doctor Manager: an admin who can only manage doctors, availability and leave.
+function DoctorManagerFormModal({ onClose, onSaved }) {
+  const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm({
+    defaultValues: { firstName: '', lastName: '', email: '', phoneNumber: '', password: '' },
+  })
+
+  const onSubmit = async (values) => {
+    try {
+      await createDoctorManager(values)
+      onSaved()
+    } catch (requestError) {
+      setError('root', { message: requestError.response?.data?.message || 'Could not create the account. Please try again.' })
+    }
+  }
+
+  return <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="doctor-manager-title">
+    <div className="modal-card">
+      <h2 id="doctor-manager-title">Create Doctor Manager</h2>
+      <p>Can manage doctors, the availability calendar, and leave. No other access.</p>
+      <form onSubmit={handleSubmit(onSubmit)} noValidate>
+        {errors.root && <p className="form-error" role="alert">{errors.root.message}</p>}
+        <div className="field-row">
+          <div>
+            <label htmlFor="dmFirstName">First name</label>
+            <input id="dmFirstName" {...register('firstName', { required: 'Required.' })} />
+            {errors.firstName && <p className="field-error">{errors.firstName.message}</p>}
+          </div>
+          <div>
+            <label htmlFor="dmLastName">Last name</label>
+            <input id="dmLastName" {...register('lastName', { required: 'Required.' })} />
+            {errors.lastName && <p className="field-error">{errors.lastName.message}</p>}
+          </div>
+        </div>
+        <label htmlFor="dmEmail">Email</label>
+        <input id="dmEmail" type="email" autoComplete="off" {...register('email', {
+          required: 'Required.',
+          pattern: { value: /^\S+@\S+\.\S+$/, message: 'Enter a valid email address.' },
+        })} />
+        {errors.email && <p className="field-error">{errors.email.message}</p>}
+        <label htmlFor="dmPhone">Phone number</label>
+        <input id="dmPhone" {...register('phoneNumber')} />
+        <label htmlFor="dmPassword">Temporary password</label>
+        <input id="dmPassword" type="password" autoComplete="new-password" {...register('password', {
+          required: 'Required.',
+          minLength: { value: 6, message: 'At least 6 characters.' },
+        })} />
+        {errors.password && <p className="field-error">{errors.password.message}</p>}
+        <div className="modal-actions">
+          <button type="button" className="secondary-button" onClick={onClose}>Cancel</button>
+          <button type="submit" className="primary-button" disabled={isSubmitting}>{isSubmitting ? 'Creating...' : 'Create account'}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
 export default function UserManagement() {
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
@@ -60,6 +116,7 @@ export default function UserManagement() {
   
   const [editingUser, setEditingUser] = useState(null)
   const [showForm, setShowForm] = useState(false)
+  const [showDoctorManagerForm, setShowDoctorManagerForm] = useState(false)
 
   const loadUsers = async () => {
     try {
@@ -113,6 +170,7 @@ export default function UserManagement() {
             Admins
           </button>
         </div>
+        <button className="primary-button" onClick={() => setShowDoctorManagerForm(true)}>+ Create Doctor Manager</button>
       </div>
 
       {error && <p className="form-error" role="alert">{error}</p>}
@@ -154,6 +212,9 @@ export default function UserManagement() {
       </div>
 
       {showForm && <UserFormModal user={editingUser} onClose={closeForm} onSaved={handleSaved} />}
+      {showDoctorManagerForm && <DoctorManagerFormModal
+        onClose={() => setShowDoctorManagerForm(false)}
+        onSaved={() => { setShowDoctorManagerForm(false); setActiveTab('Admins'); loadUsers() }} />}
     </DashboardLayout>
   )
 }
