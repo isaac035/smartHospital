@@ -54,12 +54,14 @@ export default function AppRoutes() {
         <Route path="/admin/doctor-appointments" element={<DoctorAppointmentManagement />} />
         <Route path="/admin/queue-management" element={<QueueDashboard />} />
       </Route>
-      <Route element={<RoleRoute allowedRoles={['Admin', 'Staff']} />}>
+      <Route element={<RoleRoute allowedRoles={['Admin', 'Staff', 'DoctorManager']} />}>
         <Route path="/admin/doctors" element={<DoctorManagement />} />
-        <Route path="/admin/departments" element={<DepartmentManagement />} />
-        <Route path="/admin/consultation-types" element={<ConsultationTypeManagement />} />
         <Route path="/admin/schedules" element={<AvailabilityCalendar />} />
         <Route path="/admin/leaves" element={<LeaveManagement />} />
+      </Route>
+      <Route element={<RoleRoute allowedRoles={['Admin', 'Staff']} />}>
+        <Route path="/admin/departments" element={<DepartmentManagement />} />
+        <Route path="/admin/consultation-types" element={<ConsultationTypeManagement />} />
       </Route>
       <Route element={<RoleRoute allowedRoles={['Admin', 'Staff', 'ResourceAdmin']} />}>
         <Route path="/hospital-resources" element={<ResourceDashboard />} />

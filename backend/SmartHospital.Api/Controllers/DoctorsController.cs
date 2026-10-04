@@ -89,7 +89,7 @@ public class DoctorsController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin,Staff")]
+    [Authorize(Roles = "Admin,Staff,DoctorManager")]
     public async Task<IActionResult> Create(CreateDoctorRequest request)
     {
         try
@@ -108,7 +108,7 @@ public class DoctorsController : ControllerBase
     }
 
     [HttpPost("{id:int}/create-login")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,DoctorManager")]
     public async Task<IActionResult> CreateLoginForExistingDoctor(int id)
     {
         try
@@ -127,7 +127,7 @@ public class DoctorsController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
-    [Authorize(Roles = "Admin,Staff")]
+    [Authorize(Roles = "Admin,Staff,DoctorManager")]
     public async Task<IActionResult> Update(int id, UpdateDoctorRequest request)
     {
         try
@@ -154,7 +154,7 @@ public class DoctorsController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,DoctorManager")]
     public async Task<IActionResult> Deactivate(int id)
     {
         var success = await _doctorService.DeactivateAsync(id);
@@ -174,7 +174,7 @@ public class DoctorsController : ControllerBase
     }
 
     [HttpDelete("{id:int}/permanent")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,DoctorManager")]
     public async Task<IActionResult> DeletePermanently(int id)
     {
         var success = await _doctorService.DeletePermanentlyAsync(id);
@@ -188,7 +188,7 @@ public class DoctorsController : ControllerBase
     }
 
     [HttpPost("{id:int}/activate")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,DoctorManager")]
     public async Task<IActionResult> Activate(int id)
     {
         try

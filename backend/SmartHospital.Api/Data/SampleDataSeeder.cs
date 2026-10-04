@@ -66,6 +66,7 @@ public static class SampleDataSeeder
         var userSeeds = new[]
         {
             ("Kasun", "Fernando", "staff@smarthospital.local", "Staff123!", "0772223344", UserRole.Staff, UserStatus.Active),
+            ("Dilani", "Abeysekera", "doctormanager@smarthospital.local", "DoctorManager123!", "0772223355", UserRole.DoctorManager, UserStatus.Active),
             ("Amaya", "Silva", "patient@smarthospital.local", "Patient123!", "0715550101", UserRole.Patient, UserStatus.Active),
             ("Ravi", "Jayasinghe", "ravi.jayasinghe@example.com", "Patient123!", "0715550102", UserRole.Patient, UserStatus.Active),
             ("Tharushi", "Wickramasinghe", "tharushi.w@example.com", "Patient123!", "0715550103", UserRole.Patient, UserStatus.Active),

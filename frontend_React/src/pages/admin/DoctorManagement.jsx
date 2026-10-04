@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import DashboardLayout from '../../layouts/DashboardLayout'
-import { adminNavigation as navigation } from './adminNavigation'
+import { adminNavigation } from './adminNavigation'
+import { doctorManagerNavigation } from './doctorManagerNavigation'
+import { useAuth } from '../../hooks/useAuth'
 import { listDepartments } from '../../services/departmentService'
 import { listConsultationTypes } from '../../services/consultationTypeService'
 import { activateDoctor, createDoctor, createDoctorLogin, deactivateDoctor, deleteDoctorPermanently, listDoctors, updateDoctor } from '../../services/doctorService'
@@ -72,6 +74,9 @@ function DoctorFormModal({ doctor, departments, onClose, onSaved }) {
 }
 
 export default function DoctorManagement() {
+  const { user } = useAuth()
+  const role = user?.role === 'DoctorManager' ? 'DoctorManager' : 'Admin'
+  const navigation = role === 'DoctorManager' ? doctorManagerNavigation : adminNavigation
   const [doctors, setDoctors] = useState([])
   const [departments, setDepartments] = useState([])
   const [consultationTypes, setConsultationTypes] = useState([])
@@ -184,7 +189,7 @@ export default function DoctorManagement() {
   const unlinkedCount = doctors.filter((doctor) => doctor.userId == null).length
   const eligibleUnlinkedCount = doctors.filter((doctor) => doctor.userId == null && doctor.status !== 'Inactive').length
 
-  return <DashboardLayout role="Admin" navigation={navigation} title="Doctor Management" subtitle="Manage doctor profiles, specializations, and departments.">
+  return <DashboardLayout role={role} navigation={navigation} title="Doctor Management" subtitle="Manage doctor profiles, specializations, and departments.">
     <div className="toolbar">
       <div className="filter-bar">
         <input placeholder="Search by name or ID" value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} />

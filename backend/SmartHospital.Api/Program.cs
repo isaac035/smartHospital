@@ -314,6 +314,7 @@ app.UseAuthentication();
 
 app.UseAuthorization();
 app.UseMiddleware<AppointmentManagerAuthorizationMiddleware>();
+app.UseMiddleware<DoctorManagerAuthorizationMiddleware>();
 app.UseRateLimiter();
 
 app.MapControllers();

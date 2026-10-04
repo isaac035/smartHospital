@@ -17,6 +17,11 @@ export const updateUser = async (id, payload) => {
   return response.data
 }
 
+export const createDoctorManager = async (payload) => {
+  const response = await api.post('/users/doctor-manager', payload)
+  return response.data
+}
+
 export const deactivateUser = async (id) => {
   const response = await api.delete(`/users/${id}`)
   return response.data

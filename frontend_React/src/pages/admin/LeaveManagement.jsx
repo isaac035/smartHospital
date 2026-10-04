@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import DashboardLayout from '../../layouts/DashboardLayout'
-import { adminNavigation as navigation } from './adminNavigation'
+import { adminNavigation } from './adminNavigation'
+import { doctorManagerNavigation } from './doctorManagerNavigation'
+import { useAuth } from '../../hooks/useAuth'
 import { listDoctors } from '../../services/doctorService'
 import { cancelLeave, createLeave, listLeaves, updateLeave } from '../../services/leaveService'
 
@@ -44,6 +46,9 @@ function LeaveFormModal({ doctors, onClose, onSaved }) {
 }
 
 export default function LeaveManagement() {
+  const { user } = useAuth()
+  const role = user?.role === 'DoctorManager' ? 'DoctorManager' : 'Admin'
+  const navigation = role === 'DoctorManager' ? doctorManagerNavigation : adminNavigation
   const [leaves, setLeaves] = useState([])
   const [doctors, setDoctors] = useState([])
   const [loading, setLoading] = useState(true)
@@ -80,7 +85,7 @@ export default function LeaveManagement() {
 
   const handleSaved = () => { setShowForm(false); loadLeaves() }
 
-  return <DashboardLayout role="Admin" navigation={navigation} title="Leave / Unavailability" subtitle="Record and manage doctor leave and temporary unavailability.">
+  return <DashboardLayout role={role} navigation={navigation} title="Leave / Unavailability" subtitle="Record and manage doctor leave and temporary unavailability.">
     <div className="toolbar">
       <div className="filter-bar" />
       <button className="primary-button" style={{ marginTop: 0 }} onClick={() => setShowForm(true)}>+ Record Leave</button>

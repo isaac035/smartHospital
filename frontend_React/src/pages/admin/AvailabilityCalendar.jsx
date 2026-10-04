@@ -15,6 +15,7 @@ import { listConsultationTypes } from '../../services/consultationTypeService'
 import { createSchedule, listSchedules, removeSchedule } from '../../services/scheduleService'
 import { useAuth } from '../../hooks/useAuth'
 import { staffNavigation } from '../staff/staffNavigation'
+import { doctorManagerNavigation } from './doctorManagerNavigation'
 
 const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
@@ -86,7 +87,9 @@ function ScheduleFormModal({ doctorId, consultationTypes, initialSlot, onClose, 
 export default function AvailabilityCalendar() {
   const { user } = useAuth()
   const role = user?.role || 'Admin'
-  const pageNavigation = role === 'Staff' ? staffNavigation : navigation
+  const pageNavigation = role === 'Staff' ? staffNavigation
+    : role === 'DoctorManager' ? doctorManagerNavigation
+    : navigation
   const [doctors, setDoctors] = useState([])
   const [consultationTypes, setConsultationTypes] = useState([])
   const [doctorId, setDoctorId] = useState('')

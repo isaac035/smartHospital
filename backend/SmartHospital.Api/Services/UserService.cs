@@ -86,21 +86,33 @@ public class UserService : IUserService
             .FirstOrDefaultAsync();
     }
 
-    public async Task<UserResponse> CreateAppointmentManagerAsync(CreateAppointmentManagerRequest request)
+    public Task<UserResponse> CreateAppointmentManagerAsync(CreateAppointmentManagerRequest request) =>
+        CreateManagerAccountAsync(
+            request.FirstName, request.LastName, request.Email, request.Password, request.PhoneNumber,
+            UserRole.AppointmentManager, "appointment manager");
+
+    public Task<UserResponse> CreateDoctorManagerAsync(CreateDoctorManagerRequest request) =>
+        CreateManagerAccountAsync(
+            request.FirstName, request.LastName, request.Email, request.Password, request.PhoneNumber,
+            UserRole.DoctorManager, "doctor manager");
+
+    private async Task<UserResponse> CreateManagerAccountAsync(
+        string firstName, string lastName, string email, string password, string phoneNumber,
+        UserRole role, string roleLabel)
     {
-        var email = request.Email.Trim().ToLowerInvariant();
+        email = email.Trim().ToLowerInvariant();
         if (await _context.Users.AnyAsync(u => u.Email == email))
             throw new InvalidOperationException("A user with this email already exists.");
 
         var now = DateTime.UtcNow;
         var user = new User
         {
-            FirstName = request.FirstName.Trim(),
-            LastName = request.LastName.Trim(),
+            FirstName = firstName.Trim(),
+            LastName = lastName.Trim(),
             Email = email,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
-            PhoneNumber = request.PhoneNumber.Trim(),
-            Role = UserRole.AppointmentManager,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
+            PhoneNumber = phoneNumber.Trim(),
+            Role = role,
             Status = UserStatus.Active,
             CreatedAt = now,
             UpdatedAt = now
@@ -109,7 +121,7 @@ public class UserService : IUserService
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
         return await GetByIdAsync(user.Id)
-            ?? throw new InvalidOperationException("Failed to create appointment manager account.");
+            ?? throw new InvalidOperationException($"Failed to create {roleLabel} account.");
     }
 
     public async Task<UserResponse?> UpdateAsync(

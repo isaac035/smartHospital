@@ -2,6 +2,9 @@ import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 
+// 'DoctorManager' -> 'Doctor Manager' for display.
+const roleLabel = (value) => (value || '').replace(/([a-z])([A-Z])/g, '$1 $2')
+
 export default function DashboardLayout({ role, navigation, title, subtitle, children }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [menuOpenState, setMenuOpenState] = useState({})
@@ -80,8 +83,8 @@ export default function DashboardLayout({ role, navigation, title, subtitle, chi
     <main className="dashboard-main">
       <header className="dashboard-header">
         <button className="menu-toggle" onClick={() => setMenuOpen(true)} aria-label="Open navigation">☰</button>
-        <div><p className="eyebrow">{role} portal</p><h1>{title}</h1><p className="page-subtitle">{subtitle}</p></div>
-        <div className="user-summary"><span className="user-avatar">{user?.firstName?.[0] || 'U'}</span><div><strong>{user?.firstName} {user?.lastName}</strong><span>{user?.role}</span></div></div>
+        <div><p className="eyebrow">{roleLabel(role)} portal</p><h1>{title}</h1><p className="page-subtitle">{subtitle}</p></div>
+        <div className="user-summary"><span className="user-avatar">{user?.firstName?.[0] || 'U'}</span><div><strong>{user?.firstName} {user?.lastName}</strong><span>{roleLabel(user?.role)}</span></div></div>
       </header>
       <section className="dashboard-content">{children}</section>
     </main>

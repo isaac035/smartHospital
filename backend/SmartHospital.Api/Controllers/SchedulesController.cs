@@ -45,7 +45,7 @@ public class SchedulesController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin,Staff")]
+    [Authorize(Roles = "Admin,Staff,DoctorManager")]
     public async Task<IActionResult> Create(CreateScheduleRequest request)
     {
         try
@@ -65,7 +65,7 @@ public class SchedulesController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
-    [Authorize(Roles = "Admin,Staff")]
+    [Authorize(Roles = "Admin,Staff,DoctorManager")]
     public async Task<IActionResult> Update(int id, UpdateScheduleRequest request)
     {
         try
@@ -93,7 +93,7 @@ public class SchedulesController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
-    [Authorize(Roles = "Admin,Staff")]
+    [Authorize(Roles = "Admin,Staff,DoctorManager")]
     public async Task<IActionResult> Remove(int id)
     {
         var existing = await _scheduleService.GetByIdAsync(id);
