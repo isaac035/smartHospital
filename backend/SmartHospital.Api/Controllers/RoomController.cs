@@ -90,4 +90,24 @@ public class RoomController : ControllerBase
             return BadRequest(new { message = ex.Message });
         }
     }
+
+    [HttpPost("{id:int}/activate")]
+    [Authorize(Roles = "Admin,ResourceAdmin")]
+    public async Task<IActionResult> ActivateRoom(int id)
+    {
+        try
+        {
+            var success = await _roomService.ActivateRoomAsync(id);
+            if (!success)
+            {
+                return NotFound(new { message = "Room not found." });
+            }
+
+            return Ok(new { message = "Room activated successfully." });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
 }

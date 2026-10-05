@@ -122,4 +122,22 @@ public class ConsultationTypeService : IConsultationTypeService
 
         return true;
     }
+
+    public async Task<bool> ActivateAsync(int id)
+    {
+        var consultationType = await _context.ConsultationTypes
+            .FirstOrDefaultAsync(c => c.Id == id);
+
+        if (consultationType == null)
+        {
+            return false;
+        }
+
+        consultationType.Status = ConsultationTypeStatus.Active;
+        consultationType.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+
+        return true;
+    }
 }

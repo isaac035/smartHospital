@@ -62,7 +62,7 @@ class ProfileScreen extends StatelessWidget {
 
             const SizedBox(height: 24),
             ListTile(
-              leading: const Icon(Icons.medical_information, color: Colors.blue),
+              leading: const Icon(Icons.medical_information, color: AppTheme.primaryColor),
               title: const Text('Medical Records & Health History'),
               trailing: const Icon(Icons.arrow_forward_ios, size: 16),
               onTap: () => context.push('/medical-records'),

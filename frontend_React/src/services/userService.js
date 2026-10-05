@@ -26,3 +26,8 @@ export const deactivateUser = async (id) => {
   const response = await api.delete(`/users/${id}`)
   return response.data
 }
+
+export const activateUser = async (id) => {
+  const response = await api.post(`/users/${id}/activate`)
+  return response.data
+}

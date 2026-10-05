@@ -1,3 +1,4 @@
+import ToggleActiveButton from '../../components/common/ToggleActiveButton'
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import DashboardLayout from '../../layouts/DashboardLayout'
 import ResourceNavigation from './ResourceNavigation'
@@ -812,3 +813,4 @@ export default function MedicalResources() {
     </DashboardLayout>
   )
 }
+

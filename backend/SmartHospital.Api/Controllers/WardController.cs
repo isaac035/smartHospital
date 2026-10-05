@@ -91,6 +91,26 @@ public class WardController : ControllerBase
         }
     }
 
+    [HttpPost("{id:int}/activate")]
+    [Authorize(Roles = "Admin,ResourceAdmin")]
+    public async Task<IActionResult> ActivateWard(int id)
+    {
+        try
+        {
+            var success = await _wardService.ActivateWardAsync(id);
+            if (!success)
+            {
+                return NotFound(new { message = "Ward not found." });
+            }
+
+            return Ok(new { message = "Ward activated successfully." });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     [HttpGet("{id:int}/occupancy")]
     public async Task<IActionResult> GetWardOccupancy(int id)
     {

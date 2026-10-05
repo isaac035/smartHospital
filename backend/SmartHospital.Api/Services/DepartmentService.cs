@@ -118,4 +118,22 @@ public class DepartmentService : IDepartmentService
 
         return true;
     }
+
+    public async Task<bool> ActivateAsync(int id)
+    {
+        var department = await _context.Departments
+            .FirstOrDefaultAsync(d => d.Id == id);
+
+        if (department == null)
+        {
+            return false;
+        }
+
+        department.Status = DepartmentStatus.Active;
+        department.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+
+        return true;
+    }
 }

@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/theme/app_theme.dart';
+import '../../theme/app_theme.dart';
 import '../../core/utils/api_datetime.dart';
 import '../../models/appointments/appointment_model.dart';
 import '../../models/user_model.dart';
@@ -52,7 +52,7 @@ class _HomeScreenState extends State<HomeScreen> {
         return false;
       },
       child: Scaffold(
-        backgroundColor: AppTheme.backgroundColor,
+        backgroundColor: AppColors.background,
         body: user == null
             ? const SafeArea(
                 child: LoadingView(message: 'Loading your portal…'),
@@ -62,8 +62,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   SliverAppBar(
                     pinned: true,
                     toolbarHeight: 68,
-                    backgroundColor: AppTheme.pageTopTint,
-                    surfaceTintColor: AppTheme.transparentColor,
+                    backgroundColor: AppColors.surface,
+                    surfaceTintColor: Colors.transparent,
                     scrolledUnderElevation: 0,
                     titleSpacing: horizontalPadding,
                     title: Row(
@@ -73,13 +73,13 @@ class _HomeScreenState extends State<HomeScreen> {
                           width: 34,
                           height: 34,
                           decoration: BoxDecoration(
-                            color: AppTheme.primaryColor,
+                            color: AppColors.primary,
                             borderRadius: BorderRadius.circular(10),
                           ),
                           alignment: Alignment.center,
                           child: const Icon(
                             Icons.add_rounded,
-                            color: AppTheme.onPrimary,
+                            color: Colors.white,
                             size: 26,
                           ),
                         ),
@@ -100,15 +100,15 @@ class _HomeScreenState extends State<HomeScreen> {
                           onTap: () => context.push('/profile'),
                           child: CircleAvatar(
                             radius: 19,
-                            backgroundColor: AppTheme.serviceAppointmentsTint,
+                            backgroundColor: AppColors.primary.withValues(alpha: 0.15),
                             foregroundColor:
-                                AppTheme.serviceAppointmentsForeground,
+                                AppColors.primary,
                             child: Text(
                               _initials(user),
                               style: Theme.of(context).textTheme.labelLarge
                                   ?.copyWith(
                                     color:
-                                        AppTheme.serviceAppointmentsForeground,
+                                        AppColors.primary,
                                     fontWeight: FontWeight.w700,
                                   ),
                             ),
@@ -130,8 +130,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             : const Duration(milliseconds: 150),
                         height: 1,
                         color: _scrolled
-                            ? AppTheme.borderColor
-                            : AppTheme.transparentColor,
+                            ? AppColors.border
+                            : Colors.transparent,
                       ),
                     ),
                   ),
@@ -211,8 +211,8 @@ class _HomeScreenState extends State<HomeScreen> {
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
                               colors: [
-                                AppTheme.pageTopTint,
-                                AppTheme.backgroundColor,
+                                AppColors.surface,
+                                AppColors.background,
                               ],
                               stops: [0, 1],
                             ),
@@ -254,8 +254,8 @@ class _HomeScreenState extends State<HomeScreen> {
       title: 'My Appointments',
       subtitle: 'View and manage your bookings',
       semanticDestination: 'your bookings',
-      tint: AppTheme.serviceAppointmentsTint,
-      foreground: AppTheme.serviceAppointmentsForeground,
+      tint: AppColors.primary.withValues(alpha: 0.15),
+      foreground: AppColors.primary,
       onTap: () => context.go('/appointments'),
     ),
     _HomeService(
@@ -263,8 +263,8 @@ class _HomeScreenState extends State<HomeScreen> {
       title: 'Queue Status',
       subtitle: 'See your live position',
       semanticDestination: 'your live queue position',
-      tint: AppTheme.serviceQueueTint,
-      foreground: AppTheme.serviceQueueForeground,
+      tint: AppColors.warning.withValues(alpha: 0.15),
+      foreground: AppColors.warning,
       onTap: () => context.push('/queue'),
     ),
     _HomeService(
@@ -272,8 +272,8 @@ class _HomeScreenState extends State<HomeScreen> {
       title: 'Doctors',
       subtitle: 'Find care that fits your needs',
       semanticDestination: 'doctor search',
-      tint: AppTheme.serviceDoctorsTint,
-      foreground: AppTheme.serviceDoctorsForeground,
+      tint: AppColors.success.withValues(alpha: 0.15),
+      foreground: AppColors.success,
       onTap: () => context.go('/doctors'),
     ),
     _HomeService(
@@ -281,8 +281,8 @@ class _HomeScreenState extends State<HomeScreen> {
       title: 'Medical Records',
       subtitle: 'Review your health information',
       semanticDestination: 'your medical records',
-      tint: AppTheme.serviceRecordsTint,
-      foreground: AppTheme.serviceRecordsForeground,
+      tint: AppColors.secondary.withValues(alpha: 0.15),
+      foreground: AppColors.secondary,
       onTap: () => context.go('/medical-records'),
     ),
     _HomeService(
@@ -290,8 +290,8 @@ class _HomeScreenState extends State<HomeScreen> {
       title: 'My Admissions',
       subtitle: 'View your admission details',
       semanticDestination: 'your admission details',
-      tint: const Color(0xFFD2E3F0),
-      foreground: AppTheme.serviceAppointmentsForeground,
+      tint: AppColors.primaryDark.withValues(alpha: 0.15),
+      foreground: AppColors.primary,
       onTap: () => context.go('/my-admission'),
     ),
     _HomeService(
@@ -299,8 +299,8 @@ class _HomeScreenState extends State<HomeScreen> {
       title: 'Smart Care',
       subtitle: 'Describe symptoms, get matched',
       semanticDestination: 'Smart Care doctor matching',
-      tint: AppTheme.serviceAdmissionTint,
-      foreground: AppTheme.serviceAdmissionForeground,
+      tint: AppColors.error.withValues(alpha: 0.15),
+      foreground: AppColors.error,
       onTap: () => context.push('/smart-care'),
     ),
   ];
@@ -353,15 +353,15 @@ class _GreetingHero extends StatelessWidget {
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+        borderRadius: BorderRadius.circular(24.0),
         gradient: const LinearGradient(
-          colors: [AppTheme.primaryColor, AppTheme.heroGradientEnd],
+          colors: [AppColors.primary, AppColors.primaryDark],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.primaryColor.withValues(alpha: .16),
+            color: AppColors.primary.withValues(alpha: .16),
             blurRadius: 22,
             offset: const Offset(0, 10),
           ),
@@ -387,7 +387,7 @@ class _GreetingHero extends StatelessWidget {
                 Text(
                   greetingName.isEmpty ? 'Hello!' : 'Hello, $greetingName',
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: AppTheme.onPrimary,
+                    color: Colors.white,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -395,7 +395,7 @@ class _GreetingHero extends StatelessWidget {
                 Text(
                   'Welcome to your patient portal.',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.onPrimaryMuted,
+                    color: Colors.white70,
                   ),
                 ),
                 const SizedBox(height: 18),
@@ -464,15 +464,15 @@ class _NoUpcomingAppointment extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.fromLTRB(14, 11, 10, 11),
     decoration: BoxDecoration(
-      color: AppTheme.onPrimary.withValues(alpha: .12),
+      color: Colors.white.withValues(alpha: .12),
       borderRadius: BorderRadius.circular(14),
-      border: Border.all(color: AppTheme.onPrimary.withValues(alpha: .15)),
+      border: Border.all(color: Colors.white.withValues(alpha: .15)),
     ),
     child: Row(
       children: [
         const Icon(
           Icons.event_busy_rounded,
-          color: AppTheme.onPrimaryMuted,
+          color: Colors.white70,
           size: 20,
         ),
         const SizedBox(width: 10),
@@ -480,7 +480,7 @@ class _NoUpcomingAppointment extends StatelessWidget {
           child: Text(
             'No upcoming appointments',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppTheme.onPrimary,
+              color: Colors.white,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -488,7 +488,7 @@ class _NoUpcomingAppointment extends StatelessWidget {
         TextButton(
           onPressed: () => context.push('/appointments/search'),
           style: TextButton.styleFrom(
-            foregroundColor: AppTheme.onPrimary,
+            foregroundColor: Colors.white,
             minimumSize: const Size(48, 44),
           ),
           child: const Text('Book now'),
@@ -515,15 +515,15 @@ class _SummaryPill extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
     decoration: BoxDecoration(
-      color: AppTheme.onPrimary.withValues(alpha: .12),
+      color: Colors.white.withValues(alpha: .12),
       borderRadius: BorderRadius.circular(14),
-      border: Border.all(color: AppTheme.onPrimary.withValues(alpha: .15)),
+      border: Border.all(color: Colors.white.withValues(alpha: .15)),
     ),
     child: Row(
       children: [
         const Icon(
           Icons.event_rounded,
-          color: AppTheme.onPrimaryMuted,
+          color: Colors.white70,
           size: 21,
         ),
         const SizedBox(width: 11),
@@ -534,7 +534,7 @@ class _SummaryPill extends StatelessWidget {
               Text(
                 '$date · $time',
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: AppTheme.onPrimary,
+                  color: Colors.white,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -545,7 +545,7 @@ class _SummaryPill extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(
                   context,
-                ).textTheme.bodySmall?.copyWith(color: AppTheme.onPrimaryMuted),
+                ).textTheme.bodySmall?.copyWith(color: Colors.white70),
               ),
             ],
           ),
@@ -555,14 +555,14 @@ class _SummaryPill extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
             decoration: BoxDecoration(
-              color: AppTheme.onPrimary.withValues(alpha: .16),
+              color: Colors.white.withValues(alpha: .16),
               borderRadius: BorderRadius.circular(999),
             ),
             child: Text(
               'Queue #$queueNumber',
               style: Theme.of(
                 context,
-              ).textTheme.labelSmall?.copyWith(color: AppTheme.onPrimary),
+              ).textTheme.labelSmall?.copyWith(color: Colors.white),
             ),
           ),
         ],
@@ -582,7 +582,7 @@ class _DecorativeCircle extends StatelessWidget {
     height: size,
     decoration: BoxDecoration(
       shape: BoxShape.circle,
-      color: AppTheme.onPrimary.withValues(alpha: opacity),
+      color: Colors.white.withValues(alpha: opacity),
     ),
   );
 }

@@ -40,6 +40,7 @@ dependencies:
   go_router: ^17.0.1
   intl: 0.20.2
   signalr_netcore: ^1.4.4
+  google_fonts: ^6.1.0
 
 dev_dependencies:
   flutter_test:

@@ -24,3 +24,8 @@ export async function deactivateDepartment(id) {
   const response = await api.delete(`/departments/${id}`)
   return response.data
 }
+
+export const activateDepartment = async (id) => {
+  const response = await api.post(`/departments/${id}/activate`)
+  return response.data
+}

@@ -10,5 +10,6 @@ public interface IWardService
     Task<WardDetailResponse?> GetWardByIdAsync(int id);
     Task<WardResponse?> UpdateWardAsync(int id, UpdateWardRequest request);
     Task<bool> DeactivateWardAsync(int id);
+    Task<bool> ActivateWardAsync(int id);
     Task<WardOccupancyResponse?> GetWardOccupancyAsync(int id);
 }

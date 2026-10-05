@@ -106,4 +106,24 @@ public class ConsultationTypesController : ControllerBase
             message = "Consultation type deactivated successfully."
         });
     }
+
+    [HttpPost("{id:int}/activate")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> Activate(int id)
+    {
+        var success = await _consultationTypeService.ActivateAsync(id);
+
+        if (!success)
+        {
+            return NotFound(new
+            {
+                message = "Consultation type not found."
+            });
+        }
+
+        return Ok(new
+        {
+            message = "Consultation type activated successfully."
+        });
+    }
 }

@@ -191,6 +191,26 @@ public class MedicalResourceService : IMedicalResourceService
         return true;
     }
 
+    public async Task<bool> ActivateResourceAsync(int id)
+    {
+        var resource = await _context.MedicalResources.FindAsync(id);
+        if (resource == null)
+        {
+            return false;
+        }
+
+        if (resource.Status == ResourceStatus.InUse)
+        {
+            throw new InvalidOperationException("Cannot deactivate a medical resource that is currently in use.");
+        }
+
+        resource.IsActive = true;
+        resource.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
     private async Task ValidateLocationHierarchyAsync(int? wardId, int? roomId, int? bedId)
     {
         if (bedId.HasValue)

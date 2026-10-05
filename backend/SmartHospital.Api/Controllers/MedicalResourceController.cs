@@ -110,4 +110,24 @@ public class MedicalResourceController : ControllerBase
             return BadRequest(new { message = ex.Message });
         }
     }
+
+    [HttpPost("{id:int}/activate")]
+    [Authorize(Roles = "Admin,ResourceAdmin")]
+    public async Task<IActionResult> ActivateResource(int id)
+    {
+        try
+        {
+            var success = await _medicalResourceService.ActivateResourceAsync(id);
+            if (!success)
+            {
+                return NotFound(new { message = "Medical resource not found." });
+            }
+
+            return Ok(new { message = "Medical resource activated successfully." });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
 }

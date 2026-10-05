@@ -1,10 +1,11 @@
+import ToggleActiveButton from '../../components/common/ToggleActiveButton'
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import DashboardLayout from '../../layouts/DashboardLayout'
 import ResourceNavigation from './ResourceNavigation'
 import { useAuth } from '../../hooks/useAuth'
 import { adminNavigation } from '../admin/adminNavigation'
 import { resourceAdminNavigation } from './resourceAdminNavigation'
-import { getBeds, getAllWards, getRoomsByWard } from '../../services/hospitalResourceService'
+import { getBeds, getAllWards, getRoomsByWard , activateBed , deactivateBed } from '../../services/hospitalResourceService'
 import BedFormModal from './components/BedFormModal'
 import ChangeBedStatusModal from './components/ChangeBedStatusModal'
 import DeactivateBedModal from './components/DeactivateBedModal'
@@ -800,3 +801,4 @@ export default function BedManagement() {
     </DashboardLayout>
   )
 }
+

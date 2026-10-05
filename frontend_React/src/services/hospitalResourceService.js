@@ -251,3 +251,23 @@ export const cancelScheduledMaintenance = async (id, data = {}) => {
 }
 
 
+
+export const activateWard = async (id) => {
+  const response = await api.post(`/wards/${id}/activate`)
+  return response.data
+}
+
+export const activateBed = async (id) => {
+  const response = await api.post(`/beds/${id}/activate`)
+  return response.data
+}
+
+export const activateRoom = async (id) => {
+  const response = await api.post(`/rooms/${id}/activate`)
+  return response.data
+}
+
+export const activateMedicalResource = async (id) => {
+  const response = await api.post(`/medical-resources/${id}/activate`)
+  return response.data
+}

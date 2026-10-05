@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import DashboardLayout from '../../layouts/DashboardLayout'
 import { adminNavigation as navigation } from './adminNavigation'
-import { createDepartment, deactivateDepartment, listDepartments, updateDepartment } from '../../services/departmentService'
+import { createDepartment, deactivateDepartment, activateDepartment, listDepartments, updateDepartment } from '../../services/departmentService'
+import ToggleActiveButton from '../../components/common/ToggleActiveButton'
 
 function DepartmentFormModal({ department, onClose, onSaved }) {
   const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm({
@@ -85,10 +86,22 @@ export default function DepartmentManagement() {
           {departments.map((department) => <tr key={department.id}>
             <td>{department.name}</td>
             <td>{department.description || '—'}</td>
-            <td><span className={`badge badge-${department.status.toLowerCase()}`}>{department.status}</span></td>
+            <td><span className={`badge badge-${(department.status || 'inactive').toLowerCase()}`}>{department.status || 'Inactive'}</span></td>
             <td className="row-actions">
               <button className="link-button" onClick={() => { setEditingDepartment(department); setShowForm(true) }}>Edit</button>
-              {department.status === 'Active' && <button className="link-button danger" onClick={() => handleDeactivate(department.id)}>Deactivate</button>}
+              <ToggleActiveButton 
+                  isActive={department.status === 'Active'}
+                  resourceName="Department"
+                  identifier={department.name}
+                  onToggle={async () => {
+                    if (department.status === 'Active') {
+                      await deactivateDepartment(department.id)
+                    } else {
+                      await activateDepartment(department.id)
+                    }
+                    loadDepartments()
+                  }}
+                />
             </td>
           </tr>)}
         </tbody>

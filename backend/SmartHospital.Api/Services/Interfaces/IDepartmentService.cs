@@ -15,4 +15,5 @@ public interface IDepartmentService
         UpdateDepartmentRequest request);
 
     Task<bool> DeactivateAsync(int id);
+    Task<bool> ActivateAsync(int id);
 }

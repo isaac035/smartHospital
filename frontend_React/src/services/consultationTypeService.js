@@ -24,3 +24,8 @@ export async function deactivateConsultationType(id) {
   const response = await api.delete(`/consultation-types/${id}`)
   return response.data
 }
+
+export const activateConsultationType = async (id) => {
+  const response = await api.post(`/consultation-types/${id}/activate`)
+  return response.data
+}

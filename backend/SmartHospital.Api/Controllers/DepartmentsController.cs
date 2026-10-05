@@ -106,4 +106,24 @@ public class DepartmentsController : ControllerBase
             message = "Department deactivated successfully."
         });
     }
+
+    [HttpPost("{id:int}/activate")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> Activate(int id)
+    {
+        var success = await _departmentService.ActivateAsync(id);
+
+        if (!success)
+        {
+            return NotFound(new
+            {
+                message = "Department not found."
+            });
+        }
+
+        return Ok(new
+        {
+            message = "Department activated successfully."
+        });
+    }
 }
