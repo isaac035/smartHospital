@@ -15,7 +15,7 @@ public class Agent1Settings
     /// <summary>Shared secret sent as X-Internal-Api-Key. Empty = Agent 1 disabled.</summary>
     public string InternalApiKey { get; set; } = string.Empty;
 
-    public int TimeoutSeconds { get; set; } = 25;
+    public int TimeoutSeconds { get; set; } = 120;
 
     /// <summary>Triage requests allowed per patient per window (controls LLM cost/abuse).</summary>
     public int RateLimitPermits { get; set; } = 10;
