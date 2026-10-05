@@ -121,4 +121,24 @@ public class BedController : ControllerBase
             return BadRequest(new { message = ex.Message });
         }
     }
+
+    [HttpPost("{id:int}/activate")]
+    [Authorize(Roles = "Admin,ResourceAdmin")]
+    public async Task<IActionResult> ActivateBed(int id)
+    {
+        try
+        {
+            var success = await _bedService.ActivateBedAsync(id);
+            if (!success)
+            {
+                return NotFound(new { message = "Bed not found." });
+            }
+
+            return Ok(new { message = "Bed activated successfully." });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
 }

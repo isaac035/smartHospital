@@ -2,14 +2,14 @@ export default function PriorityBadge({ priority }) {
   // Using Tailwind utility classes for semantic colors since index.css
   // only defines --color-primary, --color-secondary, --color-accent
   
-  let styles = 'bg-gray-100 text-gray-800'
+  let styles = 'bg-gray-800 text-gray-200 border-gray-700'
   
   if (priority === 'Emergency' || priority === 3) {
-    styles = 'bg-red-100 text-red-800 border border-red-200 font-bold'
+    styles = 'bg-red-900 text-red-100 border border-red-700 font-bold shadow-[0_0_8px_rgba(220,38,38,0.5)]'
   } else if (priority === 'Urgent' || priority === 2) {
-    styles = 'bg-orange-100 text-orange-800 border border-orange-200'
+    styles = 'bg-orange-900 text-orange-200 border border-orange-700'
   } else if (priority === 'Normal' || priority === 1) {
-    styles = 'bg-green-100 text-green-800 border border-green-200'
+    styles = 'bg-green-900 text-green-200 border border-green-700'
   }
 
   const label = priority === 3 ? 'Emergency' : priority === 2 ? 'Urgent' : priority === 1 ? 'Normal' : priority

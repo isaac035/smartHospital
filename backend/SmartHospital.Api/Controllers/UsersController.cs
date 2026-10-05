@@ -123,4 +123,24 @@ public class UsersController : ControllerBase
             message = "User deactivated successfully."
         });
     }
+
+    [HttpPost("{id:int}/activate")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> Activate(int id)
+    {
+        var success = await _userService.ActivateAsync(id);
+
+        if (!success)
+        {
+            return NotFound(new
+            {
+                message = "User not found."
+            });
+        }
+
+        return Ok(new
+        {
+            message = "User activated successfully."
+        });
+    }
 }

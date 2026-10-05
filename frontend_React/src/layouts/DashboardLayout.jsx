@@ -1,3 +1,4 @@
+import ErrorBoundary from '../components/common/ErrorBoundary';
 import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
@@ -86,7 +87,7 @@ export default function DashboardLayout({ role, navigation, title, subtitle, chi
         <div><p className="eyebrow">{roleLabel(role)} portal</p><h1>{title}</h1><p className="page-subtitle">{subtitle}</p></div>
         <div className="user-summary"><span className="user-avatar">{user?.firstName?.[0] || 'U'}</span><div><strong>{user?.firstName} {user?.lastName}</strong><span>{roleLabel(user?.role)}</span></div></div>
       </header>
-      <section className="dashboard-content">{children}</section>
+      <section className="dashboard-content"><ErrorBoundary>{children}</ErrorBoundary></section>
     </main>
   </div>
 }

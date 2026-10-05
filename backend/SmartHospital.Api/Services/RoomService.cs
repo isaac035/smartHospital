@@ -218,4 +218,34 @@ public class RoomService : IRoomService
         await _context.SaveChangesAsync();
         return true;
     }
+
+    public async Task<bool> ActivateRoomAsync(int id)
+    {
+        var room = await _context.Rooms
+            .Include(r => r.Beds)
+            .FirstOrDefaultAsync(r => r.Id == id);
+
+        if (room == null)
+        {
+            return false;
+        }
+
+        var hasOccupiedBeds = room.Beds.Any(b => b.Status == BedStatus.Occupied);
+        if (hasOccupiedBeds)
+        {
+            throw new InvalidOperationException("Cannot deactivate a room containing occupied beds. Please transfer or discharge patients first.");
+        }
+
+        room.IsActive = true;
+        room.UpdatedAt = DateTime.UtcNow;
+
+        foreach (var bed in room.Beds)
+        {
+            bed.IsActive = true;
+            bed.UpdatedAt = DateTime.UtcNow;
+        }
+
+        await _context.SaveChangesAsync();
+        return true;
+    }
 }

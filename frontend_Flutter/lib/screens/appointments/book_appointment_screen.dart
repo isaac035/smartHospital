@@ -78,7 +78,14 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
           backgroundColor: AppTheme.successColor,
         ),
       );
-      context.go('/appointments/confirmed/${result.id}');
+      
+      if (widget.triageResultId != null) {
+        // Smart Care AI flow: go to Yes/No Resource Check (Agent 3) screen
+        context.go('/appointments/confirmed/${result.id}');
+      } else {
+        // Manual Booking flow: go directly to normal done page (Details), no AI logic
+        context.go('/appointments/${result.id}');
+      }
     }
   }
 

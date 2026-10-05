@@ -163,4 +163,22 @@ public class UserService : IUserService
 
         return true;
     }
+
+    public async Task<bool> ActivateAsync(int id)
+    {
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.Id == id);
+
+        if (user == null)
+        {
+            return false;
+        }
+
+        user.Status = UserStatus.Active;
+        user.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+
+        return true;
+    }
 }

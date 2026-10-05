@@ -200,6 +200,45 @@ public class WardService : IWardService
         return true;
     }
 
+    public async Task<bool> ActivateWardAsync(int id)
+    {
+        var ward = await _context.Wards
+            .Include(w => w.Rooms)
+                .ThenInclude(r => r.Beds)
+            .FirstOrDefaultAsync(w => w.Id == id);
+
+        if (ward == null)
+        {
+            return false;
+        }
+
+        var hasOccupiedBeds = ward.Rooms
+            .SelectMany(r => r.Beds)
+            .Any(b => b.Status == BedStatus.Occupied);
+
+        if (hasOccupiedBeds)
+        {
+            throw new InvalidOperationException("Cannot deactivate a ward containing occupied beds. Please transfer or discharge patients first.");
+        }
+
+        ward.IsActive = true;
+        ward.UpdatedAt = DateTime.UtcNow;
+
+        foreach (var room in ward.Rooms)
+        {
+            room.IsActive = true;
+            room.UpdatedAt = DateTime.UtcNow;
+            foreach (var bed in room.Beds)
+            {
+                bed.IsActive = true;
+                bed.UpdatedAt = DateTime.UtcNow;
+            }
+        }
+
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
     public async Task<WardOccupancyResponse?> GetWardOccupancyAsync(int id)
     {
         var ward = await _context.Wards

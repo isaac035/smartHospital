@@ -12,4 +12,5 @@ public interface IBedService
     Task<BedResponse?> UpdateBedAsync(int id, UpdateBedRequest request);
     Task<BedResponse?> UpdateBedStatusAsync(int id, UpdateBedStatusRequest request);
     Task<bool> DeactivateBedAsync(int id);
+    Task<bool> ActivateBedAsync(int id);
 }

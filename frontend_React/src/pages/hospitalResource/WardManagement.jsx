@@ -1,8 +1,9 @@
+import ToggleActiveButton from '../../components/common/ToggleActiveButton'
 import { useState, useEffect, useMemo } from 'react'
 import DashboardLayout from '../../layouts/DashboardLayout'
 import ResourceNavigation from './ResourceNavigation'
 import { useAuth } from '../../hooks/useAuth'
-import { getAllWards } from '../../services/hospitalResourceService'
+import { getAllWards , activateWard , deactivateWard } from '../../services/hospitalResourceService'
 import WardFormModal from './components/WardFormModal'
 import WardOccupancyModal from './components/WardOccupancyModal'
 import DeactivateWardModal from './components/DeactivateWardModal'
@@ -473,3 +474,4 @@ export default function WardManagement() {
     </DashboardLayout>
   )
 }
+

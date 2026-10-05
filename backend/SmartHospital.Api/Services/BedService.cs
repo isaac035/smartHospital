@@ -319,6 +319,25 @@ public class BedService : IBedService
         return true;
     }
 
+    public async Task<bool> ActivateBedAsync(int id)
+    {
+        var bed = await _context.Beds.FindAsync(id);
+        if (bed == null)
+        {
+            return false;
+        }
+
+        
+
+        
+
+        bed.IsActive = true;
+        bed.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
     private async Task<Dictionary<int, AgentBedReservationPatient>> GetActiveAgentReservations(IEnumerable<int> bedIds)
     {
         var ids = bedIds.ToArray();

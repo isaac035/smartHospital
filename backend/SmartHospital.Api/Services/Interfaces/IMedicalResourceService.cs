@@ -10,4 +10,5 @@ public interface IMedicalResourceService
     Task<MedicalResourceResponse?> UpdateResourceAsync(int id, UpdateResourceRequest request);
     Task<MedicalResourceResponse?> AssignResourceAsync(int id, AssignResourceRequest request);
     Task<bool> DeactivateResourceAsync(int id);
+    Task<bool> ActivateResourceAsync(int id);
 }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'core/theme/app_theme.dart';
+import 'theme/app_theme.dart';
 import 'core/storage/secure_storage_service.dart';
 import 'core/network/api_client.dart';
 import 'services/auth_service.dart';
@@ -130,7 +130,8 @@ class MyApp extends StatelessWidget {
           final router = AppRouter.router(context);
           return MaterialApp.router(
             title: 'Smart Hospital',
-            theme: AppTheme.lightTheme,
+            theme: AppTheme.darkTheme(),
+              themeMode: ThemeMode.dark,
             debugShowCheckedModeBanner: false,
             routerConfig: router,
             builder: (context, child) =>
@@ -141,3 +142,4 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+

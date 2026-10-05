@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import DashboardLayout from '../../layouts/DashboardLayout'
 import { adminNavigation as navigation } from './adminNavigation'
-import { createConsultationType, deactivateConsultationType, listConsultationTypes, updateConsultationType } from '../../services/consultationTypeService'
+import { createConsultationType, deactivateConsultationType, activateConsultationType, listConsultationTypes, updateConsultationType } from '../../services/consultationTypeService'
+import ToggleActiveButton from '../../components/common/ToggleActiveButton'
 
 function ConsultationTypeFormModal({ consultationType, onClose, onSaved }) {
   const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm({
@@ -94,10 +95,22 @@ export default function ConsultationTypeManagement() {
             <td>{type.name}</td>
             <td>{type.durationMinutes} min</td>
             <td>{type.description || '—'}</td>
-            <td><span className={`badge badge-${type.status.toLowerCase()}`}>{type.status}</span></td>
+            <td><span className={`badge badge-${(type.status || 'inactive').toLowerCase()}`}>{type.status || 'Inactive'}</span></td>
             <td className="row-actions">
               <button className="link-button" onClick={() => { setEditingType(type); setShowForm(true) }}>Edit</button>
-              {type.status === 'Active' && <button className="link-button danger" onClick={() => handleDeactivate(type.id)}>Deactivate</button>}
+              <ToggleActiveButton 
+                  isActive={type.status === 'Active'}
+                  resourceName="Consultation Type"
+                  identifier={type.name}
+                  onToggle={async () => {
+                    if (type.status === 'Active') {
+                      await deactivateConsultationType(type.id)
+                    } else {
+                      await activateConsultationType(type.id)
+                    }
+                    loadConsultationTypes()
+                  }}
+                />
             </td>
           </tr>)}
         </tbody>

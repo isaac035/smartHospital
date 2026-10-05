@@ -15,4 +15,5 @@ public interface IConsultationTypeService
         UpdateConsultationTypeRequest request);
 
     Task<bool> DeactivateAsync(int id);
+    Task<bool> ActivateAsync(int id);
 }
