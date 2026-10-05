@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:smart_hospital/core/theme/app_theme.dart';
 
 class AppButton extends StatelessWidget {
   final String text;
@@ -24,7 +25,7 @@ class AppButton extends StatelessWidget {
                 width: 20,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: Colors.white,
+                  color: AppTheme.surfaceColor,
                 ),
               )
             : Text(text),

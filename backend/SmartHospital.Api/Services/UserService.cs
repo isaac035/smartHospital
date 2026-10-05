@@ -15,10 +15,16 @@ public class UserService : IUserService
         _context = context;
     }
 
-    public async Task<List<UserResponse>> GetAllAsync()
+    public async Task<List<UserResponse>> GetAllAsync(UserRole? role = null)
     {
-        return await _context.Users
-            .AsNoTracking()
+        var query = _context.Users.AsNoTracking();
+
+        if (role.HasValue)
+        {
+            query = query.Where(u => u.Role == role.Value);
+        }
+
+        return await query
             .OrderBy(u => u.Id)
             .Select(u => new UserResponse
             {
@@ -31,6 +37,31 @@ public class UserService : IUserService
                 Status = u.Status.ToString(),
                 CreatedAt = u.CreatedAt,
                 UpdatedAt = u.UpdatedAt
+            })
+            .ToListAsync();
+    }
+
+    public async Task<List<PatientSearchResult>> SearchPatientsAsync(string query, int limit = 10)
+    {
+        var normalizedQuery = string.Join(' ', query.Split(' ', StringSplitOptions.RemoveEmptyEntries)).Trim().ToLowerInvariant();
+        if (normalizedQuery.Length == 0) return new List<PatientSearchResult>();
+
+        var pattern = $"%{normalizedQuery}%";
+        return await _context.Users
+            .AsNoTracking()
+            .Where(user => user.Role == UserRole.Patient &&
+                (EF.Functions.ILike(user.FirstName, pattern) ||
+                 EF.Functions.ILike(user.LastName, pattern) ||
+                 EF.Functions.ILike(user.FirstName + " " + user.LastName, pattern) ||
+                 EF.Functions.ILike(user.LastName + " " + user.FirstName, pattern)))
+            .OrderBy(user => user.FirstName)
+            .ThenBy(user => user.LastName)
+            .ThenBy(user => user.Id)
+            .Take(Math.Clamp(limit, 1, 20))
+            .Select(user => new PatientSearchResult
+            {
+                Id = user.Id,
+                DisplayName = (user.FirstName + " " + user.LastName).Trim()
             })
             .ToListAsync();
     }
@@ -53,6 +84,44 @@ public class UserService : IUserService
                 UpdatedAt = u.UpdatedAt
             })
             .FirstOrDefaultAsync();
+    }
+
+    public Task<UserResponse> CreateAppointmentManagerAsync(CreateAppointmentManagerRequest request) =>
+        CreateManagerAccountAsync(
+            request.FirstName, request.LastName, request.Email, request.Password, request.PhoneNumber,
+            UserRole.AppointmentManager, "appointment manager");
+
+    public Task<UserResponse> CreateDoctorManagerAsync(CreateDoctorManagerRequest request) =>
+        CreateManagerAccountAsync(
+            request.FirstName, request.LastName, request.Email, request.Password, request.PhoneNumber,
+            UserRole.DoctorManager, "doctor manager");
+
+    private async Task<UserResponse> CreateManagerAccountAsync(
+        string firstName, string lastName, string email, string password, string phoneNumber,
+        UserRole role, string roleLabel)
+    {
+        email = email.Trim().ToLowerInvariant();
+        if (await _context.Users.AnyAsync(u => u.Email == email))
+            throw new InvalidOperationException("A user with this email already exists.");
+
+        var now = DateTime.UtcNow;
+        var user = new User
+        {
+            FirstName = firstName.Trim(),
+            LastName = lastName.Trim(),
+            Email = email,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
+            PhoneNumber = phoneNumber.Trim(),
+            Role = role,
+            Status = UserStatus.Active,
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+        return await GetByIdAsync(user.Id)
+            ?? throw new InvalidOperationException($"Failed to create {roleLabel} account.");
     }
 
     public async Task<UserResponse?> UpdateAsync(
@@ -88,6 +157,24 @@ public class UserService : IUserService
         }
 
         user.Status = UserStatus.Inactive;
+        user.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+
+        return true;
+    }
+
+    public async Task<bool> ActivateAsync(int id)
+    {
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.Id == id);
+
+        if (user == null)
+        {
+            return false;
+        }
+
+        user.Status = UserStatus.Active;
         user.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();

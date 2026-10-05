@@ -1,13 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'core/theme/app_theme.dart';
+import 'theme/app_theme.dart';
 import 'core/storage/secure_storage_service.dart';
 import 'core/network/api_client.dart';
 import 'services/auth_service.dart';
 import 'services/user_service.dart';
+import 'services/doctor_service.dart';
+import 'services/schedule_service.dart';
+import 'services/leave_service.dart';
+import 'services/department_service.dart';
+import 'services/consultation_type_service.dart';
 import 'providers/auth_provider.dart';
+import 'providers/doctor_provider.dart';
 import 'routes/app_router.dart';
+import 'services/appointment_service.dart';
+import 'providers/appointment_provider.dart';
+import 'services/emr_service.dart';
+import 'providers/emr_provider.dart';
+import 'widgets/app_ui.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,9 +32,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        Provider<SecureStorageService>(
-          create: (_) => SecureStorageService(),
-        ),
+        Provider<SecureStorageService>(create: (_) => SecureStorageService()),
         ProxyProvider<SecureStorageService, ApiClient>(
           update: (_, storageService, previous) => ApiClient(storageService),
         ),
@@ -33,14 +42,87 @@ class MyApp extends StatelessWidget {
         ProxyProvider<ApiClient, UserService>(
           update: (_, apiClient, previous) => UserService(apiClient),
         ),
-        ChangeNotifierProxyProvider3<AuthService, UserService, SecureStorageService, AuthProvider>(
+        ChangeNotifierProxyProvider3<
+          AuthService,
+          UserService,
+          SecureStorageService,
+          AuthProvider
+        >(
           create: (_) => AuthProvider(
-            AuthService(ApiClient(SecureStorageService())), 
-            UserService(ApiClient(SecureStorageService())), 
+            AuthService(ApiClient(SecureStorageService())),
+            UserService(ApiClient(SecureStorageService())),
             SecureStorageService(),
           ),
           update: (_, authService, userService, storageService, previous) =>
-              previous ?? AuthProvider(authService, userService, storageService),
+              previous ??
+              AuthProvider(authService, userService, storageService),
+        ),
+        ProxyProvider<ApiClient, DoctorService>(
+          update: (_, apiClient, previous) => DoctorService(apiClient),
+        ),
+        ProxyProvider<ApiClient, ScheduleService>(
+          update: (_, apiClient, previous) => ScheduleService(apiClient),
+        ),
+        ProxyProvider<ApiClient, LeaveService>(
+          update: (_, apiClient, previous) => LeaveService(apiClient),
+        ),
+        ProxyProvider<ApiClient, DepartmentService>(
+          update: (_, apiClient, previous) => DepartmentService(apiClient),
+        ),
+        ProxyProvider<ApiClient, ConsultationTypeService>(
+          update: (_, apiClient, previous) =>
+              ConsultationTypeService(apiClient),
+        ),
+        ChangeNotifierProxyProvider5<
+          DoctorService,
+          ScheduleService,
+          LeaveService,
+          DepartmentService,
+          ConsultationTypeService,
+          DoctorProvider
+        >(
+          create: (_) => DoctorProvider(
+            DoctorService(ApiClient(SecureStorageService())),
+            ScheduleService(ApiClient(SecureStorageService())),
+            LeaveService(ApiClient(SecureStorageService())),
+            DepartmentService(ApiClient(SecureStorageService())),
+            ConsultationTypeService(ApiClient(SecureStorageService())),
+          ),
+          update:
+              (
+                _,
+                doctorService,
+                scheduleService,
+                leaveService,
+                departmentService,
+                consultationTypeService,
+                previous,
+              ) =>
+                  previous ??
+                  DoctorProvider(
+                    doctorService,
+                    scheduleService,
+                    leaveService,
+                    departmentService,
+                    consultationTypeService,
+                  ),
+        ),
+        ProxyProvider<ApiClient, AppointmentService>(
+          update: (_, apiClient, _) => AppointmentService(apiClient),
+        ),
+        ChangeNotifierProxyProvider<AppointmentService, AppointmentProvider>(
+          create: (_) => AppointmentProvider(
+            AppointmentService(ApiClient(SecureStorageService())),
+          ),
+          update: (_, svc, previous) => previous ?? AppointmentProvider(svc),
+        ),
+        ProxyProvider<ApiClient, EmrService>(
+          update: (_, apiClient, _) => EmrService(apiClient),
+        ),
+        ChangeNotifierProxyProvider<EmrService, EmrProvider>(
+          create: (_) => EmrProvider(
+              EmrService(ApiClient(SecureStorageService()))),
+          update: (_, svc, previous) => previous ?? EmrProvider(svc),
         ),
       ],
       child: Builder(
@@ -48,12 +130,16 @@ class MyApp extends StatelessWidget {
           final router = AppRouter.router(context);
           return MaterialApp.router(
             title: 'Smart Hospital',
-            theme: AppTheme.lightTheme,
+            theme: AppTheme.darkTheme(),
+              themeMode: ThemeMode.dark,
             debugShowCheckedModeBanner: false,
             routerConfig: router,
+            builder: (context, child) =>
+                AppPageFrame(child: child ?? const SizedBox.shrink()),
           );
         },
       ),
     );
   }
 }
+
