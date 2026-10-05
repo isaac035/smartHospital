@@ -1,0 +1,182 @@
+// ignore_for_file: use_null_aware_elements
+import '../../core/network/api_client.dart';
+import '../models/appointments/appointment_model.dart';
+import '../models/appointments/appointment_slot_model.dart';
+import '../models/appointments/appointment_history_model.dart';
+import '../models/appointments/queue_entry_model.dart';
+import '../models/appointments/doctor_summary_model.dart';
+import '../models/appointments/resource_allocation_model.dart';
+
+class AppointmentService {
+  final ApiClient _apiClient;
+
+  AppointmentService(this._apiClient);
+
+  Future<ResourceRecommendationModel> recommendResources(int appointmentId) async {
+    final response = await _apiClient.post('/agent3/recommendations', data: {'appointmentId': appointmentId});
+    return ResourceRecommendationModel.fromJson(response as Map<String, dynamic>);
+  }
+
+  Future<ReservedResourceModel> allocateResource(int appointmentId, ResourceCandidateModel resource, DateTime checkupDate) async {
+    final response = await _apiClient.post('/agent3/allocations', data: {
+      'appointmentId': appointmentId,
+      'selectedResourceId': resource.resourceId,
+      'kind': resource.kind,
+      'checkupDate': _dateOnly(checkupDate),
+    });
+    return ReservedResourceModel.fromJson(response as Map<String, dynamic>);
+  }
+
+  String _dateOnly(DateTime value) =>
+      '${value.year.toString().padLeft(4, '0')}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
+
+  // --- Appointment endpoints ---
+
+  Future<List<AppointmentModel>> getMyAppointments({
+    String? status,
+    String? fromDate,
+    String? toDate,
+  }) async {
+    final queryParts = <String>[];
+    if (status != null) queryParts.add('status=$status');
+    if (fromDate != null) queryParts.add('fromDate=$fromDate');
+    if (toDate != null) queryParts.add('toDate=$toDate');
+    final query = queryParts.isEmpty ? '' : '?${queryParts.join('&')}';
+    final response = await _apiClient.get('/appointments$query');
+    if (response is List) {
+      return response
+          .map((e) => AppointmentModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+    }
+    return [];
+  }
+
+  Future<AppointmentModel> getAppointmentById(int id) async {
+    final response = await _apiClient.get('/appointments/$id');
+    return AppointmentModel.fromJson(response as Map<String, dynamic>);
+  }
+
+  Future<List<AppointmentHistoryModel>> getAppointmentHistory(int id) async {
+    try {
+      final response = await _apiClient.get('/appointments/$id/history');
+      if (response is List) {
+        return response
+            .map(
+              (e) =>
+                  AppointmentHistoryModel.fromJson(e as Map<String, dynamic>),
+            )
+            .toList();
+      }
+    } catch (_) {
+      // History may not be available — fail silently
+    }
+    return [];
+  }
+
+  Future<AppointmentModel> bookAppointment({
+    required int patientId,
+    required int doctorId,
+    required int appointmentType,
+    required String scheduledStart,
+    required int estimatedDurationMinutes,
+    required int priority,
+    String? notes,
+    int? triageResultId,
+  }) async {
+    final response = await _apiClient.post(
+      '/appointments',
+      data: {
+        'patientId': patientId,
+        'doctorId': doctorId,
+        'appointmentType': appointmentType,
+        'scheduledStart': scheduledStart,
+        'estimatedDurationMinutes': estimatedDurationMinutes,
+        'priority': priority,
+        if (notes != null && notes.isNotEmpty) 'notes': notes,
+        if (triageResultId != null) 'triageResultId': triageResultId,
+      },
+    );
+    return AppointmentModel.fromJson(response as Map<String, dynamic>);
+  }
+
+  Future<void> cancelAppointment(int id, String reason) async {
+    await _apiClient.post('/appointments/$id/cancel', data: {'reason': reason});
+  }
+
+  Future<AppointmentModel> rescheduleAppointment(
+    int id, {
+    required String newScheduledStart,
+    required int newEstimatedDurationMinutes,
+    required String reason,
+  }) async {
+    final response = await _apiClient.post(
+      '/appointments/$id/reschedule',
+      data: {
+        'newScheduledStart': newScheduledStart,
+        'newEstimatedDurationMinutes': newEstimatedDurationMinutes,
+        'reason': reason,
+      },
+    );
+    return AppointmentModel.fromJson(response as Map<String, dynamic>);
+  }
+
+  // --- Availability endpoint ---
+
+  Future<List<AppointmentSlotModel>> getAvailableSlots({
+    required int doctorId,
+    int? doctorProfileId,
+    required String date,
+  }) async {
+    final response = await _apiClient.get(
+      '/availability/slots',
+      queryParameters: {
+        'doctorId': doctorId,
+        'date': date,
+        if (doctorProfileId != null) 'doctorProfileId': doctorProfileId,
+      },
+    );
+    if (response is List) {
+      return response
+          .map((e) => AppointmentSlotModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+    }
+    return [];
+  }
+
+  // --- Queue endpoints ---
+
+  Future<List<QueueEntryModel>> getQueueForDoctor(int doctorId) async {
+    final response = await _apiClient.get(
+      '/queues/mine',
+      queryParameters: {'doctorId': doctorId},
+    );
+    if (response is Map<String, dynamic>) {
+      return [QueueEntryModel.fromJson(response)];
+    }
+    return [];
+  }
+
+  Future<QueueEntryModel> checkIn(int appointmentId) async {
+    final response = await _apiClient.post('/queues/check-in/$appointmentId');
+    return QueueEntryModel.fromJson(response as Map<String, dynamic>);
+  }
+
+  // --- Doctor search (reads from Users endpoint, Doctor role) ---
+  // TODO: Replace with shared Doctor module endpoint once available.
+
+  Future<List<DoctorSummaryModel>> searchDoctors({String? query}) async {
+    final q = query != null && query.isNotEmpty ? '?searchTerm=$query' : '';
+    final response = await _apiClient.get('/doctors$q');
+    if (response is List) {
+      return response.map((e) {
+        final map = e as Map<String, dynamic>;
+        if (map.containsKey('departmentName') &&
+            !map.containsKey('department')) {
+          map['department'] = map['departmentName'];
+        }
+        return DoctorSummaryModel.fromJson(map);
+      }).toList();
+    }
+    return [];
+  }
+}
