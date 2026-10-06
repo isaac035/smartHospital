@@ -295,6 +295,15 @@ public class DoctorService : IDoctorService
             );
         }
 
+        var linkedUserId = request.UserId ?? doctor.UserId;
+
+        if (await _context.Users.AnyAsync(u => u.Id != linkedUserId && u.Email.ToLower() == email))
+        {
+            throw new InvalidOperationException(
+                "This email is already registered to another user."
+            );
+        }
+
         var departmentExists = await _context.Departments
             .AnyAsync(dept => dept.Id == request.DepartmentId);
 
@@ -303,6 +312,17 @@ public class DoctorService : IDoctorService
             throw new InvalidOperationException(
                 "The specified department does not exist."
             );
+        }
+
+        // Keep the doctor's login email in step with the profile email.
+        if (linkedUserId.HasValue)
+        {
+            var linkedUser = await _context.Users.FirstOrDefaultAsync(u => u.Id == linkedUserId.Value);
+            if (linkedUser != null)
+            {
+                linkedUser.Email = email;
+                linkedUser.UpdatedAt = DateTime.UtcNow;
+            }
         }
 
         doctor.FirstName = request.FirstName.Trim();

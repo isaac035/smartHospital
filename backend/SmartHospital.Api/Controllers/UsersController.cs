@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SmartHospital.Api.DTOs.Users;
@@ -73,6 +74,11 @@ public class UsersController : ControllerBase
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)
     {
+        if (!IsSelf(id) && !User.IsInRole("Admin") && !User.IsInRole("Staff"))
+        {
+            return Forbid();
+        }
+
         var user = await _userService.GetByIdAsync(id);
 
         if (user == null)
@@ -91,6 +97,11 @@ public class UsersController : ControllerBase
         int id,
         UpdateUserRequest request)
     {
+        if (!IsSelf(id) && !User.IsInRole("Admin"))
+        {
+            return Forbid();
+        }
+
         var user = await _userService.UpdateAsync(id, request);
 
         if (user == null)
@@ -143,4 +154,7 @@ public class UsersController : ControllerBase
             message = "User activated successfully."
         });
     }
+
+    private bool IsSelf(int id) =>
+        User.FindFirstValue(ClaimTypes.NameIdentifier) == id.ToString();
 }
