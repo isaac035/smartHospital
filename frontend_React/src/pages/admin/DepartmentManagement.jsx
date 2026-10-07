@@ -4,9 +4,11 @@ import DashboardLayout from '../../layouts/DashboardLayout'
 import { adminNavigation as navigation } from './adminNavigation'
 import { createDepartment, deactivateDepartment, activateDepartment, listDepartments, updateDepartment } from '../../services/departmentService'
 import ToggleActiveButton from '../../components/common/ToggleActiveButton'
+import { applyServerErrors, rules } from '../../utils/validators'
 
 function DepartmentFormModal({ department, onClose, onSaved }) {
   const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm({
+    mode: 'onTouched',
     defaultValues: { name: department?.name || '', description: department?.description || '' },
   })
 
@@ -16,7 +18,7 @@ function DepartmentFormModal({ department, onClose, onSaved }) {
       else await createDepartment(values)
       onSaved()
     } catch (requestError) {
-      setError('root', { message: requestError.response?.data?.message || 'Something went wrong. Please try again.' })
+      applyServerErrors(requestError, setError, { fields: ['name', 'description'], conflicts: [{ match: /name/i, field: 'name' }] })
     }
   }
 
@@ -25,11 +27,12 @@ function DepartmentFormModal({ department, onClose, onSaved }) {
       <h2>{department ? 'Edit Department' : 'Add Department'}</h2>
       <form onSubmit={handleSubmit(onSubmit)} noValidate>
         {errors.root && <p className="form-error" role="alert">{errors.root.message}</p>}
-        <label htmlFor="name">Name</label>
-        <input id="name" {...register('name', { required: 'Name is required.' })} />
+        <label htmlFor="name" className="required">Name</label>
+        <input id="name" maxLength={100} aria-invalid={errors.name ? 'true' : undefined} {...register('name', rules.text('Name', { isRequired: true, max: 100 }))} />
         {errors.name && <p className="field-error">{errors.name.message}</p>}
         <label htmlFor="description">Description</label>
-        <input id="description" {...register('description')} />
+        <input id="description" maxLength={500} aria-invalid={errors.description ? 'true' : undefined} {...register('description', rules.text('Description', { max: 500 }))} />
+        {errors.description && <p className="field-error">{errors.description.message}</p>}
         <div className="modal-actions">
           <button type="button" className="secondary-button" onClick={onClose}>Cancel</button>
           <button type="submit" className="primary-button" disabled={isSubmitting}>{isSubmitting ? 'Saving...' : 'Save'}</button>

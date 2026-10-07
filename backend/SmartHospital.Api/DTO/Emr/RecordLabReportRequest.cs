@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using SmartHospital.Api.Validation;
 
 namespace SmartHospital.Api.DTOs.Emr;
 
@@ -6,16 +7,20 @@ public class RecordLabReportRequest : IValidatableObject
 {
     [Required(ErrorMessage = "Result summary is required.")]
     [MaxLength(500, ErrorMessage = "Result summary cannot exceed 500 characters.")]
+    [NoHtml]
     public string ResultSummary { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Findings are required.")]
     [MaxLength(2000, ErrorMessage = "Findings cannot exceed 2000 characters.")]
+    [NoHtml]
     public string Findings { get; set; } = string.Empty;
 
     [MaxLength(500, ErrorMessage = "Reference range cannot exceed 500 characters.")]
+    [NoHtml]
     public string ReferenceRange { get; set; } = string.Empty;
 
     [MaxLength(1000, ErrorMessage = "Doctor remarks cannot exceed 1000 characters.")]
+    [NoHtml]
     public string DoctorRemarks { get; set; } = string.Empty;
 
     [MaxLength(500, ErrorMessage = "Attachment URL cannot exceed 500 characters.")]

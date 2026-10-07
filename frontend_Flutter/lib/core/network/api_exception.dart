@@ -4,7 +4,11 @@ class ApiException implements Exception {
   final String? code;
   final bool refreshRecommendations;
 
-  ApiException(this.message, [this.statusCode, this.code, this.refreshRecommendations = false]);
+  /// Field-level validation errors from a 400 ValidationProblemDetails response,
+  /// keyed by camelCase field name (e.g. {'phoneNumber': 'Phone number must ...'}).
+  final Map<String, String> fieldErrors;
+
+  ApiException(this.message, [this.statusCode, this.code, this.refreshRecommendations = false, this.fieldErrors = const {}]);
 
   @override
   String toString() => message;

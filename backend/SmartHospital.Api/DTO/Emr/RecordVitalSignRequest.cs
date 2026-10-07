@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using SmartHospital.Api.Validation;
 
 namespace SmartHospital.Api.DTOs.Emr;
 
@@ -34,5 +35,6 @@ public class RecordVitalSignRequest
     public decimal? HeightCm { get; set; }
 
     [MaxLength(500)]
+    [NoHtml]
     public string Notes { get; set; } = string.Empty;
 }

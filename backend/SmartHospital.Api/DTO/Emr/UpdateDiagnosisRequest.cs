@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using SmartHospital.Api.Validation;
 using SmartHospital.Api.Models;
 
 namespace SmartHospital.Api.DTOs.Emr;
@@ -6,10 +7,12 @@ namespace SmartHospital.Api.DTOs.Emr;
 public class UpdateDiagnosisRequest : IValidatableObject
 {
     [MaxLength(50, ErrorMessage = "Diagnosis code cannot exceed 50 characters.")]
+    [NoHtml]
     public string? Code { get; set; }
 
     [Required(ErrorMessage = "Diagnosis description is required.")]
     [MaxLength(500, ErrorMessage = "Diagnosis description cannot exceed 500 characters.")]
+    [NoHtml]
     public string Description { get; set; } = string.Empty;
 
     public DiagnosisType Type { get; set; } = DiagnosisType.Primary;
@@ -19,6 +22,7 @@ public class UpdateDiagnosisRequest : IValidatableObject
     public DiagnosisSeverity Severity { get; set; } = DiagnosisSeverity.Moderate;
 
     [MaxLength(2000, ErrorMessage = "Notes cannot exceed 2000 characters.")]
+    [NoHtml]
     public string? Notes { get; set; }
 
     public DateTime? DiagnosedAt { get; set; }

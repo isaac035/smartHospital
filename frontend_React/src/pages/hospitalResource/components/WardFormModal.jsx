@@ -1,5 +1,16 @@
 import { useState, useEffect } from 'react'
 import { createWard, updateWard } from '../../../services/hospitalResourceService'
+import { useFormValidation } from '../../../hooks/useFormValidation'
+import FieldError from '../../../components/common/FieldError'
+import { first, maxLength, number, required, selection, text } from '../../../utils/validators'
+
+const WARD_SCHEMA = {
+  name: (value) => text(value, 'Ward name', { isRequired: true, max: 100 }),
+  type: (value) => selection(value, 'a ward type'),
+  capacity: (value) => number(value, 'Capacity', { isRequired: true, min: 1, max: 500, integer: true, unit: 'beds' }),
+  floor: (value) => first(required(value, 'Floor location') && 'Please select a floor location.', maxLength(value, 50, 'Floor location')),
+  buildingBlock: (value) => text(value, 'Building block', { max: 50 }),
+}
 
 const WARD_TYPES = [
   { value: 1, label: 'General' },
@@ -80,10 +91,13 @@ export default function WardFormModal({ isOpen, onClose, ward, existingCodes = [
   })
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
+  const validation = useFormValidation(WARD_SCHEMA, formData)
+  const resetValidation = validation.reset
 
   useEffect(() => {
     if (isOpen) {
       setError(null)
+      resetValidation()
       if (ward) {
         // Edit mode: retain the existing ward code as read-only
         setFormData({
@@ -109,7 +123,7 @@ export default function WardFormModal({ isOpen, onClose, ward, existingCodes = [
         })
       }
     }
-  }, [isOpen, ward, existingCodes])
+  }, [isOpen, ward, existingCodes, resetValidation])
 
   if (!isOpen) return null
 
@@ -120,35 +134,24 @@ export default function WardFormModal({ isOpen, onClose, ward, existingCodes = [
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
-    setFormData((prev) => ({
-      ...prev,
+    const next = {
+      ...formData,
       [name]:
         type === 'checkbox'
           ? checked
           : name === 'capacity' || name === 'type'
-          ? parseInt(value, 10)
+          ? (value === '' ? '' : parseInt(value, 10))
           : value,
-    }))
+    }
+    setFormData(next)
+    validation.revalidate(next)
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError(null)
 
-    if (!formData.name.trim()) {
-      setError('Ward name is required.')
-      return
-    }
-
-    if (!formData.floor.trim()) {
-      setError('Please select a floor location.')
-      return
-    }
-
-    if (isNaN(formData.capacity) || formData.capacity < 1 || formData.capacity > 500) {
-      setError('Capacity must be between 1 and 500.')
-      return
-    }
+    if (!validation.validateAll(formData, e.currentTarget)) return
 
     try {
       setSubmitting(true)
@@ -175,7 +178,7 @@ export default function WardFormModal({ isOpen, onClose, ward, existingCodes = [
       }
       onClose()
     } catch (err) {
-      setError(err.response?.data?.message || `Failed to ${isEdit ? 'update' : 'create'} ward.`)
+      setError(validation.applyServerErrors(err, { conflicts: [{ match: /ward/i, field: 'name' }], fallback: `Failed to ${isEdit ? 'update' : 'create'} ward.` }) || null)
     } finally {
       setSubmitting(false)
     }
@@ -211,7 +214,7 @@ export default function WardFormModal({ isOpen, onClose, ward, existingCodes = [
 
         {error && <div className="form-error mb-4">{error}</div>}
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+        <form onSubmit={handleSubmit} onBlur={(e) => e.target.name && validation.touch(e.target.name, formData)} noValidate className="flex flex-col gap-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label htmlFor="ward-name" className="block text-xs font-semibold mb-1">
@@ -228,7 +231,9 @@ export default function WardFormModal({ isOpen, onClose, ward, existingCodes = [
                 placeholder="e.g. Cardiology Ward"
                 className="w-full px-3 py-2 text-sm border rounded-lg outline-none"
                 style={{ borderColor: 'color-mix(in srgb, var(--color-secondary) 25%, var(--color-primary))' }}
+                {...validation.fieldProps('name')}
               />
+              <FieldError name="name" message={validation.errorFor('name')} />
             </div>
 
             <div>
@@ -274,6 +279,7 @@ export default function WardFormModal({ isOpen, onClose, ward, existingCodes = [
                   </option>
                 ))}
               </select>
+              <FieldError name="type" message={validation.errorFor('type')} />
             </div>
 
             <div>
@@ -287,11 +293,14 @@ export default function WardFormModal({ isOpen, onClose, ward, existingCodes = [
                 min="1"
                 max="500"
                 required
+                step="1"
                 value={formData.capacity}
                 onChange={handleChange}
                 className="w-full px-3 py-2 text-sm border rounded-lg outline-none"
                 style={{ borderColor: 'color-mix(in srgb, var(--color-secondary) 25%, var(--color-primary))' }}
+                {...validation.fieldProps('capacity')}
               />
+              <FieldError name="capacity" message={validation.errorFor('capacity')} />
             </div>
           </div>
 
@@ -318,6 +327,7 @@ export default function WardFormModal({ isOpen, onClose, ward, existingCodes = [
                   </option>
                 ))}
               </select>
+              <FieldError name="floor" message={validation.errorFor('floor')} />
             </div>
 
             <div>
@@ -334,7 +344,9 @@ export default function WardFormModal({ isOpen, onClose, ward, existingCodes = [
                 placeholder="e.g. Block A, West Wing"
                 className="w-full px-3 py-2 text-sm border rounded-lg outline-none"
                 style={{ borderColor: 'color-mix(in srgb, var(--color-secondary) 25%, var(--color-primary))' }}
+                {...validation.fieldProps('buildingBlock')}
               />
+              <FieldError name="buildingBlock" message={validation.errorFor('buildingBlock')} />
             </div>
           </div>
 

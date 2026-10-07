@@ -92,7 +92,16 @@ public class DepartmentService : IDepartmentService
             return null;
         }
 
-        department.Name = request.Name.Trim();
+        var name = request.Name.Trim();
+
+        if (await _context.Departments.AnyAsync(d => d.Id != id && d.Name == name))
+        {
+            throw new InvalidOperationException(
+                "A department with this name already exists."
+            );
+        }
+
+        department.Name = name;
         department.Description = request.Description.Trim();
         department.UpdatedAt = DateTime.UtcNow;
 

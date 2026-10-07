@@ -32,6 +32,13 @@ import RecordLabReportModal from '../../../components/emr/RecordLabReportModal'
 import EditPatientProfileModal from '../../../components/emr/EditPatientProfileModal'
 import AddDiagnosisModal from '../../../components/emr/AddDiagnosisModal'
 import AddTreatmentPlanModal from '../../../components/emr/AddTreatmentPlanModal'
+import FieldError from '../../../components/common/FieldError'
+
+const patientIdMessage = (value) => {
+  const trimmed = String(value ?? '').trim()
+  if (!trimmed) return 'Patient ID is required.'
+  return /^[0-9]+$/.test(trimmed) && Number(trimmed) > 0 && Number(trimmed) <= 2147483647 ? '' : 'Patient ID must be a positive whole number.'
+}
 
 const TABS = [
   { id: 'overview', label: 'Overview & Profile' },
@@ -53,6 +60,7 @@ export default function DoctorMedicalRecordsPage() {
   const appointmentId = searchParams.get('appointmentId') || null
 
   const [inputPatientId, setInputPatientId] = useState(initialPatientId)
+  const [patientIdError, setPatientIdError] = useState('')
   const [activePatientId, setActivePatientId] = useState(initialPatientId)
   const [activeTab, setActiveTab] = useState('overview')
 
@@ -202,6 +210,12 @@ export default function DoctorMedicalRecordsPage() {
   const handleSearchSubmit = (e) => {
     e.preventDefault()
     const trimmed = inputPatientId.trim()
+    const message = patientIdMessage(trimmed)
+    setPatientIdError(message)
+    if (message) {
+      document.getElementById('searchPatientId')?.focus()
+      return
+    }
     if (trimmed) {
       setSearchParams({ patientId: trimmed })
       setActivePatientId(trimmed)
@@ -210,6 +224,7 @@ export default function DoctorMedicalRecordsPage() {
 
   const handleClearPatient = () => {
     setInputPatientId('')
+    setPatientIdError('')
     setActivePatientId('')
     setSearchParams({})
     resetPatientState()
@@ -229,7 +244,7 @@ export default function DoctorMedicalRecordsPage() {
     >
       {/* Patient Search & Selection Bar */}
       <div className="panel mb-6" style={{ padding: 20 }}>
-        <form onSubmit={handleSearchSubmit} className="flex flex-wrap items-center justify-between gap-4" style={{ margin: 0 }}>
+        <form onSubmit={handleSearchSubmit} noValidate className="flex flex-wrap items-center justify-between gap-4" style={{ margin: 0 }}>
           <div className="flex items-center gap-3 flex-1 min-w-[260px]">
             <label htmlFor="searchPatientId" className="font-bold text-sm whitespace-nowrap" style={{ color: 'var(--color-accent)' }}>
               Patient Lookup:
@@ -238,13 +253,18 @@ export default function DoctorMedicalRecordsPage() {
               id="searchPatientId"
               type="number"
               placeholder="Enter Patient ID (e.g. 1, 2, 10)..."
+              min="1"
+              step="1"
               value={inputPatientId}
-              onChange={(e) => setInputPatientId(e.target.value)}
+              aria-invalid={patientIdError ? 'true' : undefined}
+              aria-describedby={patientIdError ? 'searchPatientId-error' : undefined}
+              onChange={(e) => { setInputPatientId(e.target.value); if (patientIdError) setPatientIdError(patientIdMessage(e.target.value)) }}
               style={{ maxWidth: 280 }}
             />
             <button type="submit" className="primary-button" style={{ marginTop: 0 }}>
               Load Chart
             </button>
+            <FieldError name="searchPatientId" message={patientIdError} className="w-full" />
             {activePatientId && (
               <button type="button" className="secondary-button" style={{ marginTop: 0 }} onClick={handleClearPatient}>
                 Clear

@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../core/utils/validators.dart';
+import '../../core/utils/form_focus.dart';
+import '../../widgets/error_message.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -28,6 +31,10 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
   @override
   void initState() {
     super.initState();
+    // Don't carry an error from another auth screen (e.g. a failed login) onto this one.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) Provider.of<AuthProvider>(context, listen: false).clearError();
+    });
     _bgController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 8),
@@ -56,11 +63,16 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
   }
 
   void _login() async {
-    if (_formKey.currentState!.validate()) {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    authProvider.clearError();
+    if (!_formKey.currentState!.validate()) {
+      focusFirstInvalidField(_formKey);
+      return;
+    }
+    {
       setState(() => _isLoading = true);
       try {
-        await Provider.of<AuthProvider>(context, listen: false)
-            .login(_emailController.text, _passwordController.text);
+        await authProvider.login(_emailController.text.trim(), _passwordController.text);
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -153,15 +165,21 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                   ),
                                 ),
                                 const SizedBox(height: 36),
+                                Consumer<AuthProvider>(
+                                  builder: (context, auth, _) => ErrorMessage(message: auth.error),
+                                ),
                                 TextFormField(
                                   controller: _emailController,
+                                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                                  maxLength: 255,
+                                  textInputAction: TextInputAction.next,
                                   decoration: const InputDecoration(
                                     labelText: 'Email',
                                     prefixIcon: Icon(Icons.email_outlined),
+                                    counterText: '',
                                   ),
                                   keyboardType: TextInputType.emailAddress,
-                                  validator: (value) =>
-                                      value == null || value.isEmpty ? 'Please enter your email' : null,
+                                  validator: Validators.validateEmail,
                                 ),
                                 const SizedBox(height: 16),
                                 TextFormField(
@@ -177,8 +195,9 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                     ),
                                   ),
                                   obscureText: _obscurePassword,
-                                  validator: (value) =>
-                                      value == null || value.isEmpty ? 'Please enter your password' : null,
+                                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                                  onFieldSubmitted: (_) => _login(),
+                                  validator: Validators.validateLoginPassword,
                                 ),
                                 const SizedBox(height: 28),
                                 SizedBox(

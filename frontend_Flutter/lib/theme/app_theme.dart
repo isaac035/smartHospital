@@ -147,6 +147,12 @@ class AppTheme {
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppColors.error),
         ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.error, width: 2),
+        ),
+        errorStyle: GoogleFonts.inter(color: AppColors.error, fontSize: 12, fontWeight: FontWeight.w500),
+        errorMaxLines: 3,
         labelStyle: GoogleFonts.inter(color: AppColors.textSecondary),
         hintStyle: GoogleFonts.inter(color: AppColors.textHint),
         prefixIconColor: AppColors.textSecondary,

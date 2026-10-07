@@ -49,6 +49,7 @@ class MyApp extends StatelessWidget {
           AuthProvider
         >(
           create: (_) => AuthProvider(
+          
             AuthService(ApiClient(SecureStorageService())),
             UserService(ApiClient(SecureStorageService())),
             SecureStorageService(),

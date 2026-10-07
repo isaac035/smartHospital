@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using SmartHospital.Api.Validation;
 
 namespace SmartHospital.Api.DTOs.Emr;
 
@@ -14,6 +15,7 @@ public class CreatePrescriptionRequest : IValidatableObject
     public DateTime? ExpiryDate { get; set; }
 
     [MaxLength(1000, ErrorMessage = "General instructions cannot exceed 1000 characters.")]
+    [NoHtml]
     public string? GeneralInstructions { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "At least one prescription item is required.")]
@@ -91,23 +93,28 @@ public class CreatePrescriptionItemRequest : IValidatableObject
 {
     [Required(ErrorMessage = "Medicine name is required.")]
     [MaxLength(150, ErrorMessage = "Medicine name cannot exceed 150 characters.")]
+    [NoHtml]
     public string MedicineName { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Dosage is required.")]
     [MaxLength(50, ErrorMessage = "Dosage cannot exceed 50 characters.")]
+    [NoHtml]
     public string Dosage { get; set; } = string.Empty;
 
     [MaxLength(50, ErrorMessage = "Route cannot exceed 50 characters.")]
+    [NoHtml]
     public string Route { get; set; } = "Oral";
 
     [Required(ErrorMessage = "Frequency is required.")]
     [MaxLength(50, ErrorMessage = "Frequency cannot exceed 50 characters.")]
+    [NoHtml]
     public string Frequency { get; set; } = string.Empty;
 
     [Range(1, 365, ErrorMessage = "Duration must be between 1 and 365 days.")]
     public int DurationDays { get; set; } = 1;
 
     [MaxLength(500, ErrorMessage = "Special instructions cannot exceed 500 characters.")]
+    [NoHtml]
     public string? SpecialInstructions { get; set; } = string.Empty;
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)

@@ -6,6 +6,13 @@ import { getAppointments } from '../../services/appointmentService'
 import { useAuth } from '../../hooks/useAuth'
 import PriorityBadge from '../../components/appointments/PriorityBadge'
 import AppointmentStatusBadge from '../../components/appointments/AppointmentStatusBadge'
+import FieldError from '../../components/common/FieldError'
+
+const patientIdMessage = (value) => {
+  const trimmed = String(value ?? '').trim()
+  if (!trimmed) return 'Patient ID is required.'
+  return /^[0-9]+$/.test(trimmed) && Number(trimmed) > 0 && Number(trimmed) <= 2147483647 ? '' : 'Patient ID must be a positive whole number.'
+}
 
 export default function DoctorDashboard() {
 
@@ -13,6 +20,7 @@ export default function DoctorDashboard() {
   const navigate = useNavigate()
 
   const [searchPatientId, setSearchPatientId] = useState('')
+  const [patientIdError, setPatientIdError] = useState('')
   const [todayAppointments, setTodayAppointments] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -45,9 +53,13 @@ export default function DoctorDashboard() {
 
   const handlePatientSearch = (e) => {
     e.preventDefault()
-    if (searchPatientId.trim()) {
-      navigate(`/doctor/medical-records?patientId=${encodeURIComponent(searchPatientId.trim())}`)
+    const message = patientIdMessage(searchPatientId)
+    setPatientIdError(message)
+    if (message) {
+      document.getElementById('doctorDashboardPatientId')?.focus()
+      return
     }
+    navigate(`/doctor/medical-records?patientId=${encodeURIComponent(searchPatientId.trim())}`)
   }
 
   const statCards = [
@@ -99,17 +111,23 @@ export default function DoctorDashboard() {
             </p>
           </div>
 
-          <form onSubmit={handlePatientSearch} className="flex gap-2 items-center flex-wrap" style={{ margin: 0 }}>
+          <form onSubmit={handlePatientSearch} noValidate className="flex gap-2 items-center flex-wrap" style={{ margin: 0 }}>
             <input
+              id="doctorDashboardPatientId"
               type="number"
+              min="1"
+              step="1"
               placeholder="Enter Patient ID..."
               style={{ width: 220 }}
               value={searchPatientId}
-              onChange={(e) => setSearchPatientId(e.target.value)}
+              aria-invalid={patientIdError ? 'true' : undefined}
+              aria-describedby={patientIdError ? 'doctorDashboardPatientId-error' : undefined}
+              onChange={(e) => { setSearchPatientId(e.target.value); if (patientIdError) setPatientIdError(patientIdMessage(e.target.value)) }}
             />
             <button type="submit" className="primary-button" style={{ marginTop: 0 }}>
               Open Clinical Chart
             </button>
+            <FieldError name="doctorDashboardPatientId" message={patientIdError} className="w-full" />
           </form>
         </div>
       </div>

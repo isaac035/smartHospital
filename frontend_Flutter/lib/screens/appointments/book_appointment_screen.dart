@@ -8,6 +8,8 @@ import '../../widgets/app_button.dart';
 import '../../widgets/app_text_field.dart';
 import '../../providers/appointment_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../core/utils/validators.dart';
+import '../../core/utils/form_focus.dart';
 import 'widgets/priority_badge.dart';
 
 class BookAppointmentScreen extends StatefulWidget {
@@ -51,7 +53,10 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      focusFirstInvalidField(_formKey);
+      return;
+    }
     context.read<AppointmentProvider>().clearActionError();
 
     final user = context.read<AuthProvider>().currentUser;
@@ -78,7 +83,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
           backgroundColor: AppTheme.successColor,
         ),
       );
-      
+
       if (widget.triageResultId != null) {
         // Smart Care AI flow: go to Yes/No Resource Check (Agent 3) screen
         context.go('/appointments/confirmed/${result.id}');
@@ -284,6 +289,8 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                 hint: 'Briefly describe your symptoms or reason for visit...',
                 controller: _notesController,
                 maxLines: 4,
+                maxLength: 1000,
+                validator: (v) => Validators.validateText(v, 'Notes', max: 1000),
               ),
 
               const SizedBox(height: 32),

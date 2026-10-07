@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using SmartHospital.Api.Validation;
 using System.Text.Json.Serialization;
 
 namespace SmartHospital.Api.DTOs.Agent1;
@@ -8,6 +9,8 @@ public class TriageDoctorMatchRequest
 {
     [Required(ErrorMessage = "Please describe your symptoms or what you need help with.")]
     [StringLength(1000, MinimumLength = 3, ErrorMessage = "Please use between 3 and 1000 characters.")]
+    [ContainsLetters(ErrorMessage = "Please describe your symptoms in words, not only numbers or symbols.")]
+    [NoHtml]
     public string Symptoms { get; set; } = string.Empty;
 }
 

@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
@@ -10,6 +11,7 @@ import '../../widgets/password_field.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/error_message.dart';
 import '../../core/utils/validators.dart';
+import '../../core/utils/form_focus.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -35,6 +37,10 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
   @override
   void initState() {
     super.initState();
+    // Don't carry an error from another auth screen (e.g. a failed login) onto this one.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) Provider.of<AuthProvider>(context, listen: false).clearError();
+    });
     _bgController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 8),
@@ -67,11 +73,15 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
   }
 
   Future<void> _register() async {
-    if (!_formKey.currentState!.validate()) return;
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    authProvider.clearError();
+    if (!_formKey.currentState!.validate()) {
+      focusFirstInvalidField(_formKey);
+      return;
+    }
 
     FocusScope.of(context).unfocus();
 
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final success = await authProvider.register(
       _firstNameController.text.trim(),
       _lastNameController.text.trim(),
@@ -167,15 +177,25 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                                     label: 'First Name',
                                     hint: 'Enter your first name',
                                     controller: _firstNameController,
+                                    isRequired: true,
+                                    maxLength: 100,
+                                    textInputAction: TextInputAction.next,
+                                    errorText: authProvider.fieldErrors['firstName'],
+                                    onChanged: (_) => authProvider.clearFieldError('firstName'),
                                     validator: (val) =>
-                                        Validators.validateName(val, 'First Name'),
+                                        Validators.validateName(val, 'First name'),
                                   ),
                                   const SizedBox(height: 16),
                                   AppTextField(
                                     label: 'Last Name',
                                     hint: 'Enter your last name',
                                     controller: _lastNameController,
-                                    validator: (val) => Validators.validateName(val, 'Last Name'),
+                                    isRequired: true,
+                                    maxLength: 100,
+                                    textInputAction: TextInputAction.next,
+                                    errorText: authProvider.fieldErrors['lastName'],
+                                    onChanged: (_) => authProvider.clearFieldError('lastName'),
+                                    validator: (val) => Validators.validateName(val, 'Last name'),
                                   ),
                                   const SizedBox(height: 16),
                                   AppTextField(
@@ -183,6 +203,12 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                                     hint: 'Enter your email address',
                                     controller: _emailController,
                                     keyboardType: TextInputType.emailAddress,
+                                    isRequired: true,
+                                    maxLength: 255,
+                                    textInputAction: TextInputAction.next,
+                                    inputFormatters: [FilteringTextInputFormatter.deny(RegExp(r'\s'))],
+                                    errorText: authProvider.fieldErrors['email'],
+                                    onChanged: (_) => authProvider.clearFieldError('email'),
                                     validator: Validators.validateEmail,
                                   ),
                                   const SizedBox(height: 16),
@@ -191,13 +217,22 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                                     hint: 'Enter your phone number',
                                     controller: _phoneController,
                                     keyboardType: TextInputType.phone,
-                                    validator: Validators.validatePhone,
+                                    isRequired: true,
+                                    maxLength: 20,
+                                    textInputAction: TextInputAction.next,
+                                    inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9+()\- ]'))],
+                                    errorText: authProvider.fieldErrors['phoneNumber'],
+                                    onChanged: (_) => authProvider.clearFieldError('phoneNumber'),
+                                    validator: (val) => Validators.validatePhone(val),
                                   ),
                                   const SizedBox(height: 16),
                                   PasswordField(
                                     label: 'Password',
                                     hint: 'Create a password',
                                     controller: _passwordController,
+                                    isRequired: true,
+                                    errorText: authProvider.fieldErrors['password'],
+                                    onChanged: (_) => authProvider.clearFieldError('password'),
                                     validator: Validators.validatePassword,
                                   ),
                                   const SizedBox(height: 16),
@@ -205,6 +240,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                                     label: 'Confirm Password',
                                     hint: 'Confirm your password',
                                     controller: _confirmPasswordController,
+                                    isRequired: true,
                                     validator: (val) => Validators.validateConfirmPassword(
                                       val,
                                       _passwordController.text,

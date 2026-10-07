@@ -14,6 +14,7 @@ import { listDoctors } from '../../services/doctorService'
 import { listConsultationTypes } from '../../services/consultationTypeService'
 import { createSchedule, listSchedules, removeSchedule } from '../../services/scheduleService'
 import { useAuth } from '../../hooks/useAuth'
+import { after, applyServerErrors, first, required, rules } from '../../utils/validators'
 import { staffNavigation } from '../staff/staffNavigation'
 import { doctorManagerNavigation } from './doctorManagerNavigation'
 
@@ -35,6 +36,7 @@ function toTimeString(date) {
 function ScheduleFormModal({ doctorId, consultationTypes, initialSlot, onClose, onSaved }) {
   const defaultDay = initialSlot ? DAY_NAMES[(initialSlot.start.getDay() + 6) % 7] : DAY_NAMES[0]
   const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm({
+    mode: 'onTouched',
     defaultValues: {
       consultationTypeId: consultationTypes[0]?.id || '',
       dayOfWeek: defaultDay,
@@ -54,7 +56,7 @@ function ScheduleFormModal({ doctorId, consultationTypes, initialSlot, onClose, 
       })
       onSaved()
     } catch (requestError) {
-      setError('root', { message: requestError.response?.data?.message || 'Something went wrong. Please try again.' })
+      applyServerErrors(requestError, setError, { fields: ['dayOfWeek', 'consultationTypeId', 'startTime', 'endTime'], conflicts: [{ match: /end time/i, field: 'endTime' }, { match: /consultation type/i, field: 'consultationTypeId' }, { match: /day/i, field: 'dayOfWeek' }] })
     }
   }
 
@@ -63,17 +65,20 @@ function ScheduleFormModal({ doctorId, consultationTypes, initialSlot, onClose, 
       <h2>Add Availability Slot</h2>
       <form onSubmit={handleSubmit(onSubmit)} noValidate>
         {errors.root && <p className="form-error" role="alert">{errors.root.message}</p>}
-        <label htmlFor="dayOfWeek">Day of week</label>
-        <select id="dayOfWeek" {...register('dayOfWeek', { required: true })}>
+        <label htmlFor="dayOfWeek" className="required">Day of week</label>
+        <select id="dayOfWeek" aria-invalid={errors.dayOfWeek ? 'true' : undefined} {...register('dayOfWeek', rules.selection('a day of the week'))}>
           {DAY_NAMES.map((day) => <option key={day} value={day}>{day}</option>)}
         </select>
-        <label htmlFor="consultationTypeId">Consultation type</label>
-        <select id="consultationTypeId" {...register('consultationTypeId', { required: true })}>
+        {errors.dayOfWeek && <p className="field-error">{errors.dayOfWeek.message}</p>}
+        <label htmlFor="consultationTypeId" className="required">Consultation type</label>
+        <select id="consultationTypeId" aria-invalid={errors.consultationTypeId ? 'true' : undefined} {...register('consultationTypeId', rules.selection('a consultation type'))}>
+          {consultationTypes.length === 0 && <option value="">No consultation types available</option>}
           {consultationTypes.map((type) => <option key={type.id} value={type.id}>{type.name} ({type.durationMinutes} min)</option>)}
         </select>
+        {errors.consultationTypeId && <p className="field-error">{errors.consultationTypeId.message}</p>}
         <div className="field-row">
-          <div><label htmlFor="startTime">Start time</label><input id="startTime" type="time" {...register('startTime', { required: 'Required.' })} /></div>
-          <div><label htmlFor="endTime">End time</label><input id="endTime" type="time" {...register('endTime', { required: 'Required.' })} /></div>
+          <div><label htmlFor="startTime" className="required">Start time</label><input id="startTime" type="time" aria-invalid={errors.startTime ? 'true' : undefined} {...register('startTime', { ...rules.required('Start time'), deps: ['endTime'] })} />{errors.startTime && <p className="field-error">{errors.startTime.message}</p>}</div>
+          <div><label htmlFor="endTime" className="required">End time</label><input id="endTime" type="time" aria-invalid={errors.endTime ? 'true' : undefined} {...register('endTime', rules.custom((value, values) => first(required(value, 'End time'), after(value, values.startTime, 'End time must be after start time.'))))} />{errors.endTime && <p className="field-error">{errors.endTime.message}</p>}</div>
         </div>
         <div className="modal-actions">
           <button type="button" className="secondary-button" onClick={onClose}>Cancel</button>

@@ -6,6 +6,7 @@ import '../../widgets/password_field.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/error_message.dart';
 import '../../core/utils/validators.dart';
+import '../../core/utils/form_focus.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
@@ -29,11 +30,15 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   }
 
   Future<void> _changePassword() async {
-    if (!_formKey.currentState!.validate()) return;
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    authProvider.clearError();
+    if (!_formKey.currentState!.validate()) {
+      focusFirstInvalidField(_formKey);
+      return;
+    }
 
     FocusScope.of(context).unfocus();
 
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final success = await authProvider.changePassword(
       _currentPasswordController.text,
       _newPasswordController.text,
@@ -73,20 +78,29 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   label: 'Current Password',
                   hint: 'Enter your current password',
                   controller: _currentPasswordController,
-                  validator: Validators.validatePassword,
+                  isRequired: true,
+                  validator: Validators.validateCurrentPassword,
                 ),
 
                 PasswordField(
                   label: 'New Password',
                   hint: 'Enter a new password',
                   controller: _newPasswordController,
-                  validator: Validators.validatePassword,
+                  isRequired: true,
+                  validator: (val) {
+                    final strength = Validators.validatePassword(val);
+                    if (strength != null) return strength;
+                    return val == _currentPasswordController.text
+                        ? 'New password must be different from the current password.'
+                        : null;
+                  },
                 ),
 
                 PasswordField(
                   label: 'Confirm New Password',
                   hint: 'Confirm your new password',
                   controller: _confirmPasswordController,
+                  isRequired: true,
                   validator: (val) => Validators.validateConfirmPassword(
                     val,
                     _newPasswordController.text,

@@ -294,6 +294,7 @@ export default function AdminReportsPage() {
             <div className="relative flex-1 max-w-sm">
               <input
                 id="searchPatientIdAdmin"
+                maxLength={100}
                 type="text"
                 inputMode="search"
                 role="combobox"

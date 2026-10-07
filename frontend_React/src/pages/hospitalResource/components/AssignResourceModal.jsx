@@ -4,6 +4,9 @@ import {
   getRoomsByWard,
   getBeds,
 } from '../../../services/hospitalResourceService'
+import { useFormValidation } from '../../../hooks/useFormValidation'
+import FieldError from '../../../components/common/FieldError'
+import { text } from '../../../utils/validators'
 
 export default function AssignResourceModal({
   isOpen,
@@ -24,10 +27,16 @@ export default function AssignResourceModal({
 
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
+  const formValues = { locationDescription }
+  const validation = useFormValidation({
+    locationDescription: (value) => text(value, 'Location description', { max: 200 }),
+  }, formValues)
+  const resetValidation = validation.reset
 
   useEffect(() => {
     if (isOpen && resource) {
       setError(null)
+      resetValidation()
       const currentWardId = resource.wardId ? String(resource.wardId) : ''
       const currentRoomId = resource.roomId ? String(resource.roomId) : ''
       const currentBedId = resource.bedId ? String(resource.bedId) : ''
@@ -51,7 +60,7 @@ export default function AssignResourceModal({
         setBeds([])
       }
     }
-  }, [isOpen, resource])
+  }, [isOpen, resource, resetValidation])
 
   if (!isOpen || !resource) return null
 
@@ -142,6 +151,7 @@ export default function AssignResourceModal({
     e.preventDefault()
     setError(null)
 
+    if (!validation.validateAll(formValues, e.currentTarget)) return
     try {
       setSubmitting(true)
       const payload = {
@@ -155,7 +165,7 @@ export default function AssignResourceModal({
       onSuccess(`Resource '${resource.resourceCode}' location updated.`)
       onClose()
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to update resource assignment.')
+      setError(validation.applyServerErrors(err, { conflicts: [{ match: /bed/i, field: 'bedId' }, { match: /room/i, field: 'roomId' }, { match: /ward/i, field: 'wardId' }], fallback: 'Failed to update resource assignment.' }) || null)
     } finally {
       setSubmitting(false)
     }
@@ -225,7 +235,7 @@ export default function AssignResourceModal({
           </p>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} noValidate>
           {/* Quick Clear Action */}
           <div className="flex justify-end mb-3">
             <button
@@ -338,6 +348,9 @@ export default function AssignResourceModal({
             </label>
             <input
               id="assign-location-desc"
+                name="locationDescription"
+                onBlur={() => validation.touch('locationDescription', formValues)}
+                {...validation.fieldProps('locationDescription')}
               type="text"
               value={locationDescription}
               onChange={(e) => setLocationDescription(e.target.value)}
@@ -348,6 +361,7 @@ export default function AssignResourceModal({
                 borderColor: 'color-mix(in srgb, var(--color-secondary) 25%, var(--color-primary))',
               }}
             />
+              <FieldError name="locationDescription" message={validation.errorFor('locationDescription')} />
             <p className="text-xs opacity-60 mt-1">
               Descriptive note for clinical staff identifying the equipment&apos;s physical location.
             </p>
