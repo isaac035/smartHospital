@@ -111,6 +111,7 @@ class _DoctorDirectoryScreenState extends State<DoctorDirectoryScreen> {
                   label: '',
                   hint: 'Search doctor by name...',
                   enabled: !availabilityOn,
+                  maxLength: 100,
                   onChanged: _onSearchChanged,
                   prefixIcon: const Icon(Icons.search),
                 ),
@@ -210,6 +211,7 @@ class _DoctorDirectoryScreenState extends State<DoctorDirectoryScreen> {
                           AppTextField(
                             label: '',
                             hint: 'Specialization (e.g. Cardiology)',
+                            maxLength: 150,
                             onChanged: _onSpecializationChanged,
                             prefixIcon: const Icon(
                               Icons.medical_services_outlined,

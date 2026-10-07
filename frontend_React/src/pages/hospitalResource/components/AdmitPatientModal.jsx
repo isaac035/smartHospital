@@ -2,6 +2,9 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { createAdmission } from '../../../services/hospitalResourceService'
 import { listUsers } from '../../../services/userService'
 import { listDoctors } from '../../../services/doctorService'
+import { useFormValidation } from '../../../hooks/useFormValidation'
+import FieldError from '../../../components/common/FieldError'
+import { selection, text } from '../../../utils/validators'
 
 function getInitials(name) {
   if (!name) return '?'
@@ -20,6 +23,15 @@ export default function AdmitPatientModal({ isOpen, onClose, onSuccess }) {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const formValues = formData
+  const validation = useFormValidation({
+    patientId: (value) => selection(value, 'a patient'),
+    admittingDoctorId: (value) => selection(value, 'an admitting doctor'),
+    priority: (value) => selection(value, 'a priority'),
+    reasonForAdmission: (value) => text(value, 'Reason for admission', { isRequired: true, max: 500 }),
+    diagnosis: (value) => text(value, 'Initial diagnosis', { max: 1000 }),
+  }, formValues)
+  const resetValidation = validation.reset
 
   // Directory state
   const [patients, setPatients] = useState([])
@@ -155,9 +167,10 @@ export default function AdmitPatientModal({ isOpen, onClose, onSuccess }) {
       setPatientHighlightedIndex(-1)
       setDoctorHighlightedIndex(-1)
       setError(null)
+      resetValidation()
       fetchDirectory()
     }
-  }, [isOpen, fetchDirectory])
+  }, [isOpen, fetchDirectory, resetValidation])
 
   // Dismiss dropdowns on outside click
   useEffect(() => {
@@ -318,22 +331,9 @@ export default function AdmitPatientModal({ isOpen, onClose, onSuccess }) {
     e.preventDefault()
     setError(null)
 
+    if (!validation.validateAll(formValues, e.currentTarget)) return
     const parsedPatientId = parseInt(formData.patientId, 10)
-    if (isNaN(parsedPatientId) || parsedPatientId <= 0) {
-      setError('Please search and select a patient.')
-      return
-    }
-
     const parsedDoctorId = parseInt(formData.admittingDoctorId, 10)
-    if (isNaN(parsedDoctorId) || parsedDoctorId <= 0) {
-      setError('Please select an admitting doctor.')
-      return
-    }
-
-    if (!formData.reasonForAdmission.trim()) {
-      setError('Reason for admission is required.')
-      return
-    }
 
     const payload = {
       patientId: parsedPatientId,
@@ -349,10 +349,11 @@ export default function AdmitPatientModal({ isOpen, onClose, onSuccess }) {
       onSuccess('Patient admission created successfully.')
       onClose()
     } catch (err) {
-      const msg =
-        err.response?.data?.message ||
-        'Failed to create admission. Verify the selected Patient and Doctor.'
-      setError(msg)
+      const msg = validation.applyServerErrors(err, {
+        conflicts: [{ match: /patient/i, field: 'patientId' }, { match: /doctor/i, field: 'admittingDoctorId' }],
+        fallback: 'Failed to create admission. Verify the selected Patient and Doctor.',
+      })
+      setError(msg || null)
     } finally {
       setLoading(false)
     }
@@ -396,7 +397,7 @@ export default function AdmitPatientModal({ isOpen, onClose, onSuccess }) {
 
         {error && <div className="form-error mb-4">{error}</div>}
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+        <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {/* Patient Selector */}
             <div ref={patientDropdownRef} className={`relative ${patientDropdownOpen ? 'z-40' : 'z-10'}`}>
@@ -443,6 +444,8 @@ export default function AdmitPatientModal({ isOpen, onClose, onSuccess }) {
                   <input
                     ref={patientInputRef}
                     id="admit-patient-search"
+                    name="patientId"
+                    {...validation.fieldProps('patientId')}
                     type="text"
                     value={patientSearch}
                     onChange={(e) => {
@@ -558,6 +561,7 @@ export default function AdmitPatientModal({ isOpen, onClose, onSuccess }) {
                   )}
                 </div>
               )}
+              <FieldError name="patientId" message={validation.errorFor('patientId')} />
             </div>
 
             {/* Doctor Selector */}
@@ -608,6 +612,8 @@ export default function AdmitPatientModal({ isOpen, onClose, onSuccess }) {
                   <input
                     ref={doctorInputRef}
                     id="admit-doctor-search"
+                    name="admittingDoctorId"
+                    {...validation.fieldProps('admittingDoctorId')}
                     type="text"
                     value={doctorSearch}
                     onChange={(e) => {
@@ -723,6 +729,7 @@ export default function AdmitPatientModal({ isOpen, onClose, onSuccess }) {
                   )}
                 </div>
               )}
+              <FieldError name="admittingDoctorId" message={validation.errorFor('admittingDoctorId')} />
             </div>
           </div>
 
@@ -753,6 +760,8 @@ export default function AdmitPatientModal({ isOpen, onClose, onSuccess }) {
             </label>
             <textarea
               id="admit-reason"
+              onBlur={() => validation.touch('reasonForAdmission', formValues)}
+              {...validation.fieldProps('reasonForAdmission')}
               name="reasonForAdmission"
               required
               maxLength={500}
@@ -763,6 +772,7 @@ export default function AdmitPatientModal({ isOpen, onClose, onSuccess }) {
               className="w-full px-3 py-2 text-sm border rounded-lg outline-none"
               style={{ borderColor: 'color-mix(in srgb, var(--color-secondary) 25%, var(--color-primary))' }}
             />
+            <FieldError name="reasonForAdmission" message={validation.errorFor('reasonForAdmission')} />
           </div>
 
           <div>
@@ -771,6 +781,8 @@ export default function AdmitPatientModal({ isOpen, onClose, onSuccess }) {
             </label>
             <textarea
               id="admit-diagnosis"
+              onBlur={() => validation.touch('diagnosis', formValues)}
+              {...validation.fieldProps('diagnosis')}
               name="diagnosis"
               maxLength={1000}
               rows={2}
@@ -780,6 +792,7 @@ export default function AdmitPatientModal({ isOpen, onClose, onSuccess }) {
               className="w-full px-3 py-2 text-sm border rounded-lg outline-none"
               style={{ borderColor: 'color-mix(in srgb, var(--color-secondary) 25%, var(--color-primary))' }}
             />
+            <FieldError name="diagnosis" message={validation.errorFor('diagnosis')} />
           </div>
 
           <div

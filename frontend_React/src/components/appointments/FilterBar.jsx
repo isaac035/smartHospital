@@ -1,4 +1,7 @@
+import FieldError from '../common/FieldError'
+
 export default function FilterBar({ filters, doctors, onFilterChange, onClear }) {
+  const dateRangeError = filters.fromDate && filters.toDate && filters.toDate < filters.fromDate ? 'To date must be on or after from date.' : ''
   const handleChange = (e) => {
     onFilterChange({
       ...filters,
@@ -28,9 +31,9 @@ export default function FilterBar({ filters, doctors, onFilterChange, onClear })
 
       <div className="flex flex-col gap-1">
         <label className="text-xs uppercase tracking-wider font-bold" style={{ color: 'var(--color-accent)' }}>Status</label>
-        <select 
-          name="status" 
-          value={filters.status || ''} 
+        <select
+          name="status"
+          value={filters.status || ''}
           onChange={handleChange}
           className="border rounded-md px-3 py-1.5 text-sm"
           style={{ borderColor: 'color-mix(in srgb, var(--color-secondary) 25%, var(--color-primary))' }}
@@ -46,12 +49,12 @@ export default function FilterBar({ filters, doctors, onFilterChange, onClear })
           <option value="8">Rescheduled</option>
         </select>
       </div>
-      
+
       <div className="flex flex-col gap-1">
         <label className="text-xs uppercase tracking-wider font-bold" style={{ color: 'var(--color-accent)' }}>Priority</label>
-        <select 
-          name="priority" 
-          value={filters.priority || ''} 
+        <select
+          name="priority"
+          value={filters.priority || ''}
           onChange={handleChange}
           className="border rounded-md px-3 py-1.5 text-sm"
           style={{ borderColor: 'color-mix(in srgb, var(--color-secondary) 25%, var(--color-primary))' }}
@@ -65,10 +68,10 @@ export default function FilterBar({ filters, doctors, onFilterChange, onClear })
 
       <div className="flex flex-col gap-1">
         <label className="text-xs uppercase tracking-wider font-bold" style={{ color: 'var(--color-accent)' }}>From Date</label>
-        <input 
-          type="date" 
-          name="fromDate" 
-          value={filters.fromDate || ''} 
+        <input
+          type="date"
+          name="fromDate"
+          value={filters.fromDate || ''}
           onChange={handleChange}
           className="border rounded-md px-3 py-1.5 text-sm"
           style={{ borderColor: 'color-mix(in srgb, var(--color-secondary) 25%, var(--color-primary))' }}
@@ -77,14 +80,17 @@ export default function FilterBar({ filters, doctors, onFilterChange, onClear })
 
       <div className="flex flex-col gap-1">
         <label className="text-xs uppercase tracking-wider font-bold" style={{ color: 'var(--color-accent)' }}>To Date</label>
-        <input 
-          type="date" 
-          name="toDate" 
-          value={filters.toDate || ''} 
+        <input
+          type="date"
+          name="toDate"
+          value={filters.toDate || ''}
+          min={filters.fromDate || undefined}
           onChange={handleChange}
+          aria-invalid={dateRangeError ? 'true' : undefined}
           className="border rounded-md px-3 py-1.5 text-sm"
           style={{ borderColor: 'color-mix(in srgb, var(--color-secondary) 25%, var(--color-primary))' }}
         />
+        <FieldError name="toDate" message={dateRangeError} />
       </div>
 
       <div className="flex items-end">

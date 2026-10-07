@@ -1,5 +1,6 @@
 import { useForm } from 'react-hook-form'
 import { upsertPatientMedicalProfile } from '../../services/emrService'
+import { applyServerErrors, rules } from '../../utils/validators'
 
 const bloodGroupMap = {
   Unknown: 0,
@@ -26,6 +27,7 @@ export default function EditPatientProfileModal({ patientId, profile, onClose, o
   const initialBloodGroup = profile?.bloodGroup ? (bloodGroupMap[profile.bloodGroup] ?? 0) : 0
 
   const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm({
+    mode: 'onTouched',
     defaultValues: {
       dateOfBirth: initialDob,
       gender: profile?.gender || 'Male',
@@ -52,12 +54,11 @@ export default function EditPatientProfileModal({ patientId, profile, onClose, o
       await upsertPatientMedicalProfile(patientId, payload)
       onSaved()
     } catch (err) {
-      setError('root', {
-        message: err.response?.data?.message ||
-          (err.response?.status === 403
-            ? 'Unauthorized: You do not have permission to update this profile.'
-            : 'Failed to update patient medical profile.'),
-      })
+      if (err.response?.status === 403) {
+        setError('root', { message: err.response?.data?.message || 'Unauthorized: You do not have permission to update this profile.' })
+      } else {
+        applyServerErrors(err, setError, { fields: ['dateOfBirth', 'gender', 'bloodGroup', 'allergies', 'chronicDiseases', 'emergencyContactName', 'emergencyContactPhone'], fallback: 'Failed to update patient medical profile.' })
+      }
     }
   }
 
@@ -74,8 +75,11 @@ export default function EditPatientProfileModal({ patientId, profile, onClose, o
               <input
                 id="dob"
                 type="date"
-                {...register('dateOfBirth')}
+                max={new Date().toISOString().slice(0, 10)}
+                aria-invalid={errors.dateOfBirth ? 'true' : undefined}
+                {...register('dateOfBirth', rules.dateNotFuture('Date of birth'))}
               />
+              {errors.dateOfBirth && <p className="field-error">{errors.dateOfBirth.message}</p>}
             </div>
             <div>
               <label htmlFor="gender">Gender</label>
@@ -115,8 +119,11 @@ export default function EditPatientProfileModal({ patientId, profile, onClose, o
             <input
               id="allergies"
               placeholder="e.g. Penicillin, Peanuts, Latex (or None)"
-              {...register('allergies')}
+              maxLength={500}
+              aria-invalid={errors.allergies ? 'true' : undefined}
+              {...register('allergies', rules.text('Allergies', { max: 500 }))}
             />
+            {errors.allergies && <p className="field-error">{errors.allergies.message}</p>}
           </div>
 
           <div>
@@ -124,8 +131,11 @@ export default function EditPatientProfileModal({ patientId, profile, onClose, o
             <input
               id="chronic"
               placeholder="e.g. Type 2 Diabetes, Hypertension, Asthma"
-              {...register('chronicDiseases')}
+              maxLength={500}
+              aria-invalid={errors.chronicDiseases ? 'true' : undefined}
+              {...register('chronicDiseases', rules.text('Chronic illnesses', { max: 500 }))}
             />
+            {errors.chronicDiseases && <p className="field-error">{errors.chronicDiseases.message}</p>}
           </div>
 
           <div className="field-row">
@@ -134,16 +144,24 @@ export default function EditPatientProfileModal({ patientId, profile, onClose, o
               <input
                 id="ecName"
                 placeholder="e.g. Jane Doe (Spouse)"
-                {...register('emergencyContactName')}
+                maxLength={100}
+                aria-invalid={errors.emergencyContactName ? 'true' : undefined}
+                {...register('emergencyContactName', rules.text('Emergency contact name', { max: 100 }))}
               />
+              {errors.emergencyContactName && <p className="field-error">{errors.emergencyContactName.message}</p>}
             </div>
             <div>
               <label htmlFor="ecPhone">Emergency Contact Phone</label>
               <input
                 id="ecPhone"
                 placeholder="e.g. +1 555-0192"
-                {...register('emergencyContactPhone')}
+                type="tel"
+                inputMode="tel"
+                maxLength={20}
+                aria-invalid={errors.emergencyContactPhone ? 'true' : undefined}
+                {...register('emergencyContactPhone', rules.phone({ isRequired: false, label: 'Emergency contact phone' }))}
               />
+              {errors.emergencyContactPhone && <p className="field-error">{errors.emergencyContactPhone.message}</p>}
             </div>
           </div>
 

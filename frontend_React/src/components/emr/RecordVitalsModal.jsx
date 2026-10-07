@@ -1,8 +1,10 @@
 import { useForm } from 'react-hook-form'
 import { recordVitalSign } from '../../services/emrService'
+import { applyServerErrors, rules } from '../../utils/validators'
 
 export default function RecordVitalsModal({ patientId, medicalRecordId = null, onClose, onSaved }) {
   const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm({
+    mode: 'onTouched',
     defaultValues: {
       patientId: patientId ? Number(patientId) : '',
       temperatureCelsius: '',
@@ -36,9 +38,11 @@ export default function RecordVitalsModal({ patientId, medicalRecordId = null, o
       await recordVitalSign(payload)
       onSaved()
     } catch (err) {
-      setError('root', {
-        message: err.response?.data?.message || (err.response?.status === 403 ? 'Unauthorized: You do not have permission to record vitals for this patient.' : 'Failed to record vitals. Please check value ranges.'),
-      })
+      if (err.response?.status === 403) {
+        setError('root', { message: err.response?.data?.message || 'Unauthorized: You do not have permission to record vitals for this patient.' })
+      } else {
+        applyServerErrors(err, setError, { fields: ['temperatureCelsius', 'systolicBloodPressure', 'diastolicBloodPressure', 'heartRateBpm', 'respiratoryRateBpm', 'oxygenSaturationSpO2', 'weightKg', 'heightCm', 'notes'], fallback: 'Failed to record vitals. Please check value ranges.' })
+      }
     }
   }
 
@@ -57,10 +61,8 @@ export default function RecordVitalsModal({ patientId, medicalRecordId = null, o
                 type="number"
                 step="0.1"
                 placeholder="36.8"
-                {...register('temperatureCelsius', {
-                  min: { value: 30, message: 'Min 30°C' },
-                  max: { value: 45, message: 'Max 45°C' },
-                })}
+                aria-invalid={errors.temperatureCelsius ? 'true' : undefined}
+                {...register('temperatureCelsius', rules.number('Temperature', { min: 30, max: 45, message: 'Temperature must be between 30.0 and 45.0 Celsius.' }))}
               />
               {errors.temperatureCelsius && <p className="field-error">{errors.temperatureCelsius.message}</p>}
             </div>
@@ -70,10 +72,8 @@ export default function RecordVitalsModal({ patientId, medicalRecordId = null, o
                 id="pulse"
                 type="number"
                 placeholder="75"
-                {...register('heartRateBpm', {
-                  min: { value: 30, message: 'Min 30 bpm' },
-                  max: { value: 250, message: 'Max 250 bpm' },
-                })}
+                aria-invalid={errors.heartRateBpm ? 'true' : undefined}
+                {...register('heartRateBpm', rules.number('Heart rate', { min: 30, max: 250, integer: true, message: 'Heart rate must be between 30 and 250 bpm.' }))}
               />
               {errors.heartRateBpm && <p className="field-error">{errors.heartRateBpm.message}</p>}
             </div>
@@ -86,10 +86,8 @@ export default function RecordVitalsModal({ patientId, medicalRecordId = null, o
                 id="sys"
                 type="number"
                 placeholder="120"
-                {...register('systolicBloodPressure', {
-                  min: { value: 50, message: 'Min 50' },
-                  max: { value: 250, message: 'Max 250' },
-                })}
+                aria-invalid={errors.systolicBloodPressure ? 'true' : undefined}
+                {...register('systolicBloodPressure', rules.number('Systolic blood pressure', { min: 50, max: 250, integer: true, message: 'Systolic blood pressure must be between 50 and 250 mmHg.' }))}
               />
               {errors.systolicBloodPressure && <p className="field-error">{errors.systolicBloodPressure.message}</p>}
             </div>
@@ -99,10 +97,8 @@ export default function RecordVitalsModal({ patientId, medicalRecordId = null, o
                 id="dia"
                 type="number"
                 placeholder="80"
-                {...register('diastolicBloodPressure', {
-                  min: { value: 30, message: 'Min 30' },
-                  max: { value: 150, message: 'Max 150' },
-                })}
+                aria-invalid={errors.diastolicBloodPressure ? 'true' : undefined}
+                {...register('diastolicBloodPressure', rules.number('Diastolic blood pressure', { min: 30, max: 150, integer: true, message: 'Diastolic blood pressure must be between 30 and 150 mmHg.' }))}
               />
               {errors.diastolicBloodPressure && <p className="field-error">{errors.diastolicBloodPressure.message}</p>}
             </div>
@@ -116,10 +112,8 @@ export default function RecordVitalsModal({ patientId, medicalRecordId = null, o
                 type="number"
                 step="0.1"
                 placeholder="98"
-                {...register('oxygenSaturationSpO2', {
-                  min: { value: 50, message: 'Min 50%' },
-                  max: { value: 100, message: 'Max 100%' },
-                })}
+                aria-invalid={errors.oxygenSaturationSpO2 ? 'true' : undefined}
+                {...register('oxygenSaturationSpO2', rules.number('SpO2', { min: 50, max: 100, message: 'SpO2 must be between 50.0% and 100.0%.' }))}
               />
               {errors.oxygenSaturationSpO2 && <p className="field-error">{errors.oxygenSaturationSpO2.message}</p>}
             </div>
@@ -129,10 +123,8 @@ export default function RecordVitalsModal({ patientId, medicalRecordId = null, o
                 id="resp"
                 type="number"
                 placeholder="16"
-                {...register('respiratoryRateBpm', {
-                  min: { value: 5, message: 'Min 5' },
-                  max: { value: 60, message: 'Max 60' },
-                })}
+                aria-invalid={errors.respiratoryRateBpm ? 'true' : undefined}
+                {...register('respiratoryRateBpm', rules.number('Respiratory rate', { min: 5, max: 60, integer: true, message: 'Respiratory rate must be between 5 and 60 breaths/min.' }))}
               />
               {errors.respiratoryRateBpm && <p className="field-error">{errors.respiratoryRateBpm.message}</p>}
             </div>
@@ -146,10 +138,8 @@ export default function RecordVitalsModal({ patientId, medicalRecordId = null, o
                 type="number"
                 step="0.1"
                 placeholder="70"
-                {...register('weightKg', {
-                  min: { value: 1, message: 'Min 1 kg' },
-                  max: { value: 500, message: 'Max 500 kg' },
-                })}
+                aria-invalid={errors.weightKg ? 'true' : undefined}
+                {...register('weightKg', rules.number('Weight', { min: 1, max: 500, message: 'Weight must be between 1.0 and 500.0 kg.' }))}
               />
               {errors.weightKg && <p className="field-error">{errors.weightKg.message}</p>}
             </div>
@@ -160,10 +150,8 @@ export default function RecordVitalsModal({ patientId, medicalRecordId = null, o
                 type="number"
                 step="0.1"
                 placeholder="175"
-                {...register('heightCm', {
-                  min: { value: 30, message: 'Min 30 cm' },
-                  max: { value: 300, message: 'Max 300 cm' },
-                })}
+                aria-invalid={errors.heightCm ? 'true' : undefined}
+                {...register('heightCm', rules.number('Height', { min: 30, max: 300, message: 'Height must be between 30.0 and 300.0 cm.' }))}
               />
               {errors.heightCm && <p className="field-error">{errors.heightCm.message}</p>}
             </div>
@@ -174,8 +162,11 @@ export default function RecordVitalsModal({ patientId, medicalRecordId = null, o
             <input
               id="notes"
               placeholder="e.g. Patient resting quietly, cuff size standard adult"
-              {...register('notes')}
+              maxLength={500}
+              aria-invalid={errors.notes ? 'true' : undefined}
+              {...register('notes', rules.text('Notes', { max: 500 }))}
             />
+            {errors.notes && <p className="field-error">{errors.notes.message}</p>}
           </div>
 
           <div className="modal-actions">

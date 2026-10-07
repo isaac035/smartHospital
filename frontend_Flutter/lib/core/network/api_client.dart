@@ -66,6 +66,20 @@ class ApiClient {
         if (responseCode is String) code = responseCode;
         refreshRecommendations = data['refreshRecommendations'] == true;
       }
+      final fieldErrors = <String, String>{};
+      final errors = data is Map<String, dynamic> ? data['errors'] : null;
+      if (errors is Map) {
+        errors.forEach((key, value) {
+          final text = value is List && value.isNotEmpty ? value.first.toString() : value?.toString();
+          if (text == null || text.isEmpty) return;
+          final field = key.toString().replaceFirst(r'$.', '');
+          final camel = field.isEmpty ? field : field[0].toLowerCase() + field.substring(1);
+          fieldErrors[camel] = text;
+        });
+        if (fieldErrors.isNotEmpty && message == 'An unexpected error occurred.') {
+          message = fieldErrors.values.first;
+        }
+      }
       if (message == 'An unexpected error occurred.' && data is Map<String, dynamic>) {
         final detail = data['detail'] ?? data['title'];
         if (detail is String && detail.isNotEmpty) message = detail;
@@ -80,7 +94,7 @@ class ApiClient {
           _ => 'The report request failed. Please try again.',
         };
       }
-      return ApiException(message, e.response?.statusCode, code, refreshRecommendations);
+      return ApiException(message, e.response?.statusCode, code, refreshRecommendations, fieldErrors);
     } else if (e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.receiveTimeout) {
       return ApiException('The report service took too long to respond. Please retry; a saved report will remain available in your list.', null, 'NETWORK_TIMEOUT');
     } else if (e.type == DioExceptionType.connectionError) {

@@ -5,6 +5,15 @@ import { getAppointmentById, rescheduleAppointment } from '../../services/appoin
 import SlotPicker from '../../components/appointments/SlotPicker'
 import { useAuth } from '../../hooks/useAuth'
 import { appointmentManagerNavigation } from './appointmentManagerNavigation'
+import { useFormValidation } from '../../hooks/useFormValidation'
+import FieldError from '../../components/common/FieldError'
+import { first, notBeforeToday, required, text } from '../../utils/validators'
+
+const RESCHEDULE_SCHEMA = {
+  date: (value) => first(required(value, 'New date'), notBeforeToday(value, 'New date cannot be in the past.')),
+  selectedSlot: (value) => (value ? undefined : 'Please select a new time slot.'),
+  reason: (value) => text(value, 'Reason for rescheduling', { isRequired: true, max: 500 }),
+}
 
 const adminNav = ['Dashboard', 'User Management', 'Doctor Management', 'Department Management', 'Appointments', 'Reports', 'Settings']
 const staffNav = ['Dashboard', 'Patients', 'Appointments', 'Queue Management', 'Resources']
@@ -26,6 +35,8 @@ export default function RescheduleAppointment() {
   const [date, setDate] = useState('')
   const [selectedSlot, setSelectedSlot] = useState('')
   const [reason, setReason] = useState('')
+  const formValues = { date, selectedSlot, reason }
+  const validation = useFormValidation(RESCHEDULE_SCHEMA, formValues)
 
   useEffect(() => {
     fetchData()
@@ -36,7 +47,7 @@ export default function RescheduleAppointment() {
       setLoading(true)
       const data = await getAppointmentById(id)
       setAppointment(data)
-      
+
       // Default date to today or existing start
       const existing = new Date(data.scheduledStart)
       if (existing > new Date()) {
@@ -55,10 +66,7 @@ export default function RescheduleAppointment() {
     e.preventDefault()
     setFormError(null)
 
-    if (!selectedSlot) {
-      setFormError('Please select a new time slot.')
-      return
-    }
+    if (!validation.validateAll(formValues, e.currentTarget)) return
 
     try {
       setSubmitting(true)
@@ -69,7 +77,7 @@ export default function RescheduleAppointment() {
       })
       navigate(`/${routeRole}/appointments/${id}`)
     } catch (err) {
-      setFormError(err.response?.data?.message || 'Failed to reschedule appointment')
+      setFormError(validation.applyServerErrors(err, { fields: ['date', 'selectedSlot', 'reason'], conflicts: [{ match: /slot|future|capacity|available/i, field: 'selectedSlot' }], fallback: 'Failed to reschedule appointment' }) || null)
     } finally {
       setSubmitting(false)
     }
@@ -97,12 +105,16 @@ export default function RescheduleAppointment() {
 
         {formError && <div className="form-error mb-4">{formError}</div>}
 
-        <form onSubmit={handleSubmit} className="grid gap-6">
+        <form onSubmit={handleSubmit} noValidate className="grid gap-6">
           <div className="flex flex-col gap-1">
-            <label>Select New Date *</label>
-            <input 
-              type="date" 
+            <label htmlFor="date" className="required">Select New Date</label>
+            <input
+              id="date"
+              name="date"
+              type="date"
               required
+              onBlur={() => validation.touch('date', formValues)}
+              {...validation.fieldProps('date')}
               value={date}
               min={new Date().toISOString().split('T')[0]}
               onChange={(e) => {
@@ -110,11 +122,12 @@ export default function RescheduleAppointment() {
                 setSelectedSlot('') // reset slot on date change
               }}
             />
+            <FieldError name="date" message={validation.errorFor('date')} />
           </div>
 
           <div className="flex flex-col gap-1">
-            <label>Select New Time Slot *</label>
-            <SlotPicker 
+            <label className="required">Select New Time Slot</label>
+            <SlotPicker
               doctorId={appointment.doctorId}
               date={date}
               selectedSlot={selectedSlot}
@@ -122,12 +135,18 @@ export default function RescheduleAppointment() {
               durationMinutes={appointment.estimatedDurationMinutes}
               appointmentManager={role === 'AppointmentManager'}
             />
+            <FieldError name="selectedSlot" message={validation.errorFor('selectedSlot')} />
           </div>
 
           <div className="flex flex-col gap-1 mt-2">
-            <label>Reason for Rescheduling *</label>
-            <textarea 
+            <label htmlFor="reason" className="required">Reason for Rescheduling</label>
+            <textarea
+              id="reason"
+              name="reason"
               required
+              maxLength={500}
+              onBlur={() => validation.touch('reason', formValues)}
+              {...validation.fieldProps('reason')}
               rows="2"
               value={reason}
               onChange={e => setReason(e.target.value)}
@@ -135,6 +154,7 @@ export default function RescheduleAppointment() {
               style={{ borderColor: 'color-mix(in srgb, var(--color-secondary) 25%, var(--color-primary))', outline: 'none' }}
               placeholder="e.g. Patient requested a different day"
             />
+            <FieldError name="reason" message={validation.errorFor('reason')} />
           </div>
 
           <div className="flex gap-2 justify-end mt-4">

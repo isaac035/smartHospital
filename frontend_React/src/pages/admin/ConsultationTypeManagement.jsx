@@ -4,9 +4,11 @@ import DashboardLayout from '../../layouts/DashboardLayout'
 import { adminNavigation as navigation } from './adminNavigation'
 import { createConsultationType, deactivateConsultationType, activateConsultationType, listConsultationTypes, updateConsultationType } from '../../services/consultationTypeService'
 import ToggleActiveButton from '../../components/common/ToggleActiveButton'
+import { applyServerErrors, rules } from '../../utils/validators'
 
 function ConsultationTypeFormModal({ consultationType, onClose, onSaved }) {
   const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm({
+    mode: 'onTouched',
     defaultValues: {
       name: consultationType?.name || '',
       durationMinutes: consultationType?.durationMinutes ?? 30,
@@ -21,7 +23,7 @@ function ConsultationTypeFormModal({ consultationType, onClose, onSaved }) {
       else await createConsultationType(payload)
       onSaved()
     } catch (requestError) {
-      setError('root', { message: requestError.response?.data?.message || 'Something went wrong. Please try again.' })
+      applyServerErrors(requestError, setError, { fields: ['name', 'durationMinutes', 'description'], conflicts: [{ match: /name/i, field: 'name' }] })
     }
   }
 
@@ -30,14 +32,15 @@ function ConsultationTypeFormModal({ consultationType, onClose, onSaved }) {
       <h2>{consultationType ? 'Edit Consultation Type' : 'Add Consultation Type'}</h2>
       <form onSubmit={handleSubmit(onSubmit)} noValidate>
         {errors.root && <p className="form-error" role="alert">{errors.root.message}</p>}
-        <label htmlFor="name">Name</label>
-        <input id="name" {...register('name', { required: 'Name is required.' })} />
+        <label htmlFor="name" className="required">Name</label>
+        <input id="name" maxLength={100} aria-invalid={errors.name ? 'true' : undefined} {...register('name', rules.text('Name', { isRequired: true, max: 100 }))} />
         {errors.name && <p className="field-error">{errors.name.message}</p>}
-        <label htmlFor="durationMinutes">Session duration (minutes)</label>
-        <input id="durationMinutes" type="number" min="1" max="480" {...register('durationMinutes', { required: 'Duration is required.', min: 1, max: 480 })} />
-        {errors.durationMinutes && <p className="field-error">Enter a duration between 1 and 480 minutes.</p>}
+        <label htmlFor="durationMinutes" className="required">Session duration (minutes)</label>
+        <input id="durationMinutes" type="number" min="1" max="480" step="1" aria-invalid={errors.durationMinutes ? 'true' : undefined} {...register('durationMinutes', rules.number('Duration', { isRequired: true, min: 1, max: 480, integer: true, unit: 'minutes' }))} />
+        {errors.durationMinutes && <p className="field-error">{errors.durationMinutes.message}</p>}
         <label htmlFor="description">Description</label>
-        <input id="description" {...register('description')} />
+        <input id="description" maxLength={500} aria-invalid={errors.description ? 'true' : undefined} {...register('description', rules.text('Description', { max: 500 }))} />
+        {errors.description && <p className="field-error">{errors.description.message}</p>}
         <div className="modal-actions">
           <button type="button" className="secondary-button" onClick={onClose}>Cancel</button>
           <button type="submit" className="primary-button" disabled={isSubmitting}>{isSubmitting ? 'Saving...' : 'Save'}</button>

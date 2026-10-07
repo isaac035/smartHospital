@@ -6,6 +6,9 @@ import {
   getBeds,
   getMedicalResources,
 } from '../../../services/hospitalResourceService'
+import { useFormValidation } from '../../../hooks/useFormValidation'
+import FieldError from '../../../components/common/FieldError'
+import { required, selection, text } from '../../../utils/validators'
 
 export const MAINTENANCE_TYPES = [
   { value: 1, label: 'Routine Inspection' },
@@ -45,6 +48,23 @@ export default function ScheduleMaintenanceModal({
 
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
+  const formValues = { targetType, bedId, medicalResourceId, type, description, scheduledStart, scheduledEnd }
+  const validation = useFormValidation({
+    bedId: (value, values) => (values.targetType === 'Bed' && !value ? 'Please select a specific bed for maintenance.' : undefined),
+    medicalResourceId: (value, values) => (values.targetType === 'MedicalResource' && !value ? 'Please select a medical resource for maintenance.' : undefined),
+    type: (value) => selection(value, 'a maintenance type'),
+    scheduledStart: (value) => {
+      const missing = required(value, 'Scheduled start date and time')
+      if (missing) return missing
+      const now = new Date()
+      const currentMinute = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), now.getMinutes()).getTime()
+      const start = new Date(value).getTime()
+      return Number.isNaN(start) || start < currentMinute ? 'Scheduled start cannot be earlier than the current date and time.' : undefined
+    },
+    scheduledEnd: (value, values) => (value && values.scheduledStart && new Date(value) <= new Date(values.scheduledStart) ? 'Scheduled end time must be after scheduled start time.' : undefined),
+    description: (value) => text(value, 'Description', { isRequired: true, max: 500 }),
+  }, formValues)
+  const resetValidation = validation.reset
   const [minStartDateTime, setMinStartDateTime] = useState('')
 
   // Format Date object to local YYYY-MM-DDTHH:mm string for datetime-local input
@@ -63,6 +83,7 @@ export default function ScheduleMaintenanceModal({
   useEffect(() => {
     if (isOpen) {
       setError(null)
+      resetValidation()
       setTargetType('Bed')
       setWardId('')
       setRoomId('')
@@ -89,7 +110,7 @@ export default function ScheduleMaintenanceModal({
         .catch(() => setResources([]))
         .finally(() => setLoadingResources(false))
     }
-  }, [isOpen])
+  }, [isOpen, resetValidation])
 
   // Ward change
   const handleWardChange = async (e) => {
@@ -146,50 +167,7 @@ export default function ScheduleMaintenanceModal({
     e.preventDefault()
     setError(null)
 
-    if (targetType === 'Bed' && !bedId) {
-      setError('Please select a specific Bed for maintenance.')
-      return
-    }
-
-    if (targetType === 'MedicalResource' && !medicalResourceId) {
-      setError('Please select a Medical Resource for maintenance.')
-      return
-    }
-
-    if (!description.trim()) {
-      setError('Description is required.')
-      return
-    }
-
-    if (!scheduledStart) {
-      setError('Scheduled Start date and time is required.')
-      return
-    }
-
-    // Validate Scheduled Start is not earlier than current moment (using local minute precision)
-    const now = new Date()
-    const currentMinuteTime = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate(),
-      now.getHours(),
-      now.getMinutes()
-    ).getTime()
-
-    const startTime = new Date(scheduledStart).getTime()
-    if (isNaN(startTime) || startTime < currentMinuteTime) {
-      setError('Scheduled start cannot be earlier than the current date and time.')
-      return
-    }
-
-    // Validate Scheduled End (optional, but if provided must be strictly later than scheduledStart)
-    if (scheduledEnd) {
-      const endTime = new Date(scheduledEnd).getTime()
-      if (isNaN(endTime) || endTime <= startTime) {
-        setError('Scheduled end must be later than scheduled start.')
-        return
-      }
-    }
+    if (!validation.validateAll(formValues, e.currentTarget)) return
 
     try {
       setSubmitting(true)
@@ -206,7 +184,7 @@ export default function ScheduleMaintenanceModal({
       onSuccess(`Maintenance task '${result.maintenanceCode}' scheduled successfully.`)
       onClose()
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to schedule maintenance task.')
+      setError(validation.applyServerErrors(err, { conflicts: [{ match: /end time/i, field: 'scheduledEnd' }, { match: /bed/i, field: 'bedId' }, { match: /resource|equipment/i, field: 'medicalResourceId' }], fallback: 'Failed to schedule maintenance task.' }) || null)
     } finally {
       setSubmitting(false)
     }
@@ -246,7 +224,7 @@ export default function ScheduleMaintenanceModal({
 
         {error && <div className="form-error mb-4">{error}</div>}
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} noValidate>
           {/* Target Type Selector */}
           <div className="mb-4">
             <label className="block text-xs font-semibold mb-1.5">
@@ -353,6 +331,9 @@ export default function ScheduleMaintenanceModal({
                   <label className="block text-xs font-medium mb-1">Bed</label>
                   <select
                     value={bedId}
+                name="bedId"
+                onBlur={() => validation.touch('bedId', formValues)}
+                {...validation.fieldProps('bedId')}
                     onChange={(e) => setBedId(e.target.value)}
                     disabled={!roomId || loadingBeds}
                     className="w-full px-2.5 py-1.5 text-xs border rounded-lg outline-none bg-transparent"
@@ -377,6 +358,7 @@ export default function ScheduleMaintenanceModal({
                       </option>
                     ))}
                   </select>
+              <FieldError name="bedId" message={validation.errorFor('bedId')} />
                 </div>
               </div>
 
@@ -402,6 +384,9 @@ export default function ScheduleMaintenanceModal({
               </label>
               <select
                 id="select-medical-resource"
+                name="medicalResourceId"
+                onBlur={() => validation.touch('medicalResourceId', formValues)}
+                {...validation.fieldProps('medicalResourceId')}
                 value={medicalResourceId}
                 onChange={(e) => setMedicalResourceId(e.target.value)}
                 disabled={loadingResources}
@@ -419,6 +404,7 @@ export default function ScheduleMaintenanceModal({
                   </option>
                 ))}
               </select>
+              <FieldError name="medicalResourceId" message={validation.errorFor('medicalResourceId')} />
 
               {isResourceInUse && (
                 <p className="text-xs text-amber-700 mt-2 font-medium">
@@ -436,6 +422,9 @@ export default function ScheduleMaintenanceModal({
               </label>
               <select
                 id="maintenance-type-select"
+                name="type"
+                onBlur={() => validation.touch('type', formValues)}
+                {...validation.fieldProps('type')}
                 value={type}
                 onChange={(e) => setType(parseInt(e.target.value, 10))}
                 className="w-full px-3 py-2 text-xs border rounded-lg outline-none bg-transparent"
@@ -450,6 +439,7 @@ export default function ScheduleMaintenanceModal({
                   </option>
                 ))}
               </select>
+              <FieldError name="type" message={validation.errorFor('type')} />
             </div>
 
             <div>
@@ -458,6 +448,9 @@ export default function ScheduleMaintenanceModal({
               </label>
               <input
                 id="scheduled-start-input"
+                name="scheduledStart"
+                onBlur={() => validation.touch('scheduledStart', formValues)}
+                {...validation.fieldProps('scheduledStart')}
                 type="datetime-local"
                 value={scheduledStart}
                 min={minStartDateTime || formatToLocalDatetimeString(new Date())}
@@ -468,6 +461,7 @@ export default function ScheduleMaintenanceModal({
                 }}
                 required
               />
+              <FieldError name="scheduledStart" message={validation.errorFor('scheduledStart')} />
             </div>
 
             <div>
@@ -476,6 +470,9 @@ export default function ScheduleMaintenanceModal({
               </label>
               <input
                 id="scheduled-end-input"
+                name="scheduledEnd"
+                onBlur={() => validation.touch('scheduledEnd', formValues)}
+                {...validation.fieldProps('scheduledEnd')}
                 type="datetime-local"
                 value={scheduledEnd}
                 min={scheduledStart || minStartDateTime || formatToLocalDatetimeString(new Date())}
@@ -485,6 +482,7 @@ export default function ScheduleMaintenanceModal({
                   borderColor: 'color-mix(in srgb, var(--color-secondary) 25%, var(--color-primary))',
                 }}
               />
+              <FieldError name="scheduledEnd" message={validation.errorFor('scheduledEnd')} />
             </div>
           </div>
 
@@ -495,6 +493,9 @@ export default function ScheduleMaintenanceModal({
             </label>
             <textarea
               id="maintenance-description-input"
+                name="description"
+                onBlur={() => validation.touch('description', formValues)}
+                {...validation.fieldProps('description')}
               rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -506,6 +507,7 @@ export default function ScheduleMaintenanceModal({
               }}
               required
             />
+              <FieldError name="description" message={validation.errorFor('description')} />
             <div className="text-right text-xs opacity-50 mt-0.5">
               {description.length}/500
             </div>

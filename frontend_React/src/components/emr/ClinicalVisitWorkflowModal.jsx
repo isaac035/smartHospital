@@ -10,6 +10,60 @@ import {
   updateMedicalRecord,
 } from '../../services/emrService'
 import ConfirmationModal from './ConfirmationModal'
+import { useFormValidation } from '../../hooks/useFormValidation'
+import FieldError from '../common/FieldError'
+import { futureDate, notBeforeToday, number, text } from '../../utils/validators'
+
+// Field rules mirror the EMR request DTOs (RecordVitalSignRequest, AddDiagnosisRequest, ...).
+const BASE_SCHEMA = {
+  chiefComplaint: (value) => text(value, 'Chief complaint', { isRequired: true, max: 500 }),
+  symptoms: (value) => text(value, 'Symptoms', { max: 1000 }),
+  examinationNotes: (value) => text(value, 'Examination notes', { max: 2000 }),
+  initialDiagnosis: (value) => text(value, 'Primary clinical diagnosis', { isRequired: true, max: 500 }),
+  temp: (value) => number(value, 'Temperature', { min: 30, max: 45, message: 'Temperature must be between 30.0 and 45.0 Celsius.' }),
+  sysBP: (value) => number(value, 'Systolic blood pressure', { min: 50, max: 250, integer: true, message: 'Systolic blood pressure must be between 50 and 250 mmHg.' }),
+  diaBP: (value) => number(value, 'Diastolic blood pressure', { min: 30, max: 150, integer: true, message: 'Diastolic blood pressure must be between 30 and 150 mmHg.' }),
+  heartRate: (value) => number(value, 'Heart rate', { min: 30, max: 250, integer: true, message: 'Heart rate must be between 30 and 250 bpm.' }),
+  respRate: (value) => number(value, 'Respiratory rate', { min: 5, max: 60, integer: true, message: 'Respiratory rate must be between 5 and 60 breaths/min.' }),
+  spO2: (value) => number(value, 'SpO2', { min: 50, max: 100, message: 'SpO2 must be between 50.0% and 100.0%.' }),
+  weight: (value) => number(value, 'Weight', { min: 1, max: 500, message: 'Weight must be between 1.0 and 500.0 kg.' }),
+  height: (value) => number(value, 'Height', { min: 30, max: 300, message: 'Height must be between 30.0 and 300.0 cm.' }),
+  vitalsNotes: (value) => text(value, 'Notes', { max: 500 }),
+  diagCode: (value) => text(value, 'Clinical code', { max: 50 }),
+  diagDescription: (value) => text(value, 'Diagnosis description', { isRequired: true, max: 500 }),
+  diagNotes: (value) => text(value, 'Clinical notes', { max: 2000 }),
+  planTitle: (value) => text(value, 'Plan title', { isRequired: true, max: 200 }),
+  planDescription: (value) => text(value, 'Plan description', { isRequired: true, max: 2000 }),
+  planGoals: (value) => text(value, 'Therapeutic goals', { max: 1000 }),
+  planInterventions: (value) => text(value, 'Interventions', { max: 2000 }),
+  planTargetDate: (value) => notBeforeToday(value, 'Target date must be on or after start date.'),
+  rxInstructions: (value) => text(value, 'General instructions', { max: 1000 }),
+  labTestName: (value) => text(value, 'Test name', { isRequired: true, max: 120 }),
+  labNotes: (value) => text(value, 'Clinical notes', { max: 1000 }),
+  reportSummary: (value) => text(value, 'Result summary', { isRequired: true, max: 500 }),
+  reportFindings: (value) => text(value, 'Findings', { isRequired: true, max: 2000 }),
+  reportRange: (value) => text(value, 'Reference range', { max: 500 }),
+  reportRemarks: (value) => text(value, 'Doctor remarks', { max: 1000 }),
+  followUpDate: (value) => futureDate(value, 'Follow-up date', 5),
+  finalAdvice: (value) => text(value, 'Final advice', { max: 2000 }),
+}
+
+const RX_RULES = {
+  medicineName: (value) => text(value, 'Medicine name', { isRequired: true, max: 150 }),
+  dosage: (value) => text(value, 'Dosage', { isRequired: true, max: 50 }),
+  frequency: (value) => text(value, 'Frequency', { isRequired: true, max: 50 }),
+  durationDays: (value) => number(value, 'Duration', { isRequired: true, min: 1, max: 365, integer: true, message: 'Duration must be between 1 and 365 days.' }),
+}
+
+const STEP_FIELDS = {
+  1: ['chiefComplaint', 'symptoms', 'examinationNotes', 'initialDiagnosis'],
+  2: ['temp', 'heartRate', 'sysBP', 'diaBP', 'spO2', 'respRate', 'weight', 'height', 'vitalsNotes'],
+  3: ['diagCode', 'diagDescription', 'diagNotes'],
+  4: ['planTitle', 'planDescription', 'planGoals', 'planInterventions', 'planTargetDate'],
+  6: ['labTestName', 'labNotes'],
+  7: ['reportSummary', 'reportFindings', 'reportRange', 'reportRemarks'],
+  8: ['followUpDate', 'finalAdvice'],
+}
 
 const STEPS = [
   { id: 1, name: 'Medical Record' },
@@ -92,6 +146,31 @@ export default function ClinicalVisitWorkflowModal({
   const [followUpDate, setFollowUpDate] = useState('')
   const [finalAdvice, setFinalAdvice] = useState('')
 
+  const formValues = {
+    chiefComplaint, symptoms, examinationNotes, initialDiagnosis,
+    temp, sysBP, diaBP, heartRate, respRate, spO2, weight, height, vitalsNotes,
+    diagCode, diagDescription, diagNotes,
+    planTitle, planDescription, planGoals, planInterventions, planTargetDate,
+    rxInstructions, labTestName, labNotes,
+    reportSummary, reportFindings, reportRange, reportRemarks,
+    followUpDate, finalAdvice,
+  }
+  // Prescription rows only count once the doctor starts filling them in (empty rows are skipped).
+  const rxSchema = {}
+  rxItems.forEach((item, index) => {
+    for (const [field, rule] of Object.entries(RX_RULES)) {
+      formValues[`rx.${index}.${field}`] = item[field]
+      rxSchema[`rx.${index}.${field}`] = (value, values) =>
+        (values[`rx.${index}.medicineName`]?.trim() || values[`rx.${index}.dosage`]?.trim() ? rule(value) : undefined)
+    }
+  })
+  const validation = useFormValidation({ ...BASE_SCHEMA, ...rxSchema }, formValues)
+  const rxFieldNames = Object.keys(rxSchema)
+  const showServerErrors = (err, fallback, rename) => {
+    const message = validation.applyServerErrors(err, { fallback, rename })
+    setStepErrorMsg(message)
+  }
+
   const clearMessages = () => {
     setStepSuccessMsg('')
     setStepErrorMsg('')
@@ -102,14 +181,7 @@ export default function ClinicalVisitWorkflowModal({
     e.preventDefault()
     clearMessages()
 
-    if (!chiefComplaint.trim()) {
-      setStepErrorMsg('Chief complaint is required.')
-      return
-    }
-    if (!initialDiagnosis.trim()) {
-      setStepErrorMsg('Primary clinical diagnosis is required.')
-      return
-    }
+    if (!validation.validateAll(formValues, e.currentTarget, STEP_FIELDS[1])) return
 
     try {
       setSubmitting(true)
@@ -132,7 +204,7 @@ export default function ClinicalVisitWorkflowModal({
         setCurrentStep(2)
       }, 700)
     } catch (err) {
-      setStepErrorMsg(err.response?.data?.message || 'Failed to create medical record. Please verify fields.')
+      showServerErrors(err, 'Failed to create medical record. Please verify fields.', { diagnosis: 'initialDiagnosis' })
     } finally {
       setSubmitting(false)
     }
@@ -143,27 +215,7 @@ export default function ClinicalVisitWorkflowModal({
     e.preventDefault()
     clearMessages()
 
-    // Validate ranges if entered
-    if (temp && (Number(temp) < 30 || Number(temp) > 45)) {
-      setStepErrorMsg('Temperature must be between 30°C and 45°C.')
-      return
-    }
-    if (sysBP && (Number(sysBP) < 50 || Number(sysBP) > 250)) {
-      setStepErrorMsg('Systolic BP must be between 50 and 250 mmHg.')
-      return
-    }
-    if (diaBP && (Number(diaBP) < 30 || Number(diaBP) > 150)) {
-      setStepErrorMsg('Diastolic BP must be between 30 and 150 mmHg.')
-      return
-    }
-    if (heartRate && (Number(heartRate) < 30 || Number(heartRate) > 250)) {
-      setStepErrorMsg('Heart rate must be between 30 and 250 bpm.')
-      return
-    }
-    if (spO2 && (Number(spO2) < 50 || Number(spO2) > 100)) {
-      setStepErrorMsg('SpO2 must be between 50% and 100%.')
-      return
-    }
+    if (!validation.validateAll(formValues, e.currentTarget, STEP_FIELDS[2])) return
 
     try {
       setSubmitting(true)
@@ -187,7 +239,7 @@ export default function ClinicalVisitWorkflowModal({
         setCurrentStep(3)
       }, 700)
     } catch (err) {
-      setStepErrorMsg(err.response?.data?.message || 'Failed to record vitals.')
+      showServerErrors(err, 'Failed to record vitals.', { temperatureCelsius: 'temp', systolicBloodPressure: 'sysBP', diastolicBloodPressure: 'diaBP', heartRateBpm: 'heartRate', respiratoryRateBpm: 'respRate', oxygenSaturationSpO2: 'spO2', weightKg: 'weight', heightCm: 'height', notes: 'vitalsNotes' })
     } finally {
       setSubmitting(false)
     }
@@ -198,10 +250,7 @@ export default function ClinicalVisitWorkflowModal({
     e.preventDefault()
     clearMessages()
 
-    if (!diagDescription.trim()) {
-      setStepErrorMsg('Diagnosis description is required.')
-      return
-    }
+    if (!validation.validateAll(formValues, e.currentTarget, STEP_FIELDS[3])) return
 
     try {
       setSubmitting(true)
@@ -222,7 +271,7 @@ export default function ClinicalVisitWorkflowModal({
         setCurrentStep(4)
       }, 700)
     } catch (err) {
-      setStepErrorMsg(err.response?.data?.message || 'Failed to add diagnosis.')
+      showServerErrors(err, 'Failed to add diagnosis.', { code: 'diagCode', description: 'diagDescription', notes: 'diagNotes' })
     } finally {
       setSubmitting(false)
     }
@@ -233,14 +282,7 @@ export default function ClinicalVisitWorkflowModal({
     e.preventDefault()
     clearMessages()
 
-    if (!planTitle.trim()) {
-      setStepErrorMsg('Plan title is required.')
-      return
-    }
-    if (!planDescription.trim()) {
-      setStepErrorMsg('Plan description is required.')
-      return
-    }
+    if (!validation.validateAll(formValues, e.currentTarget, STEP_FIELDS[4])) return
 
     try {
       setSubmitting(true)
@@ -262,7 +304,7 @@ export default function ClinicalVisitWorkflowModal({
         setCurrentStep(5)
       }, 700)
     } catch (err) {
-      setStepErrorMsg(err.response?.data?.message || 'Failed to add treatment plan.')
+      showServerErrors(err, 'Failed to add treatment plan.', { title: 'planTitle', description: 'planDescription', goals: 'planGoals', interventions: 'planInterventions', targetDate: 'planTargetDate' })
     } finally {
       setSubmitting(false)
     }
@@ -273,11 +315,13 @@ export default function ClinicalVisitWorkflowModal({
     e.preventDefault()
     clearMessages()
 
-    const validItems = rxItems.filter((i) => i.medicineName.trim() && i.dosage.trim())
-    if (validItems.length === 0) {
+    const startedItems = rxItems.filter((i) => i.medicineName.trim() || i.dosage.trim())
+    if (startedItems.length === 0) {
       setStepErrorMsg('Please add at least one medication or click Skip.')
       return
     }
+    if (!validation.validateAll(formValues, e.currentTarget, ['rxInstructions', ...rxFieldNames])) return
+    const validItems = startedItems
 
     try {
       setSubmitting(true)
@@ -300,7 +344,7 @@ export default function ClinicalVisitWorkflowModal({
         setCurrentStep(6)
       }, 700)
     } catch (err) {
-      setStepErrorMsg(err.response?.data?.message || 'Failed to issue prescription.')
+      showServerErrors(err, 'Failed to issue prescription.', { generalInstructions: 'rxInstructions' })
     } finally {
       setSubmitting(false)
     }
@@ -311,10 +355,7 @@ export default function ClinicalVisitWorkflowModal({
     e.preventDefault()
     clearMessages()
 
-    if (!labTestName.trim()) {
-      setStepErrorMsg('Investigation/Test name is required.')
-      return
-    }
+    if (!validation.validateAll(formValues, e.currentTarget, STEP_FIELDS[6])) return
 
     try {
       setSubmitting(true)
@@ -333,7 +374,7 @@ export default function ClinicalVisitWorkflowModal({
         setCurrentStep(7)
       }, 700)
     } catch (err) {
-      setStepErrorMsg(err.response?.data?.message || 'Failed to create lab order.')
+      showServerErrors(err, 'Failed to create lab order.', { testName: 'labTestName', clinicalNotes: 'labNotes' })
     } finally {
       setSubmitting(false)
     }
@@ -344,10 +385,7 @@ export default function ClinicalVisitWorkflowModal({
     e.preventDefault()
     clearMessages()
 
-    if (!reportSummary.trim() || !reportFindings.trim()) {
-      setStepErrorMsg('Both summary and findings are required if recording lab results.')
-      return
-    }
+    if (!validation.validateAll(formValues, e.currentTarget, STEP_FIELDS[7])) return
 
     try {
       setSubmitting(true)
@@ -366,7 +404,7 @@ export default function ClinicalVisitWorkflowModal({
         setCurrentStep(8)
       }, 700)
     } catch (err) {
-      setStepErrorMsg(err.response?.data?.message || 'Failed to record diagnostic findings.')
+      showServerErrors(err, 'Failed to record diagnostic findings.', { resultSummary: 'reportSummary', findings: 'reportFindings', referenceRange: 'reportRange', doctorRemarks: 'reportRemarks' })
     } finally {
       setSubmitting(false)
     }
@@ -376,6 +414,7 @@ export default function ClinicalVisitWorkflowModal({
   const handleFinalizeConfirm = async () => {
     setShowFinalizeConfirm(false)
     clearMessages()
+    if (!validation.validateAll(formValues, null, STEP_FIELDS[8])) return
 
     try {
       setSubmitting(true)
@@ -392,7 +431,7 @@ export default function ClinicalVisitWorkflowModal({
       }
       onCompleted()
     } catch (err) {
-      setStepErrorMsg(err.response?.data?.message || 'Failed to finalize consultation record.')
+      showServerErrors(err, 'Failed to finalize consultation record.', { followUpDate: 'followUpDate', treatmentPlan: 'finalAdvice' })
       setSubmitting(false)
     }
   }
@@ -476,10 +515,14 @@ export default function ClinicalVisitWorkflowModal({
                 <input
                   id="chief"
                   placeholder="e.g. Acute chest discomfort, severe dyspnea upon exertion"
+                  name="chiefComplaint"
+                  onBlur={() => validation.touch('chiefComplaint', formValues)}
+                  {...validation.fieldProps('chiefComplaint')}
                   value={chiefComplaint}
                   onChange={(e) => setChiefComplaint(e.target.value)}
                   required
                 />
+                <FieldError name="chiefComplaint" message={validation.errorFor('chiefComplaint')} />
               </div>
 
               <div>
@@ -487,9 +530,13 @@ export default function ClinicalVisitWorkflowModal({
                 <input
                   id="symp"
                   placeholder="e.g. Shortness of breath, diaphoresis, radiating left shoulder ache"
+                  name="symptoms"
+                  onBlur={() => validation.touch('symptoms', formValues)}
+                  {...validation.fieldProps('symptoms')}
                   value={symptoms}
                   onChange={(e) => setSymptoms(e.target.value)}
                 />
+                <FieldError name="symptoms" message={validation.errorFor('symptoms')} />
               </div>
 
               <div>
@@ -499,9 +546,13 @@ export default function ClinicalVisitWorkflowModal({
                   rows={3}
                   className="w-full p-2.5 border rounded-lg bg-white"
                   placeholder="e.g. Alert, respiratory rate 22/min, bilateral basal crepitations, heart sounds regular"
+                  name="examinationNotes"
+                  onBlur={() => validation.touch('examinationNotes', formValues)}
+                  {...validation.fieldProps('examinationNotes')}
                   value={examinationNotes}
                   onChange={(e) => setExaminationNotes(e.target.value)}
                 />
+                <FieldError name="examinationNotes" message={validation.errorFor('examinationNotes')} />
               </div>
 
               <div>
@@ -509,10 +560,14 @@ export default function ClinicalVisitWorkflowModal({
                 <input
                   id="initDiag"
                   placeholder="e.g. Acute Coronary Syndrome / Angina Pectoris"
+                  name="initialDiagnosis"
+                  onBlur={() => validation.touch('initialDiagnosis', formValues)}
+                  {...validation.fieldProps('initialDiagnosis')}
                   value={initialDiagnosis}
                   onChange={(e) => setInitialDiagnosis(e.target.value)}
                   required
                 />
+                <FieldError name="initialDiagnosis" message={validation.errorFor('initialDiagnosis')} />
               </div>
 
               <div className="modal-actions mt-6">
@@ -544,9 +599,13 @@ export default function ClinicalVisitWorkflowModal({
                     type="number"
                     step="0.1"
                     placeholder="36.8"
+                    name="temp"
+                    onBlur={() => validation.touch('temp', formValues)}
+                    {...validation.fieldProps('temp')}
                     value={temp}
                     onChange={(e) => setTemp(e.target.value)}
                   />
+                  <FieldError name="temp" message={validation.errorFor('temp')} />
                 </div>
                 <div>
                   <label htmlFor="vPulse">Heart Rate (bpm)</label>
@@ -554,9 +613,13 @@ export default function ClinicalVisitWorkflowModal({
                     id="vPulse"
                     type="number"
                     placeholder="75"
+                    name="heartRate"
+                    onBlur={() => validation.touch('heartRate', formValues)}
+                    {...validation.fieldProps('heartRate')}
                     value={heartRate}
                     onChange={(e) => setHeartRate(e.target.value)}
                   />
+                  <FieldError name="heartRate" message={validation.errorFor('heartRate')} />
                 </div>
               </div>
 
@@ -567,9 +630,13 @@ export default function ClinicalVisitWorkflowModal({
                     id="vSys"
                     type="number"
                     placeholder="120"
+                    name="sysBP"
+                    onBlur={() => validation.touch('sysBP', formValues)}
+                    {...validation.fieldProps('sysBP')}
                     value={sysBP}
                     onChange={(e) => setSysBP(e.target.value)}
                   />
+                  <FieldError name="sysBP" message={validation.errorFor('sysBP')} />
                 </div>
                 <div>
                   <label htmlFor="vDia">Diastolic BP (mmHg)</label>
@@ -577,9 +644,13 @@ export default function ClinicalVisitWorkflowModal({
                     id="vDia"
                     type="number"
                     placeholder="80"
+                    name="diaBP"
+                    onBlur={() => validation.touch('diaBP', formValues)}
+                    {...validation.fieldProps('diaBP')}
                     value={diaBP}
                     onChange={(e) => setDiaBP(e.target.value)}
                   />
+                  <FieldError name="diaBP" message={validation.errorFor('diaBP')} />
                 </div>
               </div>
 
@@ -591,9 +662,13 @@ export default function ClinicalVisitWorkflowModal({
                     type="number"
                     step="0.1"
                     placeholder="98"
+                    name="spO2"
+                    onBlur={() => validation.touch('spO2', formValues)}
+                    {...validation.fieldProps('spO2')}
                     value={spO2}
                     onChange={(e) => setSpO2(e.target.value)}
                   />
+                  <FieldError name="spO2" message={validation.errorFor('spO2')} />
                 </div>
                 <div>
                   <label htmlFor="vResp">Respiratory Rate (/min)</label>
@@ -601,9 +676,13 @@ export default function ClinicalVisitWorkflowModal({
                     id="vResp"
                     type="number"
                     placeholder="16"
+                    name="respRate"
+                    onBlur={() => validation.touch('respRate', formValues)}
+                    {...validation.fieldProps('respRate')}
                     value={respRate}
                     onChange={(e) => setRespRate(e.target.value)}
                   />
+                  <FieldError name="respRate" message={validation.errorFor('respRate')} />
                 </div>
               </div>
 
@@ -615,9 +694,13 @@ export default function ClinicalVisitWorkflowModal({
                     type="number"
                     step="0.1"
                     placeholder="70"
+                    name="weight"
+                    onBlur={() => validation.touch('weight', formValues)}
+                    {...validation.fieldProps('weight')}
                     value={weight}
                     onChange={(e) => setWeight(e.target.value)}
                   />
+                  <FieldError name="weight" message={validation.errorFor('weight')} />
                 </div>
                 <div>
                   <label htmlFor="vHt">Height (cm)</label>
@@ -626,9 +709,13 @@ export default function ClinicalVisitWorkflowModal({
                     type="number"
                     step="0.1"
                     placeholder="175"
+                    name="height"
+                    onBlur={() => validation.touch('height', formValues)}
+                    {...validation.fieldProps('height')}
                     value={height}
                     onChange={(e) => setHeight(e.target.value)}
                   />
+                  <FieldError name="height" message={validation.errorFor('height')} />
                 </div>
               </div>
 
@@ -637,9 +724,13 @@ export default function ClinicalVisitWorkflowModal({
                 <input
                   id="vNotes"
                   placeholder="e.g. Patient resting comfortably, measurements confirmed"
+                  name="vitalsNotes"
+                  onBlur={() => validation.touch('vitalsNotes', formValues)}
+                  {...validation.fieldProps('vitalsNotes')}
                   value={vitalsNotes}
                   onChange={(e) => setVitalsNotes(e.target.value)}
                 />
+                <FieldError name="vitalsNotes" message={validation.errorFor('vitalsNotes')} />
               </div>
 
               <div className="modal-actions mt-6 flex justify-between">
@@ -669,9 +760,13 @@ export default function ClinicalVisitWorkflowModal({
                   <input
                     id="dCode"
                     placeholder="e.g. I20.0, E11.9, J45.0"
+                    name="diagCode"
+                    onBlur={() => validation.touch('diagCode', formValues)}
+                    {...validation.fieldProps('diagCode')}
                     value={diagCode}
                     onChange={(e) => setDiagCode(e.target.value)}
                   />
+                  <FieldError name="diagCode" message={validation.errorFor('diagCode')} />
                 </div>
                 <div>
                   <label htmlFor="dType">Type *</label>
@@ -695,10 +790,14 @@ export default function ClinicalVisitWorkflowModal({
                 <input
                   id="dDesc"
                   placeholder="e.g. Unstable angina with underlying essential hypertension"
+                  name="diagDescription"
+                  onBlur={() => validation.touch('diagDescription', formValues)}
+                  {...validation.fieldProps('diagDescription')}
                   value={diagDescription}
                   onChange={(e) => setDiagDescription(e.target.value)}
                   required
                 />
+                <FieldError name="diagDescription" message={validation.errorFor('diagDescription')} />
               </div>
 
               <div className="field-row">
@@ -737,9 +836,13 @@ export default function ClinicalVisitWorkflowModal({
                 <input
                   id="dNotes"
                   placeholder="e.g. Initial presentation, confirm with cardiac enzymes and ECG"
+                  name="diagNotes"
+                  onBlur={() => validation.touch('diagNotes', formValues)}
+                  {...validation.fieldProps('diagNotes')}
                   value={diagNotes}
                   onChange={(e) => setDiagNotes(e.target.value)}
                 />
+                <FieldError name="diagNotes" message={validation.errorFor('diagNotes')} />
               </div>
 
               <div className="modal-actions mt-6 flex justify-between">
@@ -769,10 +872,14 @@ export default function ClinicalVisitWorkflowModal({
                   <input
                     id="pTitle"
                     placeholder="e.g. Medical Optimization & Monitoring Protocol"
+                    name="planTitle"
+                    onBlur={() => validation.touch('planTitle', formValues)}
+                    {...validation.fieldProps('planTitle')}
                     value={planTitle}
                     onChange={(e) => setPlanTitle(e.target.value)}
                     required
                   />
+                  <FieldError name="planTitle" message={validation.errorFor('planTitle')} />
                 </div>
                 <div>
                   <label htmlFor="pCat">Category *</label>
@@ -800,10 +907,14 @@ export default function ClinicalVisitWorkflowModal({
                   rows={3}
                   className="w-full p-2.5 border rounded-lg bg-white"
                   placeholder="e.g. Initiate antiplatelet therapy, beta blocker, telemetry monitoring, low sodium diet"
+                  name="planDescription"
+                  onBlur={() => validation.touch('planDescription', formValues)}
+                  {...validation.fieldProps('planDescription')}
                   value={planDescription}
                   onChange={(e) => setPlanDescription(e.target.value)}
                   required
                 />
+                <FieldError name="planDescription" message={validation.errorFor('planDescription')} />
               </div>
 
               <div>
@@ -811,9 +922,13 @@ export default function ClinicalVisitWorkflowModal({
                 <input
                   id="pGoals"
                   placeholder="e.g. Symptom resolution, target BP < 130/80, normal serial troponins"
+                  name="planGoals"
+                  onBlur={() => validation.touch('planGoals', formValues)}
+                  {...validation.fieldProps('planGoals')}
                   value={planGoals}
                   onChange={(e) => setPlanGoals(e.target.value)}
                 />
+                <FieldError name="planGoals" message={validation.errorFor('planGoals')} />
               </div>
 
               <div className="field-row">
@@ -822,18 +937,26 @@ export default function ClinicalVisitWorkflowModal({
                   <input
                     id="pInter"
                     placeholder="e.g. Daily weights, telemetry, cardiac rehab referral"
+                    name="planInterventions"
+                    onBlur={() => validation.touch('planInterventions', formValues)}
+                    {...validation.fieldProps('planInterventions')}
                     value={planInterventions}
                     onChange={(e) => setPlanInterventions(e.target.value)}
                   />
+                  <FieldError name="planInterventions" message={validation.errorFor('planInterventions')} />
                 </div>
                 <div>
                   <label htmlFor="pTarget">Target Review Date</label>
                   <input
                     id="pTarget"
                     type="date"
+                    name="planTargetDate"
+                    onBlur={() => validation.touch('planTargetDate', formValues)}
+                    {...validation.fieldProps('planTargetDate')}
                     value={planTargetDate}
                     onChange={(e) => setPlanTargetDate(e.target.value)}
                   />
+                  <FieldError name="planTargetDate" message={validation.errorFor('planTargetDate')} />
                 </div>
               </div>
 
@@ -878,9 +1001,13 @@ export default function ClinicalVisitWorkflowModal({
                 <input
                   id="rxGen"
                   placeholder="e.g. Take with meals, do not stop abruptly"
+                  name="rxInstructions"
+                  onBlur={() => validation.touch('rxInstructions', formValues)}
+                  {...validation.fieldProps('rxInstructions')}
                   value={rxInstructions}
                   onChange={(e) => setRxInstructions(e.target.value)}
                 />
+                <FieldError name="rxInstructions" message={validation.errorFor('rxInstructions')} />
               </div>
 
               <div className="flex flex-col gap-3 my-3">
@@ -903,6 +1030,9 @@ export default function ClinicalVisitWorkflowModal({
                         <label className="text-xs">Medicine *</label>
                         <input
                           placeholder="e.g. Aspirin / Metoprolol"
+                          name={`rx.${idx}.medicineName`}
+                          onBlur={() => validation.touch(`rx.${idx}.medicineName`, formValues)}
+                          {...validation.fieldProps(`rx.${idx}.medicineName`)}
                           value={item.medicineName}
                           onChange={(e) => {
                             const updated = [...rxItems]
@@ -910,11 +1040,15 @@ export default function ClinicalVisitWorkflowModal({
                             setRxItems(updated)
                           }}
                         />
+                        <FieldError name={`rx.${idx}.medicineName`} message={validation.errorFor(`rx.${idx}.medicineName`)} />
                       </div>
                       <div>
                         <label className="text-xs">Dosage *</label>
                         <input
                           placeholder="e.g. 75mg / 25mg"
+                          name={`rx.${idx}.dosage`}
+                          onBlur={() => validation.touch(`rx.${idx}.dosage`, formValues)}
+                          {...validation.fieldProps(`rx.${idx}.dosage`)}
                           value={item.dosage}
                           onChange={(e) => {
                             const updated = [...rxItems]
@@ -922,6 +1056,7 @@ export default function ClinicalVisitWorkflowModal({
                             setRxItems(updated)
                           }}
                         />
+                        <FieldError name={`rx.${idx}.dosage`} message={validation.errorFor(`rx.${idx}.dosage`)} />
                       </div>
                     </div>
                     <div className="field-row mt-2">
@@ -947,6 +1082,9 @@ export default function ClinicalVisitWorkflowModal({
                         <label className="text-xs">Frequency *</label>
                         <input
                           placeholder="e.g. Once daily / Twice daily"
+                          name={`rx.${idx}.frequency`}
+                          onBlur={() => validation.touch(`rx.${idx}.frequency`, formValues)}
+                          {...validation.fieldProps(`rx.${idx}.frequency`)}
                           value={item.frequency}
                           onChange={(e) => {
                             const updated = [...rxItems]
@@ -954,6 +1092,7 @@ export default function ClinicalVisitWorkflowModal({
                             setRxItems(updated)
                           }}
                         />
+                        <FieldError name={`rx.${idx}.frequency`} message={validation.errorFor(`rx.${idx}.frequency`)} />
                       </div>
                       <div>
                         <label className="text-xs">Days *</label>
@@ -961,6 +1100,9 @@ export default function ClinicalVisitWorkflowModal({
                           type="number"
                           min="1"
                           max="365"
+                          name={`rx.${idx}.durationDays`}
+                          onBlur={() => validation.touch(`rx.${idx}.durationDays`, formValues)}
+                          {...validation.fieldProps(`rx.${idx}.durationDays`)}
                           value={item.durationDays}
                           onChange={(e) => {
                             const updated = [...rxItems]
@@ -968,6 +1110,7 @@ export default function ClinicalVisitWorkflowModal({
                             setRxItems(updated)
                           }}
                         />
+                        <FieldError name={`rx.${idx}.durationDays`} message={validation.errorFor(`rx.${idx}.durationDays`)} />
                       </div>
                     </div>
                   </div>
@@ -1000,10 +1143,14 @@ export default function ClinicalVisitWorkflowModal({
                 <input
                   id="lTest"
                   placeholder="e.g. High-Sensitivity Troponin I, 12-Lead ECG, Complete Blood Count"
+                  name="labTestName"
+                  onBlur={() => validation.touch('labTestName', formValues)}
+                  {...validation.fieldProps('labTestName')}
                   value={labTestName}
                   onChange={(e) => setLabTestName(e.target.value)}
                   required
                 />
+                <FieldError name="labTestName" message={validation.errorFor('labTestName')} />
               </div>
 
               <div className="field-row">
@@ -1044,9 +1191,13 @@ export default function ClinicalVisitWorkflowModal({
                 <input
                   id="lNotes"
                   placeholder="e.g. Acute chest discomfort, rule out myocardial infarction"
+                  name="labNotes"
+                  onBlur={() => validation.touch('labNotes', formValues)}
+                  {...validation.fieldProps('labNotes')}
                   value={labNotes}
                   onChange={(e) => setLabNotes(e.target.value)}
                 />
+                <FieldError name="labNotes" message={validation.errorFor('labNotes')} />
               </div>
 
               <div className="modal-actions mt-6 flex justify-between">
@@ -1075,10 +1226,14 @@ export default function ClinicalVisitWorkflowModal({
                 <input
                   id="rSumm"
                   placeholder="e.g. Troponin I Negative (<0.01 ng/mL), sinus rhythm on ECG"
+                  name="reportSummary"
+                  onBlur={() => validation.touch('reportSummary', formValues)}
+                  {...validation.fieldProps('reportSummary')}
                   value={reportSummary}
                   onChange={(e) => setReportSummary(e.target.value)}
                   required
                 />
+                <FieldError name="reportSummary" message={validation.errorFor('reportSummary')} />
               </div>
 
               <div>
@@ -1088,10 +1243,14 @@ export default function ClinicalVisitWorkflowModal({
                   rows={3}
                   className="w-full p-2.5 border rounded-lg bg-white"
                   placeholder="e.g. Normal sinus rhythm at 76 bpm, PR interval 160ms, QRS 88ms, no ST-T segment changes"
+                  name="reportFindings"
+                  onBlur={() => validation.touch('reportFindings', formValues)}
+                  {...validation.fieldProps('reportFindings')}
                   value={reportFindings}
                   onChange={(e) => setReportFindings(e.target.value)}
                   required
                 />
+                <FieldError name="reportFindings" message={validation.errorFor('reportFindings')} />
               </div>
 
               <div className="field-row">
@@ -1100,18 +1259,26 @@ export default function ClinicalVisitWorkflowModal({
                   <input
                     id="rRange"
                     placeholder="e.g. <0.04 ng/mL"
+                    name="reportRange"
+                    onBlur={() => validation.touch('reportRange', formValues)}
+                    {...validation.fieldProps('reportRange')}
                     value={reportRange}
                     onChange={(e) => setReportRange(e.target.value)}
                   />
+                  <FieldError name="reportRange" message={validation.errorFor('reportRange')} />
                 </div>
                 <div>
                   <label htmlFor="rRemarks">Clinical Remarks</label>
                   <input
                     id="rRemarks"
                     placeholder="e.g. Baseline normal, repeat in 3 hours"
+                    name="reportRemarks"
+                    onBlur={() => validation.touch('reportRemarks', formValues)}
+                    {...validation.fieldProps('reportRemarks')}
                     value={reportRemarks}
                     onChange={(e) => setReportRemarks(e.target.value)}
                   />
+                  <FieldError name="reportRemarks" message={validation.errorFor('reportRemarks')} />
                 </div>
               </div>
 
@@ -1160,9 +1327,13 @@ export default function ClinicalVisitWorkflowModal({
                   <input
                     id="fDate"
                     type="date"
+                    name="followUpDate"
+                    onBlur={() => validation.touch('followUpDate', formValues)}
+                    {...validation.fieldProps('followUpDate')}
                     value={followUpDate}
                     onChange={(e) => setFollowUpDate(e.target.value)}
                   />
+                  <FieldError name="followUpDate" message={validation.errorFor('followUpDate')} />
                 </div>
               </div>
 
@@ -1173,9 +1344,13 @@ export default function ClinicalVisitWorkflowModal({
                   rows={3}
                   className="w-full p-2.5 border rounded-lg bg-white"
                   placeholder="e.g. Rest, take prescribed medicines diligently, return to emergency immediately if chest pain recurs"
+                  name="finalAdvice"
+                  onBlur={() => validation.touch('finalAdvice', formValues)}
+                  {...validation.fieldProps('finalAdvice')}
                   value={finalAdvice}
                   onChange={(e) => setFinalAdvice(e.target.value)}
                 />
+                <FieldError name="finalAdvice" message={validation.errorFor('finalAdvice')} />
               </div>
 
               {/* Encounter Summary Preview */}

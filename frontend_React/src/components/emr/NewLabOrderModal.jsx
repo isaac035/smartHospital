@@ -1,8 +1,10 @@
 import { useForm } from 'react-hook-form'
 import { createLabOrder } from '../../services/emrService'
+import { applyServerErrors, rules } from '../../utils/validators'
 
 export default function NewLabOrderModal({ patientId, medicalRecordId = null, onClose, onSaved }) {
   const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm({
+    mode: 'onTouched',
     defaultValues: {
       patientId: patientId ? Number(patientId) : '',
       testName: '',
@@ -26,12 +28,11 @@ export default function NewLabOrderModal({ patientId, medicalRecordId = null, on
       await createLabOrder(payload)
       onSaved()
     } catch (err) {
-      setError('root', {
-        message: err.response?.data?.message ||
-          (err.response?.status === 403
-            ? 'Unauthorized: You do not have permission to order tests for this patient.'
-            : 'Failed to create lab order. Please check all fields.'),
-      })
+      if (err.response?.status === 403) {
+        setError('root', { message: err.response?.data?.message || 'Unauthorized: You do not have permission to order tests for this patient.' })
+      } else {
+        applyServerErrors(err, setError, { fields: ['testName', 'category', 'priority', 'clinicalNotes'], fallback: 'Failed to create lab order. Please check all fields.' })
+      }
     }
   }
 
@@ -47,7 +48,9 @@ export default function NewLabOrderModal({ patientId, medicalRecordId = null, on
             <input
               id="testName"
               placeholder="e.g. Complete Blood Count (CBC), Lipid Panel, Chest X-Ray"
-              {...register('testName', { required: 'Test name is required.' })}
+              maxLength={120}
+              aria-invalid={errors.testName ? 'true' : undefined}
+              {...register('testName', rules.text('Test name', { isRequired: true, max: 120 }))}
             />
             {errors.testName && <p className="field-error">{errors.testName.message}</p>}
           </div>
@@ -88,8 +91,11 @@ export default function NewLabOrderModal({ patientId, medicalRecordId = null, on
             <input
               id="clinicalNotes"
               placeholder="e.g. Suspected anemia, rule out infection, pre-operative workup"
-              {...register('clinicalNotes')}
+              maxLength={1000}
+              aria-invalid={errors.clinicalNotes ? 'true' : undefined}
+              {...register('clinicalNotes', rules.text('Clinical notes', { max: 1000 }))}
             />
+            {errors.clinicalNotes && <p className="field-error">{errors.clinicalNotes.message}</p>}
           </div>
 
           <div className="modal-actions">

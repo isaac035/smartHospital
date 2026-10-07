@@ -14,6 +14,7 @@ class AuthProvider extends ChangeNotifier {
   bool _isInitialized = false;
   UserModel? _currentUser;
   String? _error;
+  Map<String, String> _fieldErrors = const {};
 
   AuthProvider(this._authService, this._userService, this._storageService);
 
@@ -22,6 +23,9 @@ class AuthProvider extends ChangeNotifier {
   UserModel? get currentUser => _currentUser;
   bool get isAuthenticated => _currentUser != null;
   String? get error => _error;
+
+  /// Server validation errors keyed by field name (firstName, lastName, email, phoneNumber, password).
+  Map<String, String> get fieldErrors => _fieldErrors;
 
   void _setLoading(bool value) {
     _isLoading = value;
@@ -33,7 +37,27 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void clearError() => _setError(null);
+  void clearError() {
+    _fieldErrors = const {};
+    _setError(null);
+  }
+
+  /// Clears the server error for one field once the user edits it.
+  void clearFieldError(String field) {
+    if (!_fieldErrors.containsKey(field)) return;
+    _fieldErrors = Map.of(_fieldErrors)..remove(field);
+    notifyListeners();
+  }
+
+  // Field errors go under their fields; the banner only shows what could not be placed.
+  void _setApiError(ApiException e) {
+    final fields = Map<String, String>.of(e.fieldErrors);
+    if (fields.isEmpty && e.statusCode == 409 && e.message.toLowerCase().contains('email')) {
+      fields['email'] = e.message;
+    }
+    _fieldErrors = fields;
+    _setError(fields.isEmpty ? e.message : null);
+  }
 
   Future<void> initialize() async {
     final token = await _storageService.getToken();
@@ -70,6 +94,10 @@ class AuthProvider extends ChangeNotifier {
       // We will fetch the full user profile immediately
       _currentUser = await _userService.getUserProfile(response.userId);
       return true;
+    } on UnauthorizedException {
+      // A 401 from /Auth/login means the credentials were wrong, not that a session expired.
+      _setError('Invalid email or password.');
+      return false;
     } on ApiException catch (e) {
       _setError(e.message);
       return false;
@@ -90,7 +118,7 @@ class AuthProvider extends ChangeNotifier {
       // The backend returns a Created response with the user ID, but no token, so we must require login after.
       return true;
     } on ApiException catch (e) {
-      _setError(e.message);
+      _setApiError(e);
       return false;
     } catch (e) {
       _setError('An unexpected error occurred during registration.');
@@ -116,7 +144,7 @@ class AuthProvider extends ChangeNotifier {
       _currentUser = updatedUser;
       return true;
     } on ApiException catch (e) {
-      _setError(e.message);
+      _setApiError(e);
       return false;
     } catch (e) {
       _setError('An unexpected error occurred while updating profile.');

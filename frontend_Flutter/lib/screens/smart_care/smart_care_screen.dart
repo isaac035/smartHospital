@@ -8,6 +8,7 @@ import '../../core/network/api_client.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/api_datetime.dart';
+import '../../core/utils/validators.dart';
 import '../../models/smart_care/smart_care_result.dart';
 import '../../services/smart_care_service.dart';
 import '../../widgets/app_button.dart';
@@ -58,12 +59,9 @@ class _SmartCareScreenState extends State<SmartCareScreen> {
 
   Future<void> _submit() async {
     final text = _controller.text.trim();
-    if (text.length < 3) {
-      setState(() => _inputError = 'Please describe your symptoms or what you need help with.');
-      return;
-    }
-    if (text.length > 1000) {
-      setState(() => _inputError = 'Please keep your description under 1000 characters.');
+    final inputError = Validators.validateSymptoms(text);
+    if (inputError != null) {
+      setState(() => _inputError = inputError);
       return;
     }
     FocusScope.of(context).unfocus();
@@ -91,6 +89,15 @@ class _SmartCareScreenState extends State<SmartCareScreen> {
       });
     } on ApiException catch (e) {
       if (!mounted) return;
+      final symptomsError = e.fieldErrors['symptoms'];
+      if (symptomsError != null) {
+        // The API rejected the text itself: show it under the field so the patient can fix it.
+        setState(() {
+          _inputError = symptomsError;
+          _stage = _Stage.input;
+        });
+        return;
+      }
       setState(() {
         _errorMessage = e.statusCode == 429
             ? e.message
@@ -201,15 +208,15 @@ class _SmartCareScreenState extends State<SmartCareScreen> {
       hint: 'e.g. I get chest discomfort when I climb stairs',
       controller: _controller,
       maxLines: 5,
+      maxLength: 1000,
+      isRequired: true,
       keyboardType: TextInputType.multiline,
+      errorText: _inputError,
+      validator: Validators.validateSymptoms,
       onChanged: (_) {
         if (_inputError != null) setState(() => _inputError = null);
       },
     ),
-    if (_inputError case final error?) ...[
-      Text(error, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppTheme.errorColor)),
-      const SizedBox(height: 12),
-    ],
     AppButton(text: 'Start Smart Appointment', onPressed: _submit),
     const SizedBox(height: 8),
     _BrowseManuallyButton(onPressed: _browseManually),

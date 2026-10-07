@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using SmartHospital.Api.Validation;
 using SmartHospital.Api.Models;
 
 namespace SmartHospital.Api.DTOs.Emr;
@@ -14,15 +15,18 @@ public class CreateLabOrderRequest : IValidatableObject
 
     [Required(ErrorMessage = "Test name is required.")]
     [MaxLength(120, ErrorMessage = "Test name cannot exceed 120 characters.")]
+    [NoHtml]
     public string TestName { get; set; } = string.Empty;
 
     [MaxLength(100, ErrorMessage = "Category cannot exceed 100 characters.")]
+    [NoHtml]
     public string Category { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Priority is required.")]
     public LabOrderPriority Priority { get; set; } = LabOrderPriority.Routine;
 
     [MaxLength(1000, ErrorMessage = "Clinical notes cannot exceed 1000 characters.")]
+    [NoHtml]
     public string ClinicalNotes { get; set; } = string.Empty;
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)

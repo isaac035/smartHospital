@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using SmartHospital.Api.Validation;
 
 namespace SmartHospital.Api.DTOs.MedicalResources;
 
@@ -17,5 +18,6 @@ public class AssignResourceRequest
     public int? BedId { get; set; }
 
     [MaxLength(200)]
+    [NoHtml]
     public string? LocationDescription { get; set; }
 }
