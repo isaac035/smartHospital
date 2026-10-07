@@ -50,6 +50,15 @@ public class AdmissionController : ControllerBase
             return NotFound(new { message = "Admission not found." });
         }
 
+        var isStaffOrDoctor = User.IsInRole("Admin") || User.IsInRole("Staff") || User.IsInRole("Doctor") || User.IsInRole("ResourceAdmin");
+        var currentUserId = GetCurrentUserId();
+        var isOwner = currentUserId.HasValue && admission.PatientId == currentUserId.Value;
+
+        if (!isStaffOrDoctor && !isOwner)
+        {
+            return Forbid();
+        }
+
         return Ok(admission);
     }
 

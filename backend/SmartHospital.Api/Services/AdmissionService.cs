@@ -356,6 +356,11 @@ public class AdmissionService : IAdmissionService
         }
 
         var existingAdmissionAllocation = admission.BedAllocations.FirstOrDefault(ba => ba.Status == BedAllocationStatus.Active);
+        if (!reserveBed && existingAdmissionAllocation != null)
+        {
+            throw new InvalidOperationException("This admission already has an active bed allocation. Use the patient transfer workflow to move the patient to a different bed.");
+        }
+
         if (reserveBed && existingAdmissionAllocation?.BedId == request.BedId && existingAdmissionAllocation.Bed?.Status == BedStatus.Reserved)
         {
             return MapToAdmissionResponse(admission);

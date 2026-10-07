@@ -520,4 +520,58 @@ public class AdmissionServiceTests
         Assert.Equal("Condition deteriorated", updated.ReasonForAdmission);
         Assert.Equal("Septic shock", updated.Diagnosis);
     }
+
+    [Fact]
+    public async Task AllocateBedAsync_AdmissionAlreadyHasActiveBed_ThrowsInvalidOperationException()
+    {
+        await using var context = CreateContext();
+        var patient = SeedUser(context, "dup_alloc@test.com", UserRole.Patient);
+        var (_, room, bed1) = SeedHierarchy(context);
+
+        var bed2 = new Bed
+        {
+            RoomId = room.Id,
+            BedNumber = "B-02",
+            Status = BedStatus.Available,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        context.Beds.Add(bed2);
+        await context.SaveChangesAsync();
+
+        var service = new AdmissionService(context);
+        var adm = await service.CreateAdmissionAsync(new CreateAdmissionRequest
+        {
+            PatientId = patient.Id,
+            ReasonForAdmission = "Observation"
+        });
+
+        // 1. First bed allocation succeeds
+        var firstAlloc = await service.AllocateBedAsync(new AllocateBedRequest { AdmissionId = adm.Id, BedId = bed1.Id });
+        Assert.Equal(bed1.Id, firstAlloc.ActiveBedId);
+        var bed1AfterAlloc = await context.Beds.FindAsync(bed1.Id);
+        Assert.Equal(BedStatus.Occupied, bed1AfterAlloc!.Status);
+
+        // 2. Second normal allocation to the same admission is rejected
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.AllocateBedAsync(new AllocateBedRequest { AdmissionId = adm.Id, BedId = bed2.Id }));
+        Assert.Contains("already has an active bed allocation", ex.Message, StringComparison.OrdinalIgnoreCase);
+
+        // 3. The rejected allocation does not occupy the second bed
+        var bed2AfterRejected = await context.Beds.FindAsync(bed2.Id);
+        Assert.Equal(BedStatus.Available, bed2AfterRejected!.Status);
+
+        // 4. Discharging the patient releases the correctly allocated bed
+        await service.DischargePatientAsync(adm.Id, new DischargePatientRequest { DischargeSummary = "Discharged" });
+        var bed1AfterDischarge = await context.Beds.FindAsync(bed1.Id);
+        Assert.Equal(BedStatus.Available, bed1AfterDischarge!.Status);
+
+        // 5. No orphaned active BedAllocation remains
+        var activeAllocations = await context.BedAllocations
+            .Where(ba => ba.AdmissionId == adm.Id && ba.Status == BedAllocationStatus.Active)
+            .ToListAsync();
+        Assert.Empty(activeAllocations);
+    }
 }
+

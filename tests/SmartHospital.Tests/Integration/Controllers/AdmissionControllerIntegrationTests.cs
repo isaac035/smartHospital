@@ -555,4 +555,37 @@ public class AdmissionControllerIntegrationTests
         Assert.NotNull(authAttr);
         Assert.Equal(expectedRoles, authAttr.Roles);
     }
+
+    [Fact]
+    public async Task GetAdmissionById_OtherPatient_Returns403Forbidden()
+    {
+        await using var context = CreateContext();
+        var patient = SeedUser(context, "owner_patient@test.com", UserRole.Patient);
+        var otherPatient = SeedUser(context, "other_patient@test.com", UserRole.Patient);
+        var admission = SeedAdmission(context, patient.Id);
+
+        var controller = CreateController(context, role: "Patient", userId: otherPatient.Id);
+
+        var result = await controller.GetAdmissionById(admission.Id);
+
+        Assert.IsType<ForbidResult>(result);
+    }
+
+    [Fact]
+    public async Task GetAdmissionById_OwnAdmissionPatient_Returns200Ok()
+    {
+        await using var context = CreateContext();
+        var patient = SeedUser(context, "owner_patient2@test.com", UserRole.Patient);
+        var admission = SeedAdmission(context, patient.Id);
+
+        var controller = CreateController(context, role: "Patient", userId: patient.Id);
+
+        var result = await controller.GetAdmissionById(admission.Id);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var response = Assert.IsType<AdmissionResponse>(ok.Value);
+        Assert.Equal(admission.Id, response.Id);
+        Assert.Equal(patient.Id, response.PatientId);
+    }
 }
+
