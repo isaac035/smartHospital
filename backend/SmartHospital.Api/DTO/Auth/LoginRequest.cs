@@ -1,11 +1,13 @@
 using System.ComponentModel.DataAnnotations;
+using SmartHospital.Api.Validation;
 
 namespace SmartHospital.Api.DTOs.Auth;
 
 public class LoginRequest
 {
     [Required]
-    [EmailAddress]
+    [EmailAddress(ErrorMessage = "Email must be a valid email address.")]
+    [MaxLength(255)]
     public string Email { get; set; } = string.Empty;
 
     [Required]

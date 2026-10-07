@@ -28,6 +28,8 @@ builder.Services
     {
         // Zone-less dates in query strings / routes are treated as UTC (see UtcDateTimeHandling.cs)
         options.ModelBinderProviders.Insert(0, new UtcDateTimeModelBinderProvider());
+        // Readable, consistent messages for the built-in validation attributes (400 field errors).
+        options.ModelMetadataDetailsProviders.Add(new SmartHospital.Api.Validation.FriendlyValidationMessages());
     })
     .AddJsonOptions(options =>
     {

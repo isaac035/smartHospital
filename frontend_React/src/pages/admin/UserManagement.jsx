@@ -4,9 +4,11 @@ import DashboardLayout from '../../layouts/DashboardLayout'
 import { adminNavigation as navigation } from './adminNavigation'
 import { listUsers, updateUser, deactivateUser, activateUser } from '../../services/userService'
 import ToggleActiveButton from '../../components/common/ToggleActiveButton'
+import { applyServerErrors, rules } from '../../utils/validators'
 
 function UserFormModal({ user, onClose, onSaved }) {
   const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm({
+    mode: 'onTouched',
     defaultValues: {
       firstName: user?.firstName || '',
       lastName: user?.lastName || '',
@@ -19,7 +21,7 @@ function UserFormModal({ user, onClose, onSaved }) {
       if (user) await updateUser(user.id, values)
       onSaved()
     } catch (requestError) {
-      setError('root', { message: requestError.response?.data?.message || 'Something went wrong. Please try again.' })
+      applyServerErrors(requestError, setError, { fields: ['firstName', 'lastName', 'phoneNumber'] })
     }
   }
 
@@ -30,18 +32,18 @@ function UserFormModal({ user, onClose, onSaved }) {
         {errors.root && <p className="form-error" role="alert">{errors.root.message}</p>}
         <div className="field-row">
           <div>
-            <label htmlFor="firstName">First name</label>
-            <input id="firstName" {...register('firstName', { required: 'Required.' })} />
+            <label htmlFor="firstName" className="required">First name</label>
+            <input id="firstName" maxLength={100} aria-invalid={errors.firstName ? 'true' : undefined} {...register('firstName', rules.personName('First name'))} />
             {errors.firstName && <p className="field-error">{errors.firstName.message}</p>}
           </div>
           <div>
-            <label htmlFor="lastName">Last name</label>
-            <input id="lastName" {...register('lastName', { required: 'Required.' })} />
+            <label htmlFor="lastName" className="required">Last name</label>
+            <input id="lastName" maxLength={100} aria-invalid={errors.lastName ? 'true' : undefined} {...register('lastName', rules.personName('Last name'))} />
             {errors.lastName && <p className="field-error">{errors.lastName.message}</p>}
           </div>
         </div>
-        <label htmlFor="phoneNumber">Phone number</label>
-        <input id="phoneNumber" {...register('phoneNumber', { required: 'Required.' })} />
+        <label htmlFor="phoneNumber" className="required">Phone number</label>
+        <input id="phoneNumber" type="tel" inputMode="tel" maxLength={20} aria-invalid={errors.phoneNumber ? 'true' : undefined} {...register('phoneNumber', rules.phone())} />
         {errors.phoneNumber && <p className="field-error">{errors.phoneNumber.message}</p>}
         
         <div className="modal-actions">

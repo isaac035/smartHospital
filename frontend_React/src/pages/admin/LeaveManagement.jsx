@@ -5,10 +5,12 @@ import { adminNavigation } from './adminNavigation'
 import { doctorManagerNavigation } from './doctorManagerNavigation'
 import { useAuth } from '../../hooks/useAuth'
 import { listDoctors } from '../../services/doctorService'
+import { applyServerErrors, first, onOrAfter, required, rules } from '../../utils/validators'
 import { cancelLeave, createLeave, listLeaves, updateLeave } from '../../services/leaveService'
 
 function LeaveFormModal({ doctors, onClose, onSaved }) {
   const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm({
+    mode: 'onTouched',
     defaultValues: { doctorId: doctors[0]?.id || '', startDate: '', endDate: '', reason: '' },
   })
 
@@ -17,7 +19,7 @@ function LeaveFormModal({ doctors, onClose, onSaved }) {
       await createLeave({ ...values, doctorId: Number(values.doctorId) })
       onSaved()
     } catch (requestError) {
-      setError('root', { message: requestError.response?.data?.message || 'Something went wrong. Please try again.' })
+      applyServerErrors(requestError, setError, { fields: ['doctorId', 'startDate', 'endDate', 'reason'], conflicts: [{ match: /end date/i, field: 'endDate' }, { match: /doctor/i, field: 'doctorId' }] })
     }
   }
 
@@ -26,16 +28,19 @@ function LeaveFormModal({ doctors, onClose, onSaved }) {
       <h2>Record Leave / Unavailability</h2>
       <form onSubmit={handleSubmit(onSubmit)} noValidate>
         {errors.root && <p className="form-error" role="alert">{errors.root.message}</p>}
-        <label htmlFor="doctorId">Doctor</label>
-        <select id="doctorId" {...register('doctorId', { required: true })}>
+        <label htmlFor="doctorId" className="required">Doctor</label>
+        <select id="doctorId" aria-invalid={errors.doctorId ? 'true' : undefined} {...register('doctorId', rules.selection('a doctor'))}>
+          {doctors.length === 0 && <option value="">No doctors available</option>}
           {doctors.map((doctor) => <option key={doctor.id} value={doctor.id}>Dr. {doctor.firstName} {doctor.lastName}</option>)}
         </select>
+        {errors.doctorId && <p className="field-error">{errors.doctorId.message}</p>}
         <div className="field-row">
-          <div><label htmlFor="startDate">Start date</label><input id="startDate" type="date" {...register('startDate', { required: 'Required.' })} />{errors.startDate && <p className="field-error">{errors.startDate.message}</p>}</div>
-          <div><label htmlFor="endDate">End date</label><input id="endDate" type="date" {...register('endDate', { required: 'Required.' })} />{errors.endDate && <p className="field-error">{errors.endDate.message}</p>}</div>
+          <div><label htmlFor="startDate" className="required">Start date</label><input id="startDate" type="date" aria-invalid={errors.startDate ? 'true' : undefined} {...register('startDate', { ...rules.required('Start date'), deps: ['endDate'] })} />{errors.startDate && <p className="field-error">{errors.startDate.message}</p>}</div>
+          <div><label htmlFor="endDate" className="required">End date</label><input id="endDate" type="date" aria-invalid={errors.endDate ? 'true' : undefined} {...register('endDate', rules.custom((value, values) => first(required(value, 'End date'), onOrAfter(value, values.startDate, 'End date must be on or after start date.'))))} />{errors.endDate && <p className="field-error">{errors.endDate.message}</p>}</div>
         </div>
         <label htmlFor="reason">Reason</label>
-        <input id="reason" {...register('reason')} />
+        <input id="reason" maxLength={500} aria-invalid={errors.reason ? 'true' : undefined} {...register('reason', rules.text('Reason', { max: 500 }))} />
+        {errors.reason && <p className="field-error">{errors.reason.message}</p>}
         <div className="modal-actions">
           <button type="button" className="secondary-button" onClick={onClose}>Cancel</button>
           <button type="submit" className="primary-button" disabled={isSubmitting}>{isSubmitting ? 'Saving...' : 'Save'}</button>

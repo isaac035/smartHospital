@@ -4,6 +4,9 @@ import {
   updateMedicalResource,
   getNextAvailableResourceCode,
 } from '../../../services/hospitalResourceService'
+import { useFormValidation } from '../../../hooks/useFormValidation'
+import FieldError from '../../../components/common/FieldError'
+import { selection, text } from '../../../utils/validators'
 
 export const RESOURCE_CATEGORIES = [
   { value: 1, label: 'Ventilator' },
@@ -60,10 +63,20 @@ export default function MedicalResourceFormModal({
   const [isActive, setIsActive] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
+  const formValues = { resourceCode, name, category, status, serialNumber, locationDescription }
+  const validation = useFormValidation({
+    resourceCode: (value) => text(value, 'Resource code', { isRequired: true, max: 50 }),
+    name: (value) => text(value, 'Resource name', { isRequired: true, max: 120 }),
+    category: (value) => selection(value, 'a category'),
+    serialNumber: (value) => text(value, 'Serial number', { max: 100 }),
+    locationDescription: (value) => text(value, 'Location description', { isRequired: true, max: 200 }),
+  }, formValues)
+  const resetValidation = validation.reset
 
   useEffect(() => {
     if (isOpen) {
       setError(null)
+      resetValidation()
       if (resource) {
         setResourceCode(resource.resourceCode || '')
         setName(resource.name || '')
@@ -106,7 +119,7 @@ export default function MedicalResourceFormModal({
         }
       }
     }
-  }, [isOpen, resource])
+  }, [isOpen, resource, resetValidation])
 
   if (!isOpen) return null
 
@@ -118,20 +131,7 @@ export default function MedicalResourceFormModal({
     const trimmedName = name.trim()
     const trimmedLocation = locationDescription.trim()
 
-    if (!trimmedCode) {
-      setError('Resource Code is required.')
-      return
-    }
-
-    if (!trimmedName) {
-      setError('Resource Name is required.')
-      return
-    }
-
-    if (!trimmedLocation) {
-      setError('Location description is required.')
-      return
-    }
+    if (!validation.validateAll(formValues, e.currentTarget)) return
 
     try {
       setSubmitting(true)
@@ -169,7 +169,7 @@ export default function MedicalResourceFormModal({
       }
       onClose()
     } catch (err) {
-      setError(err.response?.data?.message || `Failed to ${isEdit ? 'update' : 'create'} resource.`)
+      setError(validation.applyServerErrors(err, { conflicts: [{ match: /code/i, field: 'resourceCode' }], fallback: `Failed to ${isEdit ? 'update' : 'create'} resource.` }) || null)
     } finally {
       setSubmitting(false)
     }
@@ -211,7 +211,7 @@ export default function MedicalResourceFormModal({
 
         {error && <div className="form-error mb-4">{error}</div>}
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} noValidate>
           {/* Row 1: Resource Code & Name */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
             <div>
@@ -220,6 +220,9 @@ export default function MedicalResourceFormModal({
               </label>
               <input
                 id="resource-code-input"
+                name="resourceCode"
+                onBlur={() => validation.touch('resourceCode', formValues)}
+                {...validation.fieldProps('resourceCode')}
                 type="text"
                 value={loadingCode ? 'Generating...' : resourceCode}
                 readOnly
@@ -234,6 +237,7 @@ export default function MedicalResourceFormModal({
                 }}
                 required
               />
+              <FieldError name="resourceCode" message={validation.errorFor('resourceCode')} />
               <p className="text-xs opacity-60 mt-1">
                 {isEdit
                   ? 'Resource code is permanent and read-only.'
@@ -247,6 +251,9 @@ export default function MedicalResourceFormModal({
               </label>
               <input
                 id="resource-name-input"
+                name="name"
+                onBlur={() => validation.touch('name', formValues)}
+                {...validation.fieldProps('name')}
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -258,6 +265,7 @@ export default function MedicalResourceFormModal({
                 }}
                 required
               />
+              <FieldError name="name" message={validation.errorFor('name')} />
             </div>
           </div>
 
@@ -269,6 +277,9 @@ export default function MedicalResourceFormModal({
               </label>
               <select
                 id="resource-category-select"
+                name="category"
+                onBlur={() => validation.touch('category', formValues)}
+                {...validation.fieldProps('category')}
                 value={category}
                 onChange={(e) => setCategory(parseInt(e.target.value, 10))}
                 className="w-full px-3 py-2 text-xs border rounded-lg outline-none bg-transparent"
@@ -283,6 +294,7 @@ export default function MedicalResourceFormModal({
                   </option>
                 ))}
               </select>
+              <FieldError name="category" message={validation.errorFor('category')} />
             </div>
 
             {isEdit ? (
@@ -330,6 +342,9 @@ export default function MedicalResourceFormModal({
             </label>
             <input
               id="resource-serial-input"
+                name="serialNumber"
+                onBlur={() => validation.touch('serialNumber', formValues)}
+                {...validation.fieldProps('serialNumber')}
               type="text"
               value={serialNumber}
               onChange={(e) => setSerialNumber(e.target.value)}
@@ -340,6 +355,7 @@ export default function MedicalResourceFormModal({
                 borderColor: 'color-mix(in srgb, var(--color-secondary) 25%, var(--color-primary))',
               }}
             />
+              <FieldError name="serialNumber" message={validation.errorFor('serialNumber')} />
           </div>
 
           {/* Location Description */}
@@ -349,6 +365,9 @@ export default function MedicalResourceFormModal({
             </label>
             <input
               id="resource-location-input"
+                name="locationDescription"
+                onBlur={() => validation.touch('locationDescription', formValues)}
+                {...validation.fieldProps('locationDescription')}
               type="text"
               value={locationDescription}
               onChange={(e) => setLocationDescription(e.target.value)}
@@ -360,6 +379,7 @@ export default function MedicalResourceFormModal({
               }}
               required
             />
+              <FieldError name="locationDescription" message={validation.errorFor('locationDescription')} />
           </div>
 
           {/* Active Status (Edit Mode Only) */}

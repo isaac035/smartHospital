@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react'
 import { completeMaintenance } from '../../../services/hospitalResourceService'
+import { useFormValidation } from '../../../hooks/useFormValidation'
+import FieldError from '../../../components/common/FieldError'
+import { text } from '../../../utils/validators'
 
 export default function CompleteMaintenanceModal({
   isOpen,
@@ -10,13 +13,19 @@ export default function CompleteMaintenanceModal({
   const [resolutionNotes, setResolutionNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
+  const formValues = { resolutionNotes }
+  const validation = useFormValidation({
+    resolutionNotes: (value) => text(value, 'Resolution notes', { isRequired: true, max: 1000 }),
+  }, formValues)
+  const resetValidation = validation.reset
 
   useEffect(() => {
     if (isOpen) {
       setError(null)
       setResolutionNotes('')
+      resetValidation()
     }
-  }, [isOpen])
+  }, [isOpen, resetValidation])
 
   if (!isOpen || !record) return null
 
@@ -24,10 +33,7 @@ export default function CompleteMaintenanceModal({
     e.preventDefault()
     setError(null)
 
-    if (!resolutionNotes.trim()) {
-      setError('Resolution notes are required.')
-      return
-    }
+    if (!validation.validateAll(formValues, e.currentTarget)) return
 
     try {
       setSubmitting(true)
@@ -37,7 +43,7 @@ export default function CompleteMaintenanceModal({
       onSuccess(`Maintenance '${record.maintenanceCode}' marked as Completed. Target restored to Available.`)
       onClose()
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to complete maintenance task.')
+      setError(validation.applyServerErrors(err, { fallback: 'Failed to complete maintenance task.' }) || null)
     } finally {
       setSubmitting(false)
     }
@@ -102,7 +108,7 @@ export default function CompleteMaintenanceModal({
           </div>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} noValidate>
           {/* Resolution Notes */}
           <div className="mb-4">
             <label htmlFor="resolution-notes-input" className="block text-xs font-semibold mb-1">
@@ -110,6 +116,9 @@ export default function CompleteMaintenanceModal({
             </label>
             <textarea
               id="resolution-notes-input"
+                name="resolutionNotes"
+                onBlur={() => validation.touch('resolutionNotes', formValues)}
+                {...validation.fieldProps('resolutionNotes')}
               rows={4}
               value={resolutionNotes}
               onChange={(e) => setResolutionNotes(e.target.value)}
@@ -121,6 +130,7 @@ export default function CompleteMaintenanceModal({
               }}
               required
             />
+              <FieldError name="resolutionNotes" message={validation.errorFor('resolutionNotes')} />
             <div className="text-right text-xs opacity-50 mt-0.5">
               {resolutionNotes.length}/1000
             </div>

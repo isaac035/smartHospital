@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using SmartHospital.Api.Validation;
 
 namespace SmartHospital.Api.DTOs.Emr;
 
@@ -16,19 +17,24 @@ public class CreateMedicalRecordRequest : IValidatableObject
 
     [Required(ErrorMessage = "Chief complaint is required.")]
     [MaxLength(500, ErrorMessage = "Chief complaint cannot exceed 500 characters.")]
+    [NoHtml]
     public string ChiefComplaint { get; set; } = string.Empty;
 
     [MaxLength(1000, ErrorMessage = "Symptoms cannot exceed 1000 characters.")]
+    [NoHtml]
     public string? Symptoms { get; set; } = string.Empty;
 
     [MaxLength(2000, ErrorMessage = "Examination notes cannot exceed 2000 characters.")]
+    [NoHtml]
     public string? ExaminationNotes { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Diagnosis is required.")]
     [MaxLength(500, ErrorMessage = "Diagnosis cannot exceed 500 characters.")]
+    [NoHtml]
     public string Diagnosis { get; set; } = string.Empty;
 
     [MaxLength(2000, ErrorMessage = "Treatment plan cannot exceed 2000 characters.")]
+    [NoHtml]
     public string? TreatmentPlan { get; set; } = string.Empty;
 
     public DateTime? FollowUpDate { get; set; }

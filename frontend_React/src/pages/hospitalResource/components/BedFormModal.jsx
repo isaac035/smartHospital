@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react'
 import { createBed, updateBed, getRoomsByWard, getBeds } from '../../../services/hospitalResourceService'
+import { useFormValidation } from '../../../hooks/useFormValidation'
+import FieldError from '../../../components/common/FieldError'
+import { selection, text } from '../../../utils/validators'
 
 const BED_TYPES = [
   { value: 1, label: 'Standard' },
@@ -59,10 +62,18 @@ export default function BedFormModal({ isOpen, onClose, bed, wards = [], onSucce
 
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
+  const validation = useFormValidation({
+    wardId: (value) => (isEdit ? undefined : selection(value, 'a ward')),
+    roomId: (value) => (isEdit ? undefined : selection(value, 'a room')),
+    bedNumber: (value) => text(value, 'Bed number', { isRequired: true, max: 30 }),
+    type: (value) => selection(value, 'a bed type'),
+  }, { wardId, roomId, bedNumber, type })
+  const resetValidation = validation.reset
 
   useEffect(() => {
     if (isOpen) {
       setError(null)
+      resetValidation()
       if (bed) {
         // Edit Mode: keep existing values
         setWardId(bed.wardId ? String(bed.wardId) : '')
@@ -80,7 +91,7 @@ export default function BedFormModal({ isOpen, onClose, bed, wards = [], onSucce
         setIsActive(true)
       }
     }
-  }, [isOpen, bed])
+  }, [isOpen, bed, resetValidation])
 
   // When Ward changes in Add Mode, load rooms for that ward
   useEffect(() => {
@@ -153,20 +164,12 @@ export default function BedFormModal({ isOpen, onClose, bed, wards = [], onSucce
     e.preventDefault()
     setError(null)
 
-    if (!isEdit && !wardId) {
-      setError('Please select a ward.')
-      return
-    }
-
-    if (!isEdit && !roomId) {
-      setError('Please select a room.')
-      return
-    }
-
-    if (!isEdit && (isCapacityReached || (selectedRoom && selectedRoom.totalBeds >= 4))) {
+    if (!isEdit && roomId && (isCapacityReached || (selectedRoom && selectedRoom.totalBeds >= 4))) {
       setError('Room capacity reached. Maximum 4 beds are allowed.')
       return
     }
+
+    if (!validation.validateAll({ wardId, roomId, bedNumber, type }, e.currentTarget)) return
 
     const trimmedBed = bedNumber.trim().toUpperCase()
     if (!trimmedBed) {
@@ -202,7 +205,7 @@ export default function BedFormModal({ isOpen, onClose, bed, wards = [], onSucce
       }
       onClose()
     } catch (err) {
-      setError(err.response?.data?.message || `Failed to ${isEdit ? 'update' : 'create'} bed.`)
+      setError(validation.applyServerErrors(err, { conflicts: [{ match: /bed( number)? '.*' already exists|already exists in/i, field: 'bedNumber' }, { match: /room/i, field: 'roomId' }], fallback: `Failed to ${isEdit ? 'update' : 'create'} bed.` }) || null)
     } finally {
       setSubmitting(false)
     }
@@ -243,7 +246,7 @@ export default function BedFormModal({ isOpen, onClose, bed, wards = [], onSucce
 
         {error && <div className="form-error mb-4">{error}</div>}
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} noValidate>
           {/* Ward Selection */}
           <div className="mb-3">
             <label className="block text-xs font-semibold mb-1">
@@ -262,9 +265,13 @@ export default function BedFormModal({ isOpen, onClose, bed, wards = [], onSucce
                 {bed.floor && <span className="opacity-70 ml-2">· {bed.floor}</span>}
               </div>
             ) : (
+            <>
               <select
+                name="wardId"
                 value={wardId}
-                onChange={(e) => setWardId(e.target.value)}
+                onChange={(e) => { setWardId(e.target.value); validation.revalidate({ wardId: e.target.value, roomId, bedNumber, type }) }}
+                onBlur={() => validation.touch('wardId', { wardId, roomId, bedNumber, type })}
+                {...validation.fieldProps('wardId')}
                 className="w-full px-3 py-2 text-xs border rounded-lg outline-none bg-transparent"
                 style={{
                   borderColor: 'color-mix(in srgb, var(--color-secondary) 25%, var(--color-primary))',
@@ -279,6 +286,8 @@ export default function BedFormModal({ isOpen, onClose, bed, wards = [], onSucce
                   </option>
                 ))}
               </select>
+              <FieldError name="wardId" message={validation.errorFor('wardId')} />
+            </>
             )}
           </div>
 
@@ -298,9 +307,13 @@ export default function BedFormModal({ isOpen, onClose, bed, wards = [], onSucce
                 <strong>Room {bed.roomNumber || '—'}</strong>
               </div>
             ) : (
+            <>
               <select
+                name="roomId"
                 value={roomId}
-                onChange={(e) => setRoomId(e.target.value)}
+                onChange={(e) => { setRoomId(e.target.value); validation.revalidate({ wardId, roomId: e.target.value, bedNumber, type }) }}
+                onBlur={() => validation.touch('roomId', { wardId, roomId, bedNumber, type })}
+                {...validation.fieldProps('roomId')}
                 disabled={!wardId || loadingRooms}
                 className="w-full px-3 py-2 text-xs border rounded-lg outline-none bg-transparent"
                 style={{
@@ -329,6 +342,8 @@ export default function BedFormModal({ isOpen, onClose, bed, wards = [], onSucce
                   )
                 })}
               </select>
+              <FieldError name="roomId" message={validation.errorFor('roomId')} />
+            </>
             )}
 
             {/* Room Capacity Reached Warning */}
@@ -353,6 +368,9 @@ export default function BedFormModal({ isOpen, onClose, bed, wards = [], onSucce
               </label>
               <input
                 id="bed-number-input"
+                name="bedNumber"
+                onBlur={() => validation.touch('bedNumber', { wardId, roomId, bedNumber, type })}
+                {...validation.fieldProps('bedNumber')}
                 type="text"
                 value={bedNumber}
                 onChange={(e) => isEdit && setBedNumber(e.target.value)}
@@ -375,6 +393,7 @@ export default function BedFormModal({ isOpen, onClose, bed, wards = [], onSucce
                 }}
                 required
               />
+              <FieldError name="bedNumber" message={validation.errorFor('bedNumber')} />
               {!isEdit && (
                 <p className="text-xs opacity-60 mt-1">
                   Auto-generated sequentially (BED-01 to BED-04) for the selected room.

@@ -1,5 +1,29 @@
 import { useState } from 'react'
 import { createPrescription } from '../../services/emrService'
+import FieldError from '../common/FieldError'
+import { number, parseServerErrors, text } from '../../utils/validators'
+
+const ITEM_RULES = {
+  medicineName: (value) => text(value, 'Medicine name', { isRequired: true, max: 150 }),
+  dosage: (value) => text(value, 'Dosage', { isRequired: true, max: 50 }),
+  route: (value) => text(value, 'Route', { max: 50 }),
+  frequency: (value) => text(value, 'Frequency', { isRequired: true, max: 50 }),
+  durationDays: (value) => number(value, 'Duration', { isRequired: true, min: 1, max: 365, integer: true, message: 'Duration must be between 1 and 365 days.' }),
+  specialInstructions: (value) => text(value, 'Special instructions', { max: 500 }),
+}
+
+function validatePrescription(items, generalInstructions) {
+  const errors = {}
+  const general = text(generalInstructions, 'General instructions', { max: 1000 })
+  if (general) errors.generalInstructions = general
+  items.forEach((item, index) => {
+    for (const [field, rule] of Object.entries(ITEM_RULES)) {
+      const message = rule(item[field])
+      if (message) errors[`items.${index}.${field}`] = message
+    }
+  })
+  return errors
+}
 
 export default function NewPrescriptionModal({ patientId, medicalRecordId = null, onClose, onSaved }) {
   const [items, setItems] = useState([
@@ -8,6 +32,15 @@ export default function NewPrescriptionModal({ patientId, medicalRecordId = null
   const [generalInstructions, setGeneralInstructions] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState({})
+  const [touched, setTouched] = useState({})
+  const [submitted, setSubmitted] = useState(false)
+  const fieldError = (key) => (submitted || touched[key] ? fieldErrors[key] : undefined)
+  const touch = (key) => {
+    setTouched((current) => ({ ...current, [key]: true }))
+    setFieldErrors(validatePrescription(items, generalInstructions))
+  }
+  const invalid = (key) => (fieldError(key) ? 'true' : undefined)
 
   const handleAddItem = () => {
     setItems([
@@ -18,39 +51,32 @@ export default function NewPrescriptionModal({ patientId, medicalRecordId = null
 
   const handleRemoveItem = (index) => {
     if (items.length > 1) {
-      setItems(items.filter((_, i) => i !== index))
+      const remaining = items.filter((_, i) => i !== index)
+      setItems(remaining)
+      setTouched({})
+      setFieldErrors(submitted ? validatePrescription(remaining, generalInstructions) : {})
     }
   }
 
   const handleItemChange = (index, field, value) => {
-    const updated = [...items]
-    updated[index][field] = value
+    const updated = items.map((item, i) => (i === index ? { ...item, [field]: value } : item))
     setItems(updated)
+    if (submitted || touched[`items.${index}.${field}`]) setFieldErrors(validatePrescription(updated, generalInstructions))
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
 
-    // Validation
-    for (let i = 0; i < items.length; i++) {
-      const it = items[i]
-      if (!it.medicineName.trim()) {
-        setError(`Item #${i + 1}: Medicine name is required.`)
-        return
-      }
-      if (!it.dosage.trim()) {
-        setError(`Item #${i + 1}: Dosage is required.`)
-        return
-      }
-      if (!it.frequency.trim()) {
-        setError(`Item #${i + 1}: Frequency is required.`)
-        return
-      }
-      if (!it.durationDays || Number(it.durationDays) < 1) {
-        setError(`Item #${i + 1}: Duration must be at least 1 day.`)
-        return
-      }
+    const errors = validatePrescription(items, generalInstructions)
+    setFieldErrors(errors)
+    setSubmitted(true)
+    const firstInvalid = Object.keys(errors)[0]
+    if (firstInvalid) {
+      const element = e.currentTarget.elements.namedItem(firstInvalid)
+      element?.scrollIntoView?.({ block: 'center', behavior: 'smooth' })
+      element?.focus?.({ preventScroll: true })
+      return
     }
 
     try {
@@ -72,12 +98,15 @@ export default function NewPrescriptionModal({ patientId, medicalRecordId = null
       await createPrescription(payload)
       onSaved()
     } catch (err) {
-      setError(
-        err.response?.data?.message ||
-        (err.response?.status === 403
-          ? 'Unauthorized: You do not have permission to prescribe for this patient.'
-          : 'Failed to issue prescription. Please check fields.')
-      )
+      if (err.response?.status === 403) {
+        setError(err.response?.data?.message || 'Unauthorized: You do not have permission to prescribe for this patient.')
+      } else {
+        const parsed = parseServerErrors(err, { fallback: 'Failed to issue prescription. Please check fields.' })
+        // Server keys look like "items[0].medicineName"; the form uses "items.0.medicineName".
+        const mapped = Object.fromEntries(Object.entries(parsed.fieldErrors).map(([key, message]) => [key.replace(/\[(\d+)\]/g, '.$1'), message]))
+        setFieldErrors((current) => ({ ...current, ...mapped }))
+        setError(parsed.message)
+      }
     } finally {
       setSubmitting(false)
     }
@@ -94,10 +123,15 @@ export default function NewPrescriptionModal({ patientId, medicalRecordId = null
             <label htmlFor="genInst">General Instructions</label>
             <input
               id="genInst"
+              name="generalInstructions"
               placeholder="e.g. Take with meals, complete the full course of antibiotics"
+              maxLength={1000}
               value={generalInstructions}
+              aria-invalid={invalid('generalInstructions')}
+              onBlur={() => touch('generalInstructions')}
               onChange={(e) => setGeneralInstructions(e.target.value)}
             />
+            <FieldError name="generalInstructions" message={fieldError('generalInstructions')} />
           </div>
 
           <div className="mt-2">
@@ -133,20 +167,30 @@ export default function NewPrescriptionModal({ patientId, medicalRecordId = null
                     <div>
                       <label className="text-xs">Medicine Name *</label>
                       <input
+                        name={`items.${index}.medicineName`}
                         placeholder="e.g. Amoxicillin"
+                        maxLength={150}
                         value={item.medicineName}
+                        aria-invalid={invalid(`items.${index}.medicineName`)}
+                        onBlur={() => touch(`items.${index}.medicineName`)}
                         onChange={(e) => handleItemChange(index, 'medicineName', e.target.value)}
                         required
                       />
+                      <FieldError name={`items.${index}.medicineName`.replace(/\./g, '-')} message={fieldError(`items.${index}.medicineName`)} />
                     </div>
                     <div>
                       <label className="text-xs">Dosage *</label>
                       <input
+                        name={`items.${index}.dosage`}
                         placeholder="e.g. 500mg"
+                        maxLength={50}
                         value={item.dosage}
+                        aria-invalid={invalid(`items.${index}.dosage`)}
+                        onBlur={() => touch(`items.${index}.dosage`)}
                         onChange={(e) => handleItemChange(index, 'dosage', e.target.value)}
                         required
                       />
+                      <FieldError name={`items.${index}.dosage`.replace(/\./g, '-')} message={fieldError(`items.${index}.dosage`)} />
                     </div>
                   </div>
 
@@ -170,11 +214,16 @@ export default function NewPrescriptionModal({ patientId, medicalRecordId = null
                     <div>
                       <label className="text-xs">Frequency *</label>
                       <input
+                        name={`items.${index}.frequency`}
                         placeholder="e.g. Every 8 hours"
+                        maxLength={50}
                         value={item.frequency}
+                        aria-invalid={invalid(`items.${index}.frequency`)}
+                        onBlur={() => touch(`items.${index}.frequency`)}
                         onChange={(e) => handleItemChange(index, 'frequency', e.target.value)}
                         required
                       />
+                      <FieldError name={`items.${index}.frequency`.replace(/\./g, '-')} message={fieldError(`items.${index}.frequency`)} />
                     </div>
                     <div>
                       <label className="text-xs">Duration (days) *</label>
@@ -182,20 +231,30 @@ export default function NewPrescriptionModal({ patientId, medicalRecordId = null
                         type="number"
                         min="1"
                         max="365"
+                        step="1"
+                        name={`items.${index}.durationDays`}
                         value={item.durationDays}
+                        aria-invalid={invalid(`items.${index}.durationDays`)}
+                        onBlur={() => touch(`items.${index}.durationDays`)}
                         onChange={(e) => handleItemChange(index, 'durationDays', e.target.value)}
                         required
                       />
+                      <FieldError name={`items.${index}.durationDays`.replace(/\./g, '-')} message={fieldError(`items.${index}.durationDays`)} />
                     </div>
                   </div>
 
                   <div>
                     <label className="text-xs">Special Instructions</label>
                     <input
+                      name={`items.${index}.specialInstructions`}
                       placeholder="e.g. Take after food, avoid dairy"
+                      maxLength={500}
                       value={item.specialInstructions}
+                      aria-invalid={invalid(`items.${index}.specialInstructions`)}
+                      onBlur={() => touch(`items.${index}.specialInstructions`)}
                       onChange={(e) => handleItemChange(index, 'specialInstructions', e.target.value)}
                     />
+                    <FieldError name={`items.${index}.specialInstructions`.replace(/\./g, '-')} message={fieldError(`items.${index}.specialInstructions`)} />
                   </div>
                 </div>
               ))}

@@ -7,6 +7,7 @@ import '../../providers/appointment_provider.dart';
 import '../../widgets/error_message.dart';
 import '../../widgets/app_ui.dart' show AppDialog;
 import '../../widgets/app_text_field.dart';
+import '../../core/utils/validators.dart';
 import 'widgets/appointment_status_badge.dart';
 import 'widgets/priority_badge.dart';
 
@@ -50,15 +51,22 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
 
   Future<void> _showCancelDialog() async {
     final controller = TextEditingController();
+    final formKey = GlobalKey<FormState>();
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AppDialog(
         title: const Text('Cancel Appointment'),
-        content: AppTextField(
-          label: 'Reason for cancellation',
-          controller: controller,
-          maxLines: 3,
-          hint: 'Enter a reason',
+        content: Form(
+          key: formKey,
+          child: AppTextField(
+            label: 'Reason for cancellation',
+            isRequired: true,
+            controller: controller,
+            maxLines: 3,
+            maxLength: 500,
+            hint: 'Enter a reason',
+            validator: (v) => Validators.validateText(v, 'Cancellation reason', required: true, max: 500),
+          ),
         ),
         actions: [
           TextButton(
@@ -69,7 +77,10 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.errorColor,
             ),
-            onPressed: () => Navigator.pop(ctx, true),
+            onPressed: () {
+              // Stay open and show the red error until a valid reason is entered.
+              if (formKey.currentState?.validate() ?? false) Navigator.pop(ctx, true);
+            },
             child: const Text('Confirm Cancel'),
           ),
         ],

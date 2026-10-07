@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
@@ -6,6 +7,7 @@ import '../../widgets/app_text_field.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/error_message.dart';
 import '../../core/utils/validators.dart';
+import '../../core/utils/form_focus.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -38,11 +40,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _updateProfile() async {
-    if (!_formKey.currentState!.validate()) return;
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    authProvider.clearError();
+    if (!_formKey.currentState!.validate()) {
+      focusFirstInvalidField(_formKey);
+      return;
+    }
 
     FocusScope.of(context).unfocus();
 
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final success = await authProvider.updateProfile(
       _firstNameController.text.trim(),
       _lastNameController.text.trim(),
@@ -76,21 +82,34 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 AppTextField(
                   label: 'First Name',
                   controller: _firstNameController,
+                  isRequired: true,
+                  maxLength: 100,
+                  errorText: authProvider.fieldErrors['firstName'],
+                  onChanged: (_) => authProvider.clearFieldError('firstName'),
                   validator: (val) =>
-                      Validators.validateName(val, 'First Name'),
+                      Validators.validateName(val, 'First name'),
                 ),
 
                 AppTextField(
                   label: 'Last Name',
                   controller: _lastNameController,
-                  validator: (val) => Validators.validateName(val, 'Last Name'),
+                  isRequired: true,
+                  maxLength: 100,
+                  errorText: authProvider.fieldErrors['lastName'],
+                  onChanged: (_) => authProvider.clearFieldError('lastName'),
+                  validator: (val) => Validators.validateName(val, 'Last name'),
                 ),
 
                 AppTextField(
                   label: 'Phone Number',
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
-                  validator: Validators.validatePhone,
+                  isRequired: true,
+                  maxLength: 20,
+                  inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9+()\- ]'))],
+                  errorText: authProvider.fieldErrors['phoneNumber'],
+                  onChanged: (_) => authProvider.clearFieldError('phoneNumber'),
+                  validator: (val) => Validators.validatePhone(val),
                 ),
 
                 const SizedBox(height: 24),

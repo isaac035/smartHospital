@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using SmartHospital.Api.Validation;
 using SmartHospital.Api.Models;
 
 namespace SmartHospital.Api.DTOs.Emr;
@@ -7,18 +8,22 @@ public class UpdateTreatmentPlanRequest : IValidatableObject
 {
     [Required(ErrorMessage = "Treatment plan title is required.")]
     [MaxLength(200, ErrorMessage = "Treatment plan title cannot exceed 200 characters.")]
+    [NoHtml]
     public string Title { get; set; } = string.Empty;
 
     public TreatmentPlanCategory Category { get; set; } = TreatmentPlanCategory.General;
 
     [Required(ErrorMessage = "Treatment plan description is required.")]
     [MaxLength(2000, ErrorMessage = "Treatment plan description cannot exceed 2000 characters.")]
+    [NoHtml]
     public string Description { get; set; } = string.Empty;
 
     [MaxLength(1000, ErrorMessage = "Goals cannot exceed 1000 characters.")]
+    [NoHtml]
     public string? Goals { get; set; }
 
     [MaxLength(2000, ErrorMessage = "Interventions cannot exceed 2000 characters.")]
+    [NoHtml]
     public string? Interventions { get; set; }
 
     public TreatmentPlanStatus Status { get; set; } = TreatmentPlanStatus.Active;

@@ -7,6 +7,8 @@ import PriorityBadge from '../../components/appointments/PriorityBadge'
 import { useAuth } from '../../hooks/useAuth'
 import { useSignalR } from '../../hooks/useSignalR'
 import { appointmentManagerNavigation } from './appointmentManagerNavigation'
+import FieldError from '../../components/common/FieldError'
+import { parseServerErrors, text } from '../../utils/validators'
 
 const adminNav = ['Dashboard', 'User Management', 'Doctor Management', 'Department Management', 'Appointments', 'Reports', 'Settings']
 const staffNav = ['Dashboard', 'Patients', 'Appointments', 'Queue Management', 'Resources']
@@ -26,6 +28,8 @@ export default function AppointmentDetails() {
   const [error, setError] = useState(null)
   const [cancelReason, setCancelReason] = useState('')
   const [showCancelModal, setShowCancelModal] = useState(false)
+  const [cancelReasonError, setCancelReasonError] = useState('')
+  const validateCancelReason = (value) => text(value, 'Cancellation reason', { isRequired: true, max: 500 }) || ''
   const [priorityDraft, setPriorityDraft] = useState(1)
   const [prioritySaving, setPrioritySaving] = useState(false)
 
@@ -35,7 +39,7 @@ export default function AppointmentDetails() {
       const data = await getAppointmentById(id)
       setAppointment(data)
       setPriorityDraft(({ Normal: 1, Urgent: 2, Emergency: 3 })[data.priority] || 1)
-      
+
       // Fetch history if not a doctor (or if doctor is allowed, backend will enforce)
       try {
         const histData = await getAppointmentHistory(id)
@@ -43,7 +47,7 @@ export default function AppointmentDetails() {
       } catch {
         // Ignore if forbidden
       }
-      
+
       setError(null)
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load appointment details')
@@ -67,12 +71,21 @@ export default function AppointmentDetails() {
 
   const handleCancel = async (e) => {
     e.preventDefault()
+    const reasonError = validateCancelReason(cancelReason)
+    setCancelReasonError(reasonError)
+    if (reasonError) {
+      document.getElementById('cancelReason')?.focus()
+      return
+    }
     try {
       await cancelAppointment(id, cancelReason)
       setShowCancelModal(false)
+      setCancelReason('')
       fetchData() // Refresh
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to cancel appointment')
+      const { fieldErrors, message } = parseServerErrors(err, { fields: ['reason'], fallback: 'Failed to cancel appointment' })
+      if (fieldErrors.reason) setCancelReasonError(fieldErrors.reason)
+      if (message) alert(message)
     }
   }
 
@@ -158,13 +171,13 @@ export default function AppointmentDetails() {
 
   return (
     <DashboardLayout role={role} navigation={navigation} title={`Appointment ${appointment.referenceNumber}`} subtitle="Detailed view and actions">
-      
+
       <div className="flex justify-between items-center mb-6">
         <button className="text-sm font-semibold hover:underline" style={{ color: 'var(--color-accent)' }} onClick={() => navigate(-1)}>
           &larr; Back to List
         </button>
         <div className="flex gap-2">
-          
+
           {role === 'Doctor' && appointment.status === 'InProgress' && (
             <button className="primary-button" style={{ marginTop: 0 }} onClick={handleDoctorComplete}>
               Mark Completed
@@ -314,21 +327,28 @@ export default function AppointmentDetails() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="login-card" style={{ width: '400px' }}>
             <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--color-accent)' }}>Cancel Appointment</h2>
-            <form onSubmit={handleCancel}>
+            <form onSubmit={handleCancel} noValidate>
               <div className="flex flex-col gap-1">
-                <label>Cancellation Reason *</label>
-                <textarea 
+                <label htmlFor="cancelReason" className="required">Cancellation Reason</label>
+                <textarea
+                  id="cancelReason"
+                  name="reason"
                   required
                   rows="3"
+                  maxLength={500}
                   value={cancelReason}
-                  onChange={e => setCancelReason(e.target.value)}
+                  aria-invalid={cancelReasonError ? 'true' : undefined}
+                  aria-describedby={cancelReasonError ? 'cancelReason-error' : undefined}
+                  onBlur={() => setCancelReasonError(validateCancelReason(cancelReason))}
+                  onChange={e => { setCancelReason(e.target.value); if (cancelReasonError) setCancelReasonError(validateCancelReason(e.target.value)) }}
                   className="border rounded-md px-3 py-2"
                   style={{ borderColor: 'color-mix(in srgb, var(--color-secondary) 25%, var(--color-primary))', outline: 'none' }}
                   placeholder="e.g. Patient requested cancellation"
                 />
+                <FieldError name="cancelReason" message={cancelReasonError} />
               </div>
               <div className="flex gap-2 mt-4 justify-end">
-                <button type="button" className="secondary-button" onClick={() => setShowCancelModal(false)}>Back</button>
+                <button type="button" className="secondary-button" onClick={() => { setShowCancelModal(false); setCancelReasonError('') }}>Back</button>
                 <button type="submit" className="primary-button" style={{ marginTop: 0, backgroundColor: '#b91c1c', borderColor: '#b91c1c' }}>Confirm Cancel</button>
               </div>
             </form>

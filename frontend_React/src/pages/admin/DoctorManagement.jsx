@@ -7,10 +7,12 @@ import { doctorManagerNavigation } from './doctorManagerNavigation'
 import { useAuth } from '../../hooks/useAuth'
 import { listDepartments } from '../../services/departmentService'
 import { listConsultationTypes } from '../../services/consultationTypeService'
+import { applyServerErrors, rules } from '../../utils/validators'
 import { activateDoctor, createDoctor, createDoctorLogin, deactivateDoctor, deleteDoctorPermanently, listDoctors, updateDoctor } from '../../services/doctorService'
 
 function DoctorFormModal({ doctor, departments, onClose, onSaved }) {
   const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm({
+    mode: 'onTouched',
     defaultValues: {
       firstName: doctor?.firstName || '',
       lastName: doctor?.lastName || '',
@@ -30,12 +32,10 @@ function DoctorFormModal({ doctor, departments, onClose, onSaved }) {
       const result = doctor ? await updateDoctor(doctor.id, payload) : await createDoctor(payload)
       onSaved(doctor ? null : result)
     } catch (requestError) {
-      const message = requestError.response?.data?.message || 'Something went wrong. Please try again.'
-      if (requestError.response?.status === 409 && /email|account|user/i.test(message)) {
-        setError('email', { message })
-      } else {
-        setError('root', { message })
-      }
+      applyServerErrors(requestError, setError, {
+        fields: ['firstName', 'lastName', 'email', 'phoneNumber', 'departmentId', 'specialization', 'licenseNumber', 'yearsOfExperience', 'bio'],
+        conflicts: [{ match: /email|account|user/i, field: 'email' }, { match: /licen[cs]e/i, field: 'licenseNumber' }, { match: /department/i, field: 'departmentId' }],
+      })
     }
   }
 
@@ -45,26 +45,31 @@ function DoctorFormModal({ doctor, departments, onClose, onSaved }) {
       <form onSubmit={handleSubmit(onSubmit)} noValidate>
         {errors.root && <p className="form-error" role="alert">{errors.root.message}</p>}
         <div className="field-row">
-          <div><label htmlFor="firstName">First name</label><input id="firstName" {...register('firstName', { required: 'Required.' })} />{errors.firstName && <p className="field-error">{errors.firstName.message}</p>}</div>
-          <div><label htmlFor="lastName">Last name</label><input id="lastName" {...register('lastName', { required: 'Required.' })} />{errors.lastName && <p className="field-error">{errors.lastName.message}</p>}</div>
+          <div><label htmlFor="firstName" className="required">First name</label><input id="firstName" maxLength={100} aria-invalid={errors.firstName ? 'true' : undefined} {...register('firstName', rules.personName('First name'))} />{errors.firstName && <p className="field-error">{errors.firstName.message}</p>}</div>
+          <div><label htmlFor="lastName" className="required">Last name</label><input id="lastName" maxLength={100} aria-invalid={errors.lastName ? 'true' : undefined} {...register('lastName', rules.personName('Last name'))} />{errors.lastName && <p className="field-error">{errors.lastName.message}</p>}</div>
         </div>
-        <label htmlFor="email">Email</label>
-        <input id="email" type="email" {...register('email', { required: 'Required.' })} />
+        <label htmlFor="email" className="required">Email</label>
+        <input id="email" type="email" maxLength={255} aria-invalid={errors.email ? 'true' : undefined} {...register('email', rules.email())} />
         {errors.email && <p className="field-error">{errors.email.message}</p>}
-        <label htmlFor="phoneNumber">Phone number</label>
-        <input id="phoneNumber" {...register('phoneNumber', { required: 'Required.' })} />
-        <label htmlFor="departmentId">Department</label>
-        <select id="departmentId" {...register('departmentId', { required: true })}>
+        <label htmlFor="phoneNumber" className="required">Phone number</label>
+        <input id="phoneNumber" type="tel" inputMode="tel" maxLength={20} aria-invalid={errors.phoneNumber ? 'true' : undefined} {...register('phoneNumber', rules.phone())} />
+        {errors.phoneNumber && <p className="field-error">{errors.phoneNumber.message}</p>}
+        <label htmlFor="departmentId" className="required">Department</label>
+        <select id="departmentId" aria-invalid={errors.departmentId ? 'true' : undefined} {...register('departmentId', rules.selection('a department'))}>
+          {departments.length === 0 && <option value="">No departments available</option>}
           {departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}
         </select>
+        {errors.departmentId && <p className="field-error">{errors.departmentId.message}</p>}
         <div className="field-row">
-          <div><label htmlFor="specialization">Specialization</label><input id="specialization" {...register('specialization', { required: 'Required.' })} /></div>
-          <div><label htmlFor="licenseNumber">License number</label><input id="licenseNumber" {...register('licenseNumber', { required: 'Required.' })} /></div>
+          <div><label htmlFor="specialization" className="required">Specialization</label><input id="specialization" maxLength={150} aria-invalid={errors.specialization ? 'true' : undefined} {...register('specialization', rules.text('Specialization', { isRequired: true, max: 150 }))} />{errors.specialization && <p className="field-error">{errors.specialization.message}</p>}</div>
+          <div><label htmlFor="licenseNumber" className="required">License number</label><input id="licenseNumber" maxLength={100} aria-invalid={errors.licenseNumber ? 'true' : undefined} {...register('licenseNumber', rules.text('License number', { isRequired: true, max: 100 }))} />{errors.licenseNumber && <p className="field-error">{errors.licenseNumber.message}</p>}</div>
         </div>
-        <label htmlFor="yearsOfExperience">Years of experience</label>
-        <input id="yearsOfExperience" type="number" min="0" {...register('yearsOfExperience')} />
+        <label htmlFor="yearsOfExperience" className="required">Years of experience</label>
+        <input id="yearsOfExperience" type="number" min="0" max="80" step="1" aria-invalid={errors.yearsOfExperience ? 'true' : undefined} {...register('yearsOfExperience', rules.number('Years of experience', { isRequired: true, min: 0, max: 80, integer: true, unit: 'years' }))} />
+        {errors.yearsOfExperience && <p className="field-error">{errors.yearsOfExperience.message}</p>}
         <label htmlFor="bio">Bio</label>
-        <input id="bio" {...register('bio')} />
+        <input id="bio" maxLength={2000} aria-invalid={errors.bio ? 'true' : undefined} {...register('bio', rules.text('Bio', { max: 2000 }))} />
+        {errors.bio && <p className="field-error">{errors.bio.message}</p>}
         <div className="modal-actions">
           <button type="button" className="secondary-button" onClick={onClose}>Cancel</button>
           <button type="submit" className="primary-button" disabled={isSubmitting}>{isSubmitting ? 'Saving...' : 'Save'}</button>
@@ -193,7 +198,7 @@ export default function DoctorManagement() {
   return <DashboardLayout role={role} navigation={navigation} title="Doctor Management" subtitle="Manage doctor profiles, specializations, and departments.">
     <div className="toolbar">
       <div className="filter-bar">
-        <input placeholder="Search by name or ID" value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} />
+        <input placeholder="Search by name or ID" maxLength={100} value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} />
         <select value={departmentId} onChange={(event) => setDepartmentId(event.target.value)}>
           <option value="">All departments</option>
           {departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}
@@ -202,7 +207,7 @@ export default function DoctorManagement() {
           <option value="">All consultation types</option>
           {consultationTypes.map((type) => <option key={type.id} value={type.id}>{type.name}</option>)}
         </select>
-        <input type="number" min="0" placeholder="Min experience (yrs)" value={minExperience} onChange={(event) => setMinExperience(event.target.value)} />
+        <input type="number" min="0" max="80" step="1" placeholder="Min experience (yrs)" value={minExperience} onChange={(event) => setMinExperience(event.target.value.replace(/[^0-9]/g, '').slice(0, 2))} />
       </div>
       <button className="primary-button" style={{ marginTop: 0 }} onClick={() => setShowForm(true)}>+ Add Doctor</button>
     </div>
