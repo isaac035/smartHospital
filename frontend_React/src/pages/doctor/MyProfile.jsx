@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form'
 import DashboardLayout from '../../layouts/DashboardLayout'
 import { doctorNavigation as navigation } from './doctorNavigation'
 import { getMyDoctorProfile, updateMyDoctorProfile } from '../../services/doctorService'
+import { applyServerErrors, rules } from '../../utils/validators'
 
 export default function MyProfile() {
   const [profile, setProfile] = useState(null)
@@ -12,6 +13,7 @@ export default function MyProfile() {
   const [successMessage, setSuccessMessage] = useState('')
 
   const { register, handleSubmit, reset, formState: { errors, isSubmitting }, setError: setFormError } = useForm({
+    mode: 'onTouched',
     defaultValues: { phoneNumber: '', bio: '' },
   })
 
@@ -41,7 +43,7 @@ export default function MyProfile() {
       setEditing(false)
       setSuccessMessage('Profile updated successfully.')
     } catch (requestError) {
-      setFormError('root', { message: requestError.response?.data?.message || 'Something went wrong. Please try again.' })
+      applyServerErrors(requestError, setFormError, { fields: ['phoneNumber', 'bio'] })
     }
   }
 
@@ -74,11 +76,12 @@ export default function MyProfile() {
     {editing && <div className="panel" style={{ padding: 24 }}>
       <form onSubmit={handleSubmit(onSubmit)} noValidate>
         {errors.root && <p className="form-error" role="alert">{errors.root.message}</p>}
-        <label htmlFor="phoneNumber">Phone number</label>
-        <input id="phoneNumber" {...register('phoneNumber', { required: 'Phone number is required.' })} />
+        <label htmlFor="phoneNumber" className="required">Phone number</label>
+        <input id="phoneNumber" type="tel" inputMode="tel" maxLength={20} aria-invalid={errors.phoneNumber ? 'true' : undefined} {...register('phoneNumber', rules.phone())} />
         {errors.phoneNumber && <p className="field-error">{errors.phoneNumber.message}</p>}
         <label htmlFor="bio">Bio</label>
-        <input id="bio" {...register('bio')} />
+        <input id="bio" maxLength={2000} aria-invalid={errors.bio ? 'true' : undefined} {...register('bio', rules.text('Bio', { max: 2000 }))} />
+        {errors.bio && <p className="field-error">{errors.bio.message}</p>}
         <div className="modal-actions">
           <button type="button" className="secondary-button" onClick={() => { setEditing(false); reset({ phoneNumber: profile.phoneNumber, bio: profile.bio }) }}>Cancel</button>
           <button type="submit" className="primary-button" disabled={isSubmitting}>{isSubmitting ? 'Saving...' : 'Save'}</button>

@@ -1,8 +1,10 @@
 import { useForm } from 'react-hook-form'
 import { recordLabReport } from '../../services/emrService'
+import { applyServerErrors, rules } from '../../utils/validators'
 
 export default function RecordLabReportModal({ order, onClose, onSaved }) {
   const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm({
+    mode: 'onTouched',
     defaultValues: {
       resultSummary: order?.report?.resultSummary || '',
       findings: order?.report?.findings || '',
@@ -26,12 +28,11 @@ export default function RecordLabReportModal({ order, onClose, onSaved }) {
       await recordLabReport(order.id, payload)
       onSaved()
     } catch (err) {
-      setError('root', {
-        message: err.response?.data?.message ||
-          (err.response?.status === 403
-            ? 'Unauthorized: You do not have permission to record results for this order.'
-            : 'Failed to record lab report. Please check required fields.'),
-      })
+      if (err.response?.status === 403) {
+        setError('root', { message: err.response?.data?.message || 'Unauthorized: You do not have permission to record results for this order.' })
+      } else {
+        applyServerErrors(err, setError, { fields: ['resultSummary', 'findings', 'referenceRange', 'doctorRemarks', 'attachmentUrl'], fallback: 'Failed to record lab report. Please check required fields.' })
+      }
     }
   }
 
@@ -51,7 +52,9 @@ export default function RecordLabReportModal({ order, onClose, onSaved }) {
             <input
               id="resultSummary"
               placeholder="e.g. Normal complete blood count, mild leukocytosis"
-              {...register('resultSummary', { required: 'Result summary is required.' })}
+              maxLength={500}
+              aria-invalid={errors.resultSummary ? 'true' : undefined}
+              {...register('resultSummary', rules.text('Result summary', { isRequired: true, max: 500 }))}
             />
             {errors.resultSummary && <p className="field-error">{errors.resultSummary.message}</p>}
           </div>
@@ -63,7 +66,9 @@ export default function RecordLabReportModal({ order, onClose, onSaved }) {
               rows={4}
               className="w-full p-2.5 border rounded-lg bg-white"
               placeholder="e.g. WBC: 11.2 x10^9/L, RBC: 4.8 x10^12/L, Hemoglobin: 14.2 g/dL, Platelets: 250 x10^9/L"
-              {...register('findings', { required: 'Findings are required.' })}
+              maxLength={2000}
+              aria-invalid={errors.findings ? 'true' : undefined}
+              {...register('findings', rules.text('Findings', { isRequired: true, max: 2000 }))}
             />
             {errors.findings && <p className="field-error">{errors.findings.message}</p>}
           </div>
@@ -74,8 +79,11 @@ export default function RecordLabReportModal({ order, onClose, onSaved }) {
               <input
                 id="referenceRange"
                 placeholder="e.g. WBC 4.5-11.0, Hb 13.5-17.5"
-                {...register('referenceRange')}
+                maxLength={500}
+                aria-invalid={errors.referenceRange ? 'true' : undefined}
+                {...register('referenceRange', rules.text('Reference range', { max: 500 }))}
               />
+              {errors.referenceRange && <p className="field-error">{errors.referenceRange.message}</p>}
             </div>
             <div>
               <label htmlFor="attachmentUrl">Attachment URL (Optional)</label>
@@ -83,8 +91,11 @@ export default function RecordLabReportModal({ order, onClose, onSaved }) {
                 id="attachmentUrl"
                 type="url"
                 placeholder="https://..."
-                {...register('attachmentUrl')}
+                maxLength={500}
+                aria-invalid={errors.attachmentUrl ? 'true' : undefined}
+                {...register('attachmentUrl', rules.httpUrl('Attachment URL'))}
               />
+              {errors.attachmentUrl && <p className="field-error">{errors.attachmentUrl.message}</p>}
             </div>
           </div>
 
@@ -93,8 +104,11 @@ export default function RecordLabReportModal({ order, onClose, onSaved }) {
             <input
               id="doctorRemarks"
               placeholder="e.g. Consistent with mild bacterial infection, follow up in 1 week"
-              {...register('doctorRemarks')}
+              maxLength={1000}
+              aria-invalid={errors.doctorRemarks ? 'true' : undefined}
+              {...register('doctorRemarks', rules.text('Doctor remarks', { max: 1000 }))}
             />
+            {errors.doctorRemarks && <p className="field-error">{errors.doctorRemarks.message}</p>}
           </div>
 
           <div className="modal-actions">

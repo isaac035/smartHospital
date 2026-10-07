@@ -3,10 +3,12 @@ import { useForm } from 'react-hook-form'
 import DashboardLayout from '../../layouts/DashboardLayout'
 import { doctorNavigation as navigation } from './doctorNavigation'
 import { getMyDoctorProfile } from '../../services/doctorService'
+import { applyServerErrors, first, onOrAfter, required, rules } from '../../utils/validators'
 import { cancelLeave, createLeave, listLeaves } from '../../services/leaveService'
 
 function LeaveFormModal({ doctorId, onClose, onSaved }) {
   const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm({
+    mode: 'onTouched',
     defaultValues: { startDate: '', endDate: '', reason: '' },
   })
 
@@ -15,7 +17,7 @@ function LeaveFormModal({ doctorId, onClose, onSaved }) {
       await createLeave({ ...values, doctorId })
       onSaved()
     } catch (requestError) {
-      setError('root', { message: requestError.response?.data?.message || 'Something went wrong. Please try again.' })
+      applyServerErrors(requestError, setError, { fields: ['startDate', 'endDate', 'reason'], conflicts: [{ match: /end date/i, field: 'endDate' }] })
     }
   }
 
@@ -25,11 +27,12 @@ function LeaveFormModal({ doctorId, onClose, onSaved }) {
       <form onSubmit={handleSubmit(onSubmit)} noValidate>
         {errors.root && <p className="form-error" role="alert">{errors.root.message}</p>}
         <div className="field-row">
-          <div><label htmlFor="startDate">Start date</label><input id="startDate" type="date" {...register('startDate', { required: 'Required.' })} />{errors.startDate && <p className="field-error">{errors.startDate.message}</p>}</div>
-          <div><label htmlFor="endDate">End date</label><input id="endDate" type="date" {...register('endDate', { required: 'Required.' })} />{errors.endDate && <p className="field-error">{errors.endDate.message}</p>}</div>
+          <div><label htmlFor="startDate" className="required">Start date</label><input id="startDate" type="date" aria-invalid={errors.startDate ? 'true' : undefined} {...register('startDate', { ...rules.required('Start date'), deps: ['endDate'] })} />{errors.startDate && <p className="field-error">{errors.startDate.message}</p>}</div>
+          <div><label htmlFor="endDate" className="required">End date</label><input id="endDate" type="date" aria-invalid={errors.endDate ? 'true' : undefined} {...register('endDate', rules.custom((value, values) => first(required(value, 'End date'), onOrAfter(value, values.startDate, 'End date must be on or after start date.'))))} />{errors.endDate && <p className="field-error">{errors.endDate.message}</p>}</div>
         </div>
         <label htmlFor="reason">Reason</label>
-        <input id="reason" {...register('reason')} />
+        <input id="reason" maxLength={500} aria-invalid={errors.reason ? 'true' : undefined} {...register('reason', rules.text('Reason', { max: 500 }))} />
+        {errors.reason && <p className="field-error">{errors.reason.message}</p>}
         <div className="modal-actions">
           <button type="button" className="secondary-button" onClick={onClose}>Cancel</button>
           <button type="submit" className="primary-button" disabled={isSubmitting}>{isSubmitting ? 'Saving...' : 'Save'}</button>

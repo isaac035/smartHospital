@@ -117,7 +117,7 @@ export default function ChangeBedStatusModal({ isOpen, onClose, bed, onSuccess }
             Patient-bed allocation must continue through the Admissions module.
           </div>
         ) : (
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} noValidate>
             <div className="mb-4">
               <label htmlFor="target-status-select" className="block text-xs font-semibold mb-1">
                 New Bed Status <span className="text-red-500">*</span>

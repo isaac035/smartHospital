@@ -1,5 +1,13 @@
 import { useState, useEffect } from 'react'
 import { createRoom, updateRoom } from '../../../services/hospitalResourceService'
+import { useFormValidation } from '../../../hooks/useFormValidation'
+import FieldError from '../../../components/common/FieldError'
+import { selection, text } from '../../../utils/validators'
+
+const ROOM_SCHEMA = {
+  roomNumber: (value) => text(value, 'Room number', { isRequired: true, max: 30 }),
+  type: (value) => selection(value, 'a room type'),
+}
 
 const ROOM_TYPES = [
   { value: 1, label: 'Standard' },
@@ -94,10 +102,13 @@ export default function RoomFormModal({
 
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
+  const validation = useFormValidation(ROOM_SCHEMA, { roomNumber, type })
+  const resetValidation = validation.reset
 
   useEffect(() => {
     if (isOpen) {
       setError(null)
+      resetValidation()
       if (room) {
         setRoomNumber(room.roomNumber || '')
         setType(ROOM_TYPE_NAME_TO_INT[room.type] || 1)
@@ -110,7 +121,7 @@ export default function RoomFormModal({
         setIsActive(true)
       }
     }
-  }, [isOpen, room, ward, existingRoomNumbers])
+  }, [isOpen, room, ward, existingRoomNumbers, resetValidation])
 
   if (!isOpen || !ward) return null
 
@@ -121,10 +132,7 @@ export default function RoomFormModal({
     setError(null)
 
     const trimmedNumber = roomNumber.trim().toUpperCase()
-    if (!trimmedNumber) {
-      setError('Room number is required.')
-      return
-    }
+    if (!validation.validateAll({ roomNumber: trimmedNumber, type }, e.currentTarget)) return
 
     try {
       setSubmitting(true)
@@ -149,7 +157,7 @@ export default function RoomFormModal({
       }
       onClose()
     } catch (err) {
-      setError(err.response?.data?.message || `Failed to ${isEdit ? 'update' : 'create'} room.`)
+      setError(validation.applyServerErrors(err, { conflicts: [{ match: /room number/i, field: 'roomNumber' }], fallback: `Failed to ${isEdit ? 'update' : 'create'} room.` }) || null)
     } finally {
       setSubmitting(false)
     }
@@ -189,7 +197,7 @@ export default function RoomFormModal({
 
         {error && <div className="form-error mb-4">{error}</div>}
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} noValidate>
           {/* Room Number Input - Always Read-Only */}
           <div className="mb-3">
             <label htmlFor="room-number-input" className="block text-xs font-semibold mb-1">
@@ -197,6 +205,7 @@ export default function RoomFormModal({
             </label>
             <input
               id="room-number-input"
+              name="roomNumber"
               type="text"
               value={roomNumber}
               readOnly
@@ -207,7 +216,9 @@ export default function RoomFormModal({
                 backgroundColor: 'color-mix(in srgb, var(--color-secondary) 6%, var(--color-primary))',
               }}
               required
+              {...validation.fieldProps('roomNumber')}
             />
+            <FieldError name="roomNumber" message={validation.errorFor('roomNumber')} />
             <p className="text-xs opacity-60 mt-1">
               {isEdit
                 ? 'Room number is fixed and read-only.'
@@ -223,6 +234,7 @@ export default function RoomFormModal({
               </label>
               <select
                 id="room-type-select"
+                name="type"
                 value={type}
                 onChange={(e) => setType(parseInt(e.target.value, 10))}
                 className="w-full px-3 py-2 text-xs border rounded-lg outline-none bg-transparent"
@@ -237,6 +249,7 @@ export default function RoomFormModal({
                   </option>
                 ))}
               </select>
+              <FieldError name="type" message={validation.errorFor('type')} />
             </div>
 
             <div>

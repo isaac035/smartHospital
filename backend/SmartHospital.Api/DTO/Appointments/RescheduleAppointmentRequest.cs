@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using SmartHospital.Api.Validation;
 
 namespace SmartHospital.Api.DTOs.Appointments;
 
@@ -12,5 +13,6 @@ public class RescheduleAppointmentRequest
     public int? NewEstimatedDurationMinutes { get; set; }
 
     [MaxLength(500)]
+    [NoHtml]
     public string? Reason { get; set; }
 }

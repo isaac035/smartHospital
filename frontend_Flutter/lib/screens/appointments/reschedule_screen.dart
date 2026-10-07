@@ -8,6 +8,8 @@ import '../../providers/appointment_provider.dart';
 import '../../widgets/error_message.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_text_field.dart';
+import '../../core/utils/validators.dart';
+import '../../core/utils/form_focus.dart';
 import 'widgets/slot_picker_grid.dart';
 
 class RescheduleScreen extends StatefulWidget {
@@ -70,7 +72,10 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
   }
 
   Future<void> _submit(int durationMinutes) async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      focusFirstInvalidField(_formKey);
+      return;
+    }
     if (_selectedSlot == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select a new time slot.')),
@@ -280,13 +285,15 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
                   ),
                   const SizedBox(height: 12),
                   AppTextField(
-                    label: 'Reason for Rescheduling *',
+                    label: 'Reason for Rescheduling',
+                    isRequired: true,
                     hint: 'e.g. Schedule conflict, feeling unwell...',
                     controller: _reasonController,
                     maxLines: 3,
+                    maxLength: 500,
                     validator: (v) => (v == null || v.trim().isEmpty)
                         ? 'Please provide a reason to inform the doctor.'
-                        : null,
+                        : Validators.validateText(v, 'Reason', max: 500),
                   ),
 
                   const SizedBox(height: 32),

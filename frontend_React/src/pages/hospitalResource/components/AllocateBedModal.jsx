@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react'
 import { getAvailableBeds, allocateBed } from '../../../services/hospitalResourceService'
+import { useFormValidation } from '../../../hooks/useFormValidation'
+import FieldError from '../../../components/common/FieldError'
+import { selection, text } from '../../../utils/validators'
 
 export default function AllocateBedModal({ isOpen, onClose, admission, onSuccess }) {
   const [availableBeds, setAvailableBeds] = useState([])
@@ -9,6 +12,12 @@ export default function AllocateBedModal({ isOpen, onClose, admission, onSuccess
   const [loadingBeds, setLoadingBeds] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
+  const formValues = { selectedBedId, notes }
+  const validation = useFormValidation({
+    selectedBedId: (value) => selection(value, 'an available bed'),
+    notes: (value) => text(value, 'Notes', { max: 500 }),
+  }, formValues)
+  const resetValidation = validation.reset
 
   useEffect(() => {
     if (isOpen && admission) {
@@ -16,8 +25,9 @@ export default function AllocateBedModal({ isOpen, onClose, admission, onSuccess
       setSelectedBedId('')
       setNotes('')
       setError(null)
+      resetValidation()
     }
-  }, [isOpen, admission])
+  }, [isOpen, admission, resetValidation])
 
   const fetchBeds = async () => {
     try {
@@ -48,11 +58,8 @@ export default function AllocateBedModal({ isOpen, onClose, admission, onSuccess
     e.preventDefault()
     setError(null)
 
+    if (!validation.validateAll(formValues, e.currentTarget)) return
     const bedId = parseInt(selectedBedId, 10)
-    if (isNaN(bedId) || bedId <= 0) {
-      setError('Please select an available bed.')
-      return
-    }
 
     try {
       setSubmitting(true)
@@ -64,7 +71,7 @@ export default function AllocateBedModal({ isOpen, onClose, admission, onSuccess
       onSuccess(`Bed successfully allocated for admission ${admission.admissionNumber}.`)
       onClose()
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to allocate bed.')
+      setError(validation.applyServerErrors(err, { conflicts: [{ match: /bed/i, field: 'selectedBedId' }], fallback: 'Failed to allocate bed.' }) || null)
     } finally {
       setSubmitting(false)
     }
@@ -111,7 +118,7 @@ export default function AllocateBedModal({ isOpen, onClose, admission, onSuccess
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+        <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-3">
           {distinctWards.length > 1 && (
             <div>
               <label htmlFor="allocate-ward-filter" className="block text-xs font-semibold mb-1">
@@ -148,8 +155,12 @@ export default function AllocateBedModal({ isOpen, onClose, admission, onSuccess
                 No available beds found in the hospital. Please check Bed Management or discharge patients first.
               </div>
             ) : (
+            <>
               <select
                 id="allocate-bed-select"
+                name="selectedBedId"
+                onBlur={() => validation.touch('selectedBedId', formValues)}
+                {...validation.fieldProps('selectedBedId')}
                 required
                 value={selectedBedId}
                 onChange={(e) => setSelectedBedId(e.target.value)}
@@ -166,6 +177,8 @@ export default function AllocateBedModal({ isOpen, onClose, admission, onSuccess
                   </option>
                 ))}
               </select>
+              <FieldError name="selectedBedId" message={validation.errorFor('selectedBedId')} />
+            </>
             )}
           </div>
 
@@ -175,6 +188,9 @@ export default function AllocateBedModal({ isOpen, onClose, admission, onSuccess
             </label>
             <textarea
               id="allocate-notes"
+                name="notes"
+                onBlur={() => validation.touch('notes', formValues)}
+                {...validation.fieldProps('notes')}
               maxLength={500}
               rows={2}
               value={notes}
@@ -183,6 +199,7 @@ export default function AllocateBedModal({ isOpen, onClose, admission, onSuccess
               className="w-full px-3 py-2 text-sm border rounded-lg outline-none"
               style={{ borderColor: 'color-mix(in srgb, var(--color-secondary) 25%, var(--color-primary))' }}
             />
+              <FieldError name="notes" message={validation.errorFor('notes')} />
           </div>
 
           <div className="flex justify-end gap-2 mt-4 pt-3 border-t" style={{ borderColor: 'color-mix(in srgb, var(--color-secondary) 15%, var(--color-primary))' }}>

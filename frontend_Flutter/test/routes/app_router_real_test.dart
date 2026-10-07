@@ -42,9 +42,13 @@ class FakeAuthProvider extends ChangeNotifier implements AuthProvider {
       );
   @override
   String? get error => null;
+  @override
+  Map<String, String> get fieldErrors => const {};
 
   @override
   void clearError() {}
+  @override
+  void clearFieldError(String field) {}
   @override
   Future<void> initialize() async {}
   @override

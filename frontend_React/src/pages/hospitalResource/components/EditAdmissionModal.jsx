@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react'
 import { updateAdmission } from '../../../services/hospitalResourceService'
+import { useFormValidation } from '../../../hooks/useFormValidation'
+import FieldError from '../../../components/common/FieldError'
+import { number, selection, text } from '../../../utils/validators'
 
 export default function EditAdmissionModal({ isOpen, onClose, admission, onSuccess }) {
   const [formData, setFormData] = useState({
@@ -10,6 +13,14 @@ export default function EditAdmissionModal({ isOpen, onClose, admission, onSucce
   })
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
+  const formValues = formData
+  const validation = useFormValidation({
+    priority: (value) => selection(value, 'a priority'),
+    admittingDoctorId: (value) => number(value, 'Admitting doctor ID', { min: 1, max: 2147483647, integer: true, message: 'Admitting Doctor ID must be a valid positive integer.' }),
+    reasonForAdmission: (value) => text(value, 'Reason for admission', { isRequired: true, max: 500 }),
+    diagnosis: (value) => text(value, 'Diagnosis', { max: 1000 }),
+  }, formValues)
+  const resetValidation = validation.reset
 
   const mapPriorityToNumber = (priority) => {
     if (typeof priority === 'number') return priority
@@ -29,8 +40,9 @@ export default function EditAdmissionModal({ isOpen, onClose, admission, onSucce
           admission.admittingDoctorId != null ? String(admission.admittingDoctorId) : '',
       })
       setError(null)
+      resetValidation()
     }
-  }, [isOpen, admission])
+  }, [isOpen, admission, resetValidation])
 
   if (!isOpen || !admission) return null
 
@@ -46,22 +58,9 @@ export default function EditAdmissionModal({ isOpen, onClose, admission, onSucce
     e.preventDefault()
     setError(null)
 
+    if (!validation.validateAll(formValues, e.currentTarget)) return
     const trimmedReason = formData.reasonForAdmission.trim()
-    if (!trimmedReason) {
-      setError('Reason for Admission is required.')
-      return
-    }
-
-    if (trimmedReason.length > 500) {
-      setError('Reason for Admission cannot exceed 500 characters.')
-      return
-    }
-
     const trimmedDiagnosis = formData.diagnosis ? formData.diagnosis.trim() : ''
-    if (trimmedDiagnosis.length > 1000) {
-      setError('Diagnosis cannot exceed 1000 characters.')
-      return
-    }
 
     let doctorIdToSend = null
     if (formData.admittingDoctorId && formData.admittingDoctorId.trim() !== '') {
@@ -89,19 +88,8 @@ export default function EditAdmissionModal({ isOpen, onClose, admission, onSucce
       onSuccess(`Admission ${admission.admissionNumber} updated successfully.`)
       onClose()
     } catch (err) {
-      let msg = 'Failed to update admission.'
-      if (err.response?.data) {
-        const data = err.response.data
-        if (typeof data.message === 'string') {
-          msg = data.message
-        } else if (data.errors && typeof data.errors === 'object') {
-          const errorList = Object.values(data.errors).flat()
-          msg = errorList.join(' ')
-        } else if (typeof data === 'string') {
-          msg = data
-        }
-      }
-      setError(msg)
+      const msg = validation.applyServerErrors(err, { conflicts: [{ match: /doctor/i, field: 'admittingDoctorId' }], fallback: 'Failed to update admission.' })
+      setError(msg || null)
     } finally {
       setSubmitting(false)
     }
@@ -193,7 +181,7 @@ export default function EditAdmissionModal({ isOpen, onClose, admission, onSucce
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+        <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {/* Priority */}
             <div>
@@ -202,6 +190,8 @@ export default function EditAdmissionModal({ isOpen, onClose, admission, onSucce
               </label>
               <select
                 id="edit-priority"
+                onBlur={() => validation.touch('priority', formValues)}
+                {...validation.fieldProps('priority')}
                 name="priority"
                 value={formData.priority}
                 onChange={handleChange}
@@ -215,6 +205,7 @@ export default function EditAdmissionModal({ isOpen, onClose, admission, onSucce
                 <option value={2}>Urgent</option>
                 <option value={3}>Emergency</option>
               </select>
+              <FieldError name="priority" message={validation.errorFor('priority')} />
             </div>
 
             {/* Admitting Doctor ID */}
@@ -224,6 +215,8 @@ export default function EditAdmissionModal({ isOpen, onClose, admission, onSucce
               </label>
               <input
                 id="edit-doctorId"
+                onBlur={() => validation.touch('admittingDoctorId', formValues)}
+                {...validation.fieldProps('admittingDoctorId')}
                 name="admittingDoctorId"
                 type="number"
                 min="1"
@@ -236,6 +229,7 @@ export default function EditAdmissionModal({ isOpen, onClose, admission, onSucce
                   borderColor: 'color-mix(in srgb, var(--color-secondary) 25%, var(--color-primary))',
                 }}
               />
+              <FieldError name="admittingDoctorId" message={validation.errorFor('admittingDoctorId')} />
               {admission.admittingDoctorName && (
                 <span className="text-[11px] opacity-60 block mt-0.5 truncate">
                   Current: {admission.admittingDoctorName} (ID: {admission.admittingDoctorId})
@@ -256,6 +250,8 @@ export default function EditAdmissionModal({ isOpen, onClose, admission, onSucce
             </div>
             <textarea
               id="edit-reason"
+                onBlur={() => validation.touch('reasonForAdmission', formValues)}
+                {...validation.fieldProps('reasonForAdmission')}
               name="reasonForAdmission"
               required
               maxLength={500}
@@ -268,6 +264,7 @@ export default function EditAdmissionModal({ isOpen, onClose, admission, onSucce
                 borderColor: 'color-mix(in srgb, var(--color-secondary) 25%, var(--color-primary))',
               }}
             />
+              <FieldError name="reasonForAdmission" message={validation.errorFor('reasonForAdmission')} />
           </div>
 
           {/* Diagnosis */}
@@ -282,6 +279,8 @@ export default function EditAdmissionModal({ isOpen, onClose, admission, onSucce
             </div>
             <textarea
               id="edit-diagnosis"
+                onBlur={() => validation.touch('diagnosis', formValues)}
+                {...validation.fieldProps('diagnosis')}
               name="diagnosis"
               maxLength={1000}
               rows={3}
@@ -293,6 +292,7 @@ export default function EditAdmissionModal({ isOpen, onClose, admission, onSucce
                 borderColor: 'color-mix(in srgb, var(--color-secondary) 25%, var(--color-primary))',
               }}
             />
+              <FieldError name="diagnosis" message={validation.errorFor('diagnosis')} />
           </div>
 
           {/* Actions */}

@@ -1,8 +1,10 @@
 import { useForm } from 'react-hook-form'
 import { addMedicalRecordDiagnosis } from '../../services/emrService'
+import { applyServerErrors, rules } from '../../utils/validators'
 
 export default function AddDiagnosisModal({ recordId, onClose, onSaved }) {
   const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm({
+    mode: 'onTouched',
     defaultValues: {
       code: '',
       description: '',
@@ -28,12 +30,11 @@ export default function AddDiagnosisModal({ recordId, onClose, onSaved }) {
       await addMedicalRecordDiagnosis(recordId, payload)
       onSaved()
     } catch (err) {
-      setError('root', {
-        message: err.response?.data?.message ||
-          (err.response?.status === 403
-            ? 'Unauthorized: You do not have permission to add diagnoses to this record.'
-            : 'Failed to add diagnosis. Please check fields.'),
-      })
+      if (err.response?.status === 403) {
+        setError('root', { message: err.response?.data?.message || 'Unauthorized: You do not have permission to add diagnoses to this record.' })
+      } else {
+        applyServerErrors(err, setError, { fields: ['code', 'description', 'type', 'status', 'severity', 'notes'], fallback: 'Failed to add diagnosis. Please check fields.' })
+      }
     }
   }
 
@@ -50,8 +51,11 @@ export default function AddDiagnosisModal({ recordId, onClose, onSaved }) {
               <input
                 id="code"
                 placeholder="e.g. I10, E11.9, J06.9"
-                {...register('code')}
+                maxLength={50}
+                aria-invalid={errors.code ? 'true' : undefined}
+                {...register('code', rules.text('Clinical code', { max: 50 }))}
               />
+              {errors.code && <p className="field-error">{errors.code.message}</p>}
             </div>
             <div>
               <label htmlFor="type">Diagnosis Type *</label>
@@ -74,7 +78,9 @@ export default function AddDiagnosisModal({ recordId, onClose, onSaved }) {
             <input
               id="desc"
               placeholder="e.g. Essential (primary) hypertension, Type 2 diabetes mellitus"
-              {...register('description', { required: 'Diagnosis description is required.' })}
+              maxLength={500}
+              aria-invalid={errors.description ? 'true' : undefined}
+              {...register('description', rules.text('Diagnosis description', { isRequired: true, max: 500 }))}
             />
             {errors.description && <p className="field-error">{errors.description.message}</p>}
           </div>
@@ -114,8 +120,11 @@ export default function AddDiagnosisModal({ recordId, onClose, onSaved }) {
             <input
               id="notes"
               placeholder="e.g. Onset 2 weeks ago, patient reports intermittent spikes"
-              {...register('notes')}
+              maxLength={2000}
+              aria-invalid={errors.notes ? 'true' : undefined}
+              {...register('notes', rules.text('Clinical notes', { max: 2000 }))}
             />
+            {errors.notes && <p className="field-error">{errors.notes.message}</p>}
           </div>
 
           <div className="modal-actions">

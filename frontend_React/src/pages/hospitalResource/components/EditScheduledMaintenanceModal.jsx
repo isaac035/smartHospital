@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react'
 import { updateScheduledMaintenance } from '../../../services/hospitalResourceService'
 import { MAINTENANCE_TYPES } from './ScheduleMaintenanceModal'
+import { useFormValidation } from '../../../hooks/useFormValidation'
+import FieldError from '../../../components/common/FieldError'
+import { required, text } from '../../../utils/validators'
 
 const TYPE_NAME_TO_INT = {
   RoutineInspection: 1,
@@ -30,10 +33,19 @@ export default function EditScheduledMaintenanceModal({
   const [scheduledEnd, setScheduledEnd] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
+  const formValues = { type, description, scheduledStart, scheduledEnd }
+  const validation = useFormValidation({
+    type: (value) => (value ? undefined : 'Please select a maintenance type.'),
+    description: (value) => text(value, 'Description', { isRequired: true, max: 500 }),
+    scheduledStart: (value) => required(value, 'Scheduled start date and time'),
+    scheduledEnd: (value, values) => (value && values.scheduledStart && new Date(value) <= new Date(values.scheduledStart) ? 'Scheduled end time must be after scheduled start time.' : undefined),
+  }, formValues)
+  const resetValidation = validation.reset
 
   useEffect(() => {
     if (isOpen && record) {
       setError(null)
+      resetValidation()
       const mappedType =
         typeof record.type === 'number'
           ? record.type
@@ -43,7 +55,7 @@ export default function EditScheduledMaintenanceModal({
       setScheduledStart(toDatetimeLocal(record.scheduledStart))
       setScheduledEnd(toDatetimeLocal(record.scheduledEnd))
     }
-  }, [isOpen, record])
+  }, [isOpen, record, resetValidation])
 
   if (!isOpen || !record) return null
 
@@ -51,20 +63,7 @@ export default function EditScheduledMaintenanceModal({
     e.preventDefault()
     setError(null)
 
-    if (!description.trim()) {
-      setError('Description is required.')
-      return
-    }
-
-    if (!scheduledStart) {
-      setError('Scheduled start date and time is required.')
-      return
-    }
-
-    if (scheduledEnd && new Date(scheduledEnd) <= new Date(scheduledStart)) {
-      setError('Scheduled end time must be after scheduled start time.')
-      return
-    }
+    if (!validation.validateAll(formValues, e.currentTarget)) return
 
     try {
       setSubmitting(true)
@@ -79,7 +78,7 @@ export default function EditScheduledMaintenanceModal({
       onSuccess(`Maintenance '${record.maintenanceCode}' updated successfully.`)
       onClose()
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to update scheduled maintenance.')
+      setError(validation.applyServerErrors(err, { conflicts: [{ match: /end time/i, field: 'scheduledEnd' }], fallback: 'Failed to update scheduled maintenance.' }) || null)
     } finally {
       setSubmitting(false)
     }
@@ -165,7 +164,7 @@ export default function EditScheduledMaintenanceModal({
         </div>
 
         {/* Edit Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} noValidate className="space-y-4">
           {/* Maintenance Type */}
           <div>
             <label htmlFor="edit-mnt-type" className="block text-xs font-semibold mb-1">
@@ -173,6 +172,9 @@ export default function EditScheduledMaintenanceModal({
             </label>
             <select
               id="edit-mnt-type"
+                name="type"
+                onBlur={() => validation.touch('type', formValues)}
+                {...validation.fieldProps('type')}
               value={type}
               onChange={(e) => setType(Number(e.target.value))}
               required
@@ -188,6 +190,7 @@ export default function EditScheduledMaintenanceModal({
                 </option>
               ))}
             </select>
+              <FieldError name="type" message={validation.errorFor('type')} />
           </div>
 
           {/* Scheduled Dates */}
@@ -198,6 +201,9 @@ export default function EditScheduledMaintenanceModal({
               </label>
               <input
                 id="edit-mnt-start"
+                name="scheduledStart"
+                onBlur={() => validation.touch('scheduledStart', formValues)}
+                {...validation.fieldProps('scheduledStart')}
                 type="datetime-local"
                 value={scheduledStart}
                 onChange={(e) => setScheduledStart(e.target.value)}
@@ -207,6 +213,7 @@ export default function EditScheduledMaintenanceModal({
                   borderColor: 'color-mix(in srgb, var(--color-secondary) 25%, var(--color-primary))',
                 }}
               />
+              <FieldError name="scheduledStart" message={validation.errorFor('scheduledStart')} />
             </div>
 
             <div>
@@ -215,6 +222,9 @@ export default function EditScheduledMaintenanceModal({
               </label>
               <input
                 id="edit-mnt-end"
+                name="scheduledEnd"
+                onBlur={() => validation.touch('scheduledEnd', formValues)}
+                {...validation.fieldProps('scheduledEnd')}
                 type="datetime-local"
                 value={scheduledEnd}
                 onChange={(e) => setScheduledEnd(e.target.value)}
@@ -223,6 +233,7 @@ export default function EditScheduledMaintenanceModal({
                   borderColor: 'color-mix(in srgb, var(--color-secondary) 25%, var(--color-primary))',
                 }}
               />
+              <FieldError name="scheduledEnd" message={validation.errorFor('scheduledEnd')} />
             </div>
           </div>
 
@@ -233,6 +244,9 @@ export default function EditScheduledMaintenanceModal({
             </label>
             <textarea
               id="edit-mnt-description"
+                name="description"
+                onBlur={() => validation.touch('description', formValues)}
+                {...validation.fieldProps('description')}
               rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -244,6 +258,7 @@ export default function EditScheduledMaintenanceModal({
                 borderColor: 'color-mix(in srgb, var(--color-secondary) 25%, var(--color-primary))',
               }}
             />
+              <FieldError name="description" message={validation.errorFor('description')} />
             <span className="text-[11px] opacity-50 block text-right">
               {description.length}/500
             </span>

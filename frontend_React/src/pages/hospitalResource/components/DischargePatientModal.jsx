@@ -1,17 +1,26 @@
 import { useState, useEffect } from 'react'
 import { dischargePatient } from '../../../services/hospitalResourceService'
+import { useFormValidation } from '../../../hooks/useFormValidation'
+import FieldError from '../../../components/common/FieldError'
+import { text } from '../../../utils/validators'
 
 export default function DischargePatientModal({ isOpen, onClose, admission, onSuccess }) {
   const [dischargeSummary, setDischargeSummary] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
+  const formValues = { dischargeSummary }
+  const validation = useFormValidation({
+    dischargeSummary: (value) => text(value, 'Discharge summary', { isRequired: true, max: 1000 }),
+  }, formValues)
+  const resetValidation = validation.reset
 
   useEffect(() => {
     if (isOpen && admission) {
       setDischargeSummary('')
       setError(null)
+      resetValidation()
     }
-  }, [isOpen, admission])
+  }, [isOpen, admission, resetValidation])
 
   if (!isOpen || !admission) return null
 
@@ -21,10 +30,7 @@ export default function DischargePatientModal({ isOpen, onClose, admission, onSu
     e.preventDefault()
     setError(null)
 
-    if (!dischargeSummary.trim()) {
-      setError('Discharge summary is required.')
-      return
-    }
+    if (!validation.validateAll(formValues, e.currentTarget)) return
 
     try {
       setSubmitting(true)
@@ -34,7 +40,7 @@ export default function DischargePatientModal({ isOpen, onClose, admission, onSu
       onSuccess(`${isReservation ? 'Reservation released' : 'Patient discharged'} successfully for admission ${admission.admissionNumber}.`)
       onClose()
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to discharge patient.')
+      setError(validation.applyServerErrors(err, { fallback: 'Failed to discharge patient.' }) || null)
     } finally {
       setSubmitting(false)
     }
@@ -89,13 +95,16 @@ export default function DischargePatientModal({ isOpen, onClose, admission, onSu
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+        <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-3">
           <div>
             <label htmlFor="discharge-summary" className="block text-xs font-semibold mb-1">
               {isReservation ? 'Release Reason' : 'Discharge Summary'} <span className="text-red-500">*</span>
             </label>
             <textarea
               id="discharge-summary"
+                name="dischargeSummary"
+                onBlur={() => validation.touch('dischargeSummary', formValues)}
+                {...validation.fieldProps('dischargeSummary')}
               required
               maxLength={1000}
               rows={4}
@@ -105,6 +114,7 @@ export default function DischargePatientModal({ isOpen, onClose, admission, onSu
               className="w-full px-3 py-2 text-sm border rounded-lg outline-none"
               style={{ borderColor: 'color-mix(in srgb, var(--color-secondary) 25%, var(--color-primary))' }}
             />
+              <FieldError name="dischargeSummary" message={validation.errorFor('dischargeSummary')} />
           </div>
 
           <div className="flex justify-end gap-2 mt-4 pt-3 border-t" style={{ borderColor: 'color-mix(in srgb, var(--color-secondary) 15%, var(--color-primary))' }}>

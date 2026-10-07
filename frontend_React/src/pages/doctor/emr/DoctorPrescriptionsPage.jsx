@@ -6,6 +6,13 @@ import { useAuth } from '../../../hooks/useAuth'
 import { getPatientPrescriptions, getPatientMedicalProfile } from '../../../services/emrService'
 import PrescriptionList from '../../../components/emr/PrescriptionList'
 import NewPrescriptionModal from '../../../components/emr/NewPrescriptionModal'
+import FieldError from '../../../components/common/FieldError'
+
+const patientIdMessage = (value) => {
+  const trimmed = String(value ?? '').trim()
+  if (!trimmed) return 'Patient ID is required.'
+  return /^[0-9]+$/.test(trimmed) && Number(trimmed) > 0 && Number(trimmed) <= 2147483647 ? '' : 'Patient ID must be a positive whole number.'
+}
 
 export default function DoctorPrescriptionsPage() {
   const { user } = useAuth()
@@ -16,6 +23,7 @@ export default function DoctorPrescriptionsPage() {
 
   const initialPatientId = searchParams.get('patientId') || ''
   const [inputPatientId, setInputPatientId] = useState(initialPatientId)
+  const [patientIdError, setPatientIdError] = useState('')
   const [activePatientId, setActivePatientId] = useState(initialPatientId)
 
   const [profile, setProfile] = useState(null)
@@ -91,6 +99,12 @@ export default function DoctorPrescriptionsPage() {
   const handleSearchSubmit = (e) => {
     e.preventDefault()
     const trimmed = inputPatientId.trim()
+    const message = patientIdMessage(trimmed)
+    setPatientIdError(message)
+    if (message) {
+      document.getElementById('searchPatientId')?.focus()
+      return
+    }
     if (trimmed) {
       setSearchParams({ patientId: trimmed })
       setActivePatientId(trimmed)
@@ -99,6 +113,7 @@ export default function DoctorPrescriptionsPage() {
 
   const handleClear = () => {
     setInputPatientId('')
+    setPatientIdError('')
     setActivePatientId('')
     setSearchParams({})
   }
@@ -118,7 +133,7 @@ export default function DoctorPrescriptionsPage() {
     >
       {/* Patient Lookup Card */}
       <div className="panel mb-6" style={{ padding: 20 }}>
-        <form onSubmit={handleSearchSubmit} className="flex flex-wrap items-center justify-between gap-4" style={{ margin: 0 }}>
+        <form onSubmit={handleSearchSubmit} noValidate className="flex flex-wrap items-center justify-between gap-4" style={{ margin: 0 }}>
           <div className="flex items-center gap-3 flex-1 min-w-[260px]">
             <label htmlFor="searchPatientId" className="font-bold text-sm whitespace-nowrap" style={{ color: 'var(--color-accent)' }}>
               Patient Lookup:
@@ -127,13 +142,18 @@ export default function DoctorPrescriptionsPage() {
               id="searchPatientId"
               type="number"
               placeholder="Enter Patient ID..."
+              min="1"
+              step="1"
               value={inputPatientId}
-              onChange={(e) => setInputPatientId(e.target.value)}
+              aria-invalid={patientIdError ? 'true' : undefined}
+              aria-describedby={patientIdError ? 'searchPatientId-error' : undefined}
+              onChange={(e) => { setInputPatientId(e.target.value); if (patientIdError) setPatientIdError(patientIdMessage(e.target.value)) }}
               style={{ maxWidth: 260 }}
             />
             <button type="submit" className="primary-button" style={{ marginTop: 0 }}>
               Lookup
             </button>
+            <FieldError name="searchPatientId" message={patientIdError} className="w-full" />
             {activePatientId && (
               <button type="button" className="secondary-button" style={{ marginTop: 0 }} onClick={handleClear}>
                 Clear

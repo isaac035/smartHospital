@@ -54,6 +54,7 @@ class _SearchDoctorsScreenState extends State<SearchDoctorsScreen> {
               label: 'Search doctors',
               hint: 'Search doctor by name...',
               controller: _controller,
+              maxLength: 100,
               onChanged: _search,
               prefixIcon: const Icon(Icons.search),
             ),

@@ -1,8 +1,10 @@
 import { useForm } from 'react-hook-form'
 import { createMedicalRecord } from '../../services/emrService'
+import { applyServerErrors, rules } from '../../utils/validators'
 
 export default function NewMedicalRecordModal({ patientId, appointmentId = null, onClose, onSaved }) {
   const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm({
+    mode: 'onTouched',
     defaultValues: {
       patientId: patientId ? Number(patientId) : '',
       appointmentId: appointmentId ? Number(appointmentId) : '',
@@ -31,9 +33,11 @@ export default function NewMedicalRecordModal({ patientId, appointmentId = null,
       await createMedicalRecord(payload)
       onSaved()
     } catch (err) {
-      setError('root', {
-        message: err.response?.data?.message || (err.response?.status === 403 ? 'Unauthorized: You do not have permission to create this record.' : 'Failed to create medical record. Please verify all fields.'),
-      })
+      if (err.response?.status === 403) {
+        setError('root', { message: err.response?.data?.message || 'Unauthorized: You do not have permission to create this record.' })
+      } else {
+        applyServerErrors(err, setError, { fields: ['patientId', 'appointmentId', 'chiefComplaint', 'symptoms', 'examinationNotes', 'diagnosis', 'treatmentPlan', 'followUpDate'], conflicts: [{ match: /follow-up/i, field: 'followUpDate' }, { match: /appointment/i, field: 'appointmentId' }], fallback: 'Failed to create medical record. Please verify all fields.' })
+      }
     }
   }
 
@@ -51,7 +55,7 @@ export default function NewMedicalRecordModal({ patientId, appointmentId = null,
                 id="patientId"
                 type="number"
                 readOnly={!!patientId}
-                {...register('patientId', { required: 'Patient ID is required.' })}
+                {...register('patientId', rules.number('Patient ID', { isRequired: true, min: 1, max: 2147483647, integer: true }))}
               />
               {errors.patientId && <p className="field-error">{errors.patientId.message}</p>}
             </div>
@@ -60,8 +64,10 @@ export default function NewMedicalRecordModal({ patientId, appointmentId = null,
               <input
                 id="appointmentId"
                 type="number"
-                {...register('appointmentId')}
+                aria-invalid={errors.appointmentId ? 'true' : undefined}
+                {...register('appointmentId', rules.number('Appointment ID', { min: 1, max: 2147483647, integer: true }))}
               />
+              {errors.appointmentId && <p className="field-error">{errors.appointmentId.message}</p>}
             </div>
           </div>
 
@@ -70,7 +76,9 @@ export default function NewMedicalRecordModal({ patientId, appointmentId = null,
             <input
               id="chiefComplaint"
               placeholder="e.g. Severe headache, persistent fever for 3 days"
-              {...register('chiefComplaint', { required: 'Chief complaint is required.' })}
+              maxLength={500}
+              aria-invalid={errors.chiefComplaint ? 'true' : undefined}
+              {...register('chiefComplaint', rules.text('Chief complaint', { isRequired: true, max: 500 }))}
             />
             {errors.chiefComplaint && <p className="field-error">{errors.chiefComplaint.message}</p>}
           </div>
@@ -80,8 +88,11 @@ export default function NewMedicalRecordModal({ patientId, appointmentId = null,
             <input
               id="symptoms"
               placeholder="e.g. Nausea, photophobia, body aches"
-              {...register('symptoms')}
+              maxLength={1000}
+              aria-invalid={errors.symptoms ? 'true' : undefined}
+              {...register('symptoms', rules.text('Symptoms', { max: 1000 }))}
             />
+            {errors.symptoms && <p className="field-error">{errors.symptoms.message}</p>}
           </div>
 
           <div>
@@ -89,8 +100,11 @@ export default function NewMedicalRecordModal({ patientId, appointmentId = null,
             <input
               id="examinationNotes"
               placeholder="e.g. BP 120/80, chest clear, no focal neurological deficits"
-              {...register('examinationNotes')}
+              maxLength={2000}
+              aria-invalid={errors.examinationNotes ? 'true' : undefined}
+              {...register('examinationNotes', rules.text('Examination notes', { max: 2000 }))}
             />
+            {errors.examinationNotes && <p className="field-error">{errors.examinationNotes.message}</p>}
           </div>
 
           <div>
@@ -98,7 +112,9 @@ export default function NewMedicalRecordModal({ patientId, appointmentId = null,
             <input
               id="diagnosis"
               placeholder="e.g. Acute Migraine / Tension Headache"
-              {...register('diagnosis', { required: 'Primary diagnosis is required.' })}
+              maxLength={500}
+              aria-invalid={errors.diagnosis ? 'true' : undefined}
+              {...register('diagnosis', rules.text('Diagnosis', { isRequired: true, max: 500 }))}
             />
             {errors.diagnosis && <p className="field-error">{errors.diagnosis.message}</p>}
           </div>
@@ -108,8 +124,11 @@ export default function NewMedicalRecordModal({ patientId, appointmentId = null,
             <input
               id="treatmentPlan"
               placeholder="e.g. Analgesics, hydration, rest, return if symptoms worsen"
-              {...register('treatmentPlan')}
+              maxLength={2000}
+              aria-invalid={errors.treatmentPlan ? 'true' : undefined}
+              {...register('treatmentPlan', rules.text('Treatment plan', { max: 2000 }))}
             />
+            {errors.treatmentPlan && <p className="field-error">{errors.treatmentPlan.message}</p>}
           </div>
 
           <div>
@@ -117,8 +136,10 @@ export default function NewMedicalRecordModal({ patientId, appointmentId = null,
             <input
               id="followUpDate"
               type="date"
-              {...register('followUpDate')}
+              aria-invalid={errors.followUpDate ? 'true' : undefined}
+              {...register('followUpDate', rules.futureDate('Follow-up date', 5))}
             />
+            {errors.followUpDate && <p className="field-error">{errors.followUpDate.message}</p>}
           </div>
 
           <div className="modal-actions">
