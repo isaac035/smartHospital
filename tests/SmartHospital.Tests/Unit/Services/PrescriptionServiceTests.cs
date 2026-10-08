@@ -872,4 +872,74 @@ public class PrescriptionServiceTests
         Assert.Single(result.Items);
         Assert.Equal("Oral", result.Items[0].Route);
     }
+
+    /// <summary>
+    /// BUG-002 regression test.
+    /// CreateAsync does not verify that the doctor creating the prescription is
+    /// the same doctor who authored the linked MedicalRecord.  Any active doctor
+    /// can attach a prescription to another doctor's medical record, bypassing the
+    /// ownership boundary.
+    /// Fix: add a check that medicalRecord.DoctorId == doctorId and throw
+    /// InvalidOperationException("Prescription can only be created by the doctor who authored the medical record.")
+    /// when the doctor does not own the record.
+    /// </summary>
+    [Fact]
+    public async Task CreateAsync_WhenDoctorDoesNotOwnMedicalRecord_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        using var context = CreateInMemoryDbContext();
+        SeedDefaultUsers(context, 10, 20); // patient=10, doctor=20
+
+        // A second active doctor who did NOT create the medical record
+        var otherDoctor = new User
+        {
+            Id = 21,
+            FirstName = "Other",
+            LastName = "Doctor",
+            Email = "otherdoc@example.com",
+            PasswordHash = "hash",
+            Role = UserRole.Doctor,
+            Status = UserStatus.Active
+        };
+        context.Users.Add(otherDoctor);
+
+        // Medical record created by doctor 20 for patient 10
+        var record = new MedicalRecord
+        {
+            Id = 303,
+            RecordNumber = "REC-303",
+            PatientId = 10,
+            DoctorId = 20, // owned by doctor 20
+            ChiefComplaint = "Hypertension check",
+            Diagnosis = "Hypertension Stage 1",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        context.MedicalRecords.Add(record);
+        await context.SaveChangesAsync();
+
+        var service = new PrescriptionService(context);
+
+        // Doctor 21 attempts to create a prescription linked to Doctor 20's record
+        var request = new CreatePrescriptionRequest
+        {
+            PatientId = 10,
+            MedicalRecordId = 303, // belongs to doctor 20, not doctor 21
+            Items = new List<CreatePrescriptionItemRequest>
+            {
+                new()
+                {
+                    MedicineName = "Amlodipine",
+                    Dosage = "5mg",
+                    Frequency = "Once daily",
+                    DurationDays = 30
+                }
+            }
+        };
+
+        // Act & Assert: doctor 21 should NOT be allowed to link a prescription to doctor 20's record
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(21, request));
+        Assert.Equal("Prescription can only be created by the doctor who authored the medical record.", ex.Message);
+    }
 }
+

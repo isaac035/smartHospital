@@ -466,4 +466,70 @@ public class MedicalRecordSearchFilterTests
 
         await Assert.ThrowsAsync<ArgumentNullException>(() => service.SearchAsync(null!));
     }
+
+    /// <summary>
+    /// BUG-001 regression test.
+    /// EndDate filter used &lt;= with a date-only value (midnight), so any record
+    /// whose VisitDate falls on the EndDate calendar day but has a non-zero time
+    /// component (e.g. 16:45) is incorrectly excluded.
+    /// Fix: treat EndDate as inclusive calendar-day upper bound by comparing
+    /// against the start of the NEXT day (&lt; EndDate.Date.AddDays(1)).
+    /// </summary>
+    [Fact]
+    public async Task SearchAsync_FilterByEndDate_IncludesRecordsOnEndDateCalendarDay()
+    {
+        using var context = CreateInMemoryDbContext();
+
+        var patient = new User
+        {
+            Id = 100,
+            FirstName = "Bug",
+            LastName = "Patient",
+            Email = "bugpatient@example.com",
+            PasswordHash = "hash",
+            Role = UserRole.Patient,
+            Status = UserStatus.Active
+        };
+        var doctor = new User
+        {
+            Id = 200,
+            FirstName = "Bug",
+            LastName = "Doctor",
+            Email = "bugdoctor@example.com",
+            PasswordHash = "hash",
+            Role = UserRole.Doctor,
+            Status = UserStatus.Active
+        };
+        context.Users.AddRange(patient, doctor);
+
+        // Record whose VisitDate is 2026-04-25 AT 16:45 (non-midnight on the EndDate)
+        var recordOnEndDate = new MedicalRecord
+        {
+            Id = 900,
+            RecordNumber = "REC-ENDDATE-BUG",
+            PatientId = 100,
+            DoctorId = 200,
+            VisitDate = new DateTime(2026, 4, 25, 16, 45, 0, DateTimeKind.Utc),
+            ChiefComplaint = "End-date boundary check",
+            Diagnosis = "Test diagnosis",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        context.MedicalRecords.Add(recordOnEndDate);
+        await context.SaveChangesAsync();
+
+        var service = new MedicalRecordService(context);
+
+        // EndDate is the calendar day of the visit (midnight = start of day).
+        // The record at 16:45 on that day MUST be included.
+        var filter = new MedicalRecordQueryFilter
+        {
+            EndDate = new DateTime(2026, 4, 25, 0, 0, 0, DateTimeKind.Utc)
+        };
+        var result = await service.SearchAsync(filter);
+
+        Assert.Equal(1, result.TotalCount);
+        Assert.Single(result.Items);
+        Assert.Equal("REC-ENDDATE-BUG", result.Items[0].RecordNumber);
+    }
 }

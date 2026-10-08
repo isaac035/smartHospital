@@ -181,6 +181,11 @@ public class PrescriptionService : IPrescriptionService
             {
                 throw new InvalidOperationException("Medical record does not belong to the specified patient.");
             }
+
+            if (medicalRecord.DoctorId != doctorId)
+            {
+                throw new InvalidOperationException("Prescription can only be created by the doctor who authored the medical record.");
+            }
         }
 
         foreach (var item in request.Items)

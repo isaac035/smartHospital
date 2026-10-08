@@ -1614,7 +1614,10 @@ public class MedicalRecordService : IMedicalRecordService
 
         if (filter.EndDate.HasValue)
         {
-            query = query.Where(r => r.VisitDate <= filter.EndDate.Value);
+            // Use exclusive upper bound (start of next calendar day) so that records
+            // whose VisitDate falls on the EndDate calendar day but with a non-midnight
+            // time component are correctly included.
+            query = query.Where(r => r.VisitDate < filter.EndDate.Value.Date.AddDays(1));
         }
 
         // 7. General Search Term
