@@ -34,12 +34,17 @@ public class Agent4MedicalReportService : IAgent4MedicalReportService
         }
         var patient = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == patientId && u.Role == UserRole.Patient, ct)
             ?? throw new KeyNotFoundException("Patient was not found.");
+        var profile = await _db.PatientMedicalProfiles.AsNoTracking().FirstOrDefaultAsync(p => p.PatientId == patientId, ct);
 
         var appointments = await _db.Appointments.AsNoTracking().Include(a => a.Doctor).Include(a => a.Department).Include(a => a.Agent1TriageResult)
             .Where(a => a.PatientId == patientId && (!appointmentId.HasValue || a.Id == appointmentId.Value))
             .OrderByDescending(a => a.ScheduledStart).ToListAsync(ct);
         if (appointmentId.HasValue && appointments.Count == 0) throw new KeyNotFoundException("Appointment was not found for this patient.");
         var appointment = appointments.FirstOrDefault();
+        var doctorProfile = appointment == null ? null : await _db.Doctors.AsNoTracking()
+            .Where(d => d.UserId == appointment.DoctorId)
+            .Select(d => new { d.Specialization, Department = d.Department != null ? d.Department.Name : null })
+            .FirstOrDefaultAsync(ct);
 
         var allMedicalRecords = await _db.MedicalRecords.AsNoTracking().Include(r => r.Doctor)
             .Where(r => r.PatientId == patientId).OrderByDescending(r => r.VisitDate).ToListAsync(ct);
@@ -142,6 +147,7 @@ public class Agent4MedicalReportService : IAgent4MedicalReportService
         var sectionsPresent = new List<string> { "Patient Information" };
         if (appointment != null) sectionsPresent.Add("Appointment Summary");
         if (encounterRecords.Any(r => !string.IsNullOrWhiteSpace(r.Symptoms) || !string.IsNullOrWhiteSpace(r.ChiefComplaint))) sectionsPresent.Add("Presenting Symptoms");
+        if (encounterRecords.Count > 0) sectionsPresent.Add("Current Encounter");
         if (checkup != null) sectionsPresent.Add("Medical Checkup");
         if (historicalRecords.Count > 0) sectionsPresent.Add("Previous Medical History");
         if (vitals.Count > 0) sectionsPresent.Add("Vital Signs");
@@ -154,7 +160,17 @@ public class Agent4MedicalReportService : IAgent4MedicalReportService
 
         var recordedData = new
         {
-            patientInformation = new { patientId = patient.Id, name = $"{patient.FirstName} {patient.LastName}".Trim() },
+            patientInformation = new
+            {
+                patientId = patient.Id,
+                name = $"{patient.FirstName} {patient.LastName}".Trim(),
+                dateOfBirth = profile?.DateOfBirth,
+                age = AgeInYears(profile?.DateOfBirth, DateTime.UtcNow),
+                gender = BlankToNull(profile?.Gender),
+                bloodGroup = profile == null || profile.BloodGroup == BloodGroup.Unknown ? null : profile.BloodGroup.ToString(),
+                allergies = BlankToNull(profile?.Allergies),
+                chronicConditions = BlankToNull(profile?.ChronicDiseases)
+            },
             appointmentSummary = appointment == null ? null : new
             {
                 appointmentId = appointment.Id,
@@ -162,7 +178,10 @@ public class Agent4MedicalReportService : IAgent4MedicalReportService
                 doctorId = appointment.DoctorId,
                 doctor = appointment.Doctor == null ? null : $"{appointment.Doctor.FirstName} {appointment.Doctor.LastName}".Trim(),
                 department = appointment.Department?.Name,
+                doctorSpecialization = BlankToNull(doctorProfile?.Specialization),
+                doctorDepartment = doctorProfile?.Department,
                 date = appointment.ScheduledStart,
+                durationMinutes = appointment.EstimatedDurationMinutes,
                 type = appointment.AppointmentType.ToString(),
                 status = appointment.Status.ToString(),
                 priority = (appointment.RequestedPriority ?? appointment.Priority).ToString(),
@@ -174,6 +193,9 @@ public class Agent4MedicalReportService : IAgent4MedicalReportService
                 : encounterRecords.Count == 0
                     ? new { status = "No symptoms recorded for this appointment", records = Array.Empty<object>() }
                     : new { status = "Recorded", records = encounterRecords.Select(r => new { source = "MedicalRecord", sourceId = r.Id, visitDate = r.VisitDate, chiefComplaint = r.ChiefComplaint, symptoms = r.Symptoms }) },
+            currentEncounter = encounterRecords.Count == 0
+                ? (object)new { status = "No consultation notes recorded for this appointment", records = Array.Empty<object>() }
+                : new { status = "Recorded", records = encounterRecords.Select(r => new { sourceId = r.Id, recordNumber = r.RecordNumber, visitDate = r.VisitDate, doctor = r.Doctor == null ? null : $"{r.Doctor.FirstName} {r.Doctor.LastName}".Trim(), chiefComplaint = r.ChiefComplaint, symptoms = r.Symptoms, examinationNotes = r.ExaminationNotes, diagnosis = r.Diagnosis, treatmentPlan = r.TreatmentPlan, followUpDate = r.FollowUpDate }) },
             clinicalTriageSummary = new
             {
                 status = appointment?.Agent1TriageResult == null ? "No linked Agent 1 result is available for this appointment" : "Persisted Agent 1 result",
@@ -252,7 +274,10 @@ public class Agent4MedicalReportService : IAgent4MedicalReportService
             },
             aiSummary = new { text = reasoning.AiSummary, mode = reasoning.Mode, label = reasoning.Mode == "gemini" ? "AI Summary" : "Non-AI fallback summary" },
             aiRecommendations = new { label = "General wellness and priority-based follow-up guidance", advisoryOnly = true, items = SafeRecommendations(appointment) },
-            reportMetadata = new { reportId, versionNumber = version, generatedAt = reportCreatedAt, sourceAppointmentId = appointment?.Id }
+            recommendations = BuildRecommendations(reasoning.Recommendations),
+            // Contact details are stored with the report for display but never sent to Agent 4.
+            patientContact = new { phone = BlankToNull(patient.PhoneNumber), email = patient.Email.EndsWith(UserService.WalkInEmailDomain, StringComparison.OrdinalIgnoreCase) ? null : BlankToNull(patient.Email) },
+            reportMetadata = new { reportId, versionNumber = version, generatedAt = reportCreatedAt, sourceAppointmentId = appointment?.Id, formatVersion = 2 }
         };
         var json = JsonSerializer.Serialize(content, JsonOptions);
         // The appointment was loaded AsNoTracking above. Do not put that detached graph
@@ -298,6 +323,76 @@ public class Agent4MedicalReportService : IAgent4MedicalReportService
             Priority = appointment == null ? null : (appointment.RequestedPriority ?? appointment.Priority).ToString(),
             Content = doc.RootElement.Clone()
         };
+    }
+
+    private const int MaxRecommendationItems = 5;
+    private const int MaxRecommendationLength = 200;
+    public const string RecommendationsUnavailableMessage = "Recommendations are not available for this report.";
+
+    private static string? BlankToNull(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static int? AgeInYears(DateTime? dateOfBirth, DateTime today)
+    {
+        if (dateOfBirth == null) return null;
+        var age = today.Year - dateOfBirth.Value.Year;
+        if (dateOfBirth.Value.Date > today.Date.AddYears(-age)) age--;
+        return age is >= 0 and < 150 ? age : null;
+    }
+
+    private static string? CleanText(string? value, int max)
+    {
+        var text = string.Join(' ', (value ?? string.Empty).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        return text.Length == 0 || text.Length > max || text.IndexOfAny(new[] { '<', '>' }) >= 0 ? null : text;
+    }
+
+    private static string? TextOf(JsonElement parent, string name, int max) =>
+        parent.ValueKind == JsonValueKind.Object && parent.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String
+            ? CleanText(value.GetString(), max)
+            : null;
+
+    private static string[] ListOf(JsonElement parent, string name)
+    {
+        if (parent.ValueKind != JsonValueKind.Object || !parent.TryGetProperty(name, out var value) || value.ValueKind != JsonValueKind.Array)
+            return Array.Empty<string>();
+        return value.EnumerateArray()
+            .Where(item => item.ValueKind == JsonValueKind.String)
+            .Select(item => CleanText(item.GetString(), MaxRecommendationLength))
+            .OfType<string>()
+            .Distinct()
+            .Take(MaxRecommendationItems)
+            .ToArray();
+    }
+
+    private static JsonElement ChildOf(JsonElement parent, string name) =>
+        parent.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.Object ? value : default;
+
+    /// <summary>
+    /// Re-validates Agent 4's optional recommendations before they are stored: only the known fields,
+    /// plain strings, capped counts and lengths. Anything unusable becomes the "not available" marker.
+    /// </summary>
+    public static object BuildRecommendations(JsonElement? raw)
+    {
+        var unavailable = new { available = false, message = RecommendationsUnavailableMessage };
+        if (raw is not { ValueKind: JsonValueKind.Object } root) return unavailable;
+
+        var diet = ChildOf(root, "diet");
+        var exercise = ChildOf(root, "exercise");
+        var followUp = ChildOf(root, "followUp");
+        var result = new
+        {
+            available = true,
+            advisoryOnly = true,
+            basis = TextOf(root, "basis", 40) == "condition_specific" ? "condition_specific" : "general",
+            diet = new { prefer = ListOf(diet, "prefer"), avoid = ListOf(diet, "avoid") },
+            exercise = new { suitable = ListOf(exercise, "suitable"), avoid = ListOf(exercise, "avoid") },
+            lifestyle = ListOf(root, "lifestyle"),
+            warningSigns = ListOf(root, "warningSigns"),
+            followUp = new { timeframe = TextOf(followUp, "timeframe", 80), monitoring = ListOf(followUp, "monitoring") },
+            note = TextOf(root, "note", 300)
+        };
+        var itemCount = result.diet.prefer.Length + result.diet.avoid.Length + result.exercise.suitable.Length
+            + result.exercise.avoid.Length + result.lifestyle.Length + result.warningSigns.Length + result.followUp.monitoring.Length;
+        return itemCount > 0 || result.followUp.timeframe != null ? result : unavailable;
     }
 
     private static Agent4ReasonResponse FallbackReasoning(Appointment? appointment, List<string> sections)

@@ -66,6 +66,8 @@ public class UserService : IUserService
             .ToListAsync();
     }
 
+    public const string WalkInEmailDomain = "@walkin.invalid";
+
     // Patient record for a typed name (no login): placeholder unique email, unknown random password, no phone.
     public async Task<PatientSearchResult> CreateWalkInPatientAsync(CreateWalkInPatientRequest request)
     {
@@ -75,7 +77,7 @@ public class UserService : IUserService
         {
             FirstName = parts[0],
             LastName = parts.Length > 1 ? parts[1] : string.Empty,
-            Email = $"walkin-{Guid.NewGuid():N}@walkin.invalid",
+            Email = $"walkin-{Guid.NewGuid():N}{WalkInEmailDomain}",
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32))),
             PhoneNumber = string.Empty,
             Role = UserRole.Patient,

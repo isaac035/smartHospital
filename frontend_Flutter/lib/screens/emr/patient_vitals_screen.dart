@@ -97,13 +97,13 @@ class _PatientVitalsScreenState extends State<PatientVitalsScreen> {
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
-            color: AppTheme.secondaryColor,
+            color: AppTheme.textPrimary,
           ),
         ),
         const SizedBox(height: 4),
         Text(
           'Recorded on ${DateFormat('MMMM dd, yyyy • hh:mm a').format(latest.recordedAt)}',
-          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+          style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
         ),
         const SizedBox(height: 12),
 
@@ -120,12 +120,12 @@ class _PatientVitalsScreenState extends State<PatientVitalsScreen> {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: AppTheme.secondaryColor,
+                color: AppTheme.textPrimary,
               ),
             ),
             Text(
               '${emr.vitals.length} records',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
             ),
           ],
         ),
@@ -150,7 +150,7 @@ class _PatientVitalsScreenState extends State<PatientVitalsScreen> {
                     : '--',
                 unit: 'mmHg',
                 icon: Icons.speed_rounded,
-                color: Colors.red.shade600,
+                color: AppTheme.errorColor,
                 statusTag: _getBpStatus(latest.systolicBloodPressure, latest.diastolicBloodPressure),
               ),
             ),
@@ -161,7 +161,7 @@ class _PatientVitalsScreenState extends State<PatientVitalsScreen> {
                 value: latest.heartRateBpm?.toString() ?? '--',
                 unit: 'bpm',
                 icon: Icons.favorite_rounded,
-                color: Colors.pink.shade600,
+                color: AppTheme.errorColor,
                 statusTag: _getHrStatus(latest.heartRateBpm),
               ),
             ),
@@ -176,7 +176,7 @@ class _PatientVitalsScreenState extends State<PatientVitalsScreen> {
                 value: latest.temperatureCelsius?.toStringAsFixed(1) ?? '--',
                 unit: '°C',
                 icon: Icons.thermostat_rounded,
-                color: Colors.orange.shade700,
+                color: AppTheme.warningColor,
                 statusTag: _getTempStatus(latest.temperatureCelsius),
               ),
             ),
@@ -187,7 +187,7 @@ class _PatientVitalsScreenState extends State<PatientVitalsScreen> {
                 value: latest.oxygenSaturationSpO2?.toStringAsFixed(0) ?? '--',
                 unit: '% SpO2',
                 icon: Icons.air_rounded,
-                color: Colors.teal.shade700,
+                color: AppTheme.accentColor,
                 statusTag: _getSpO2Status(latest.oxygenSaturationSpO2),
               ),
             ),
@@ -202,7 +202,7 @@ class _PatientVitalsScreenState extends State<PatientVitalsScreen> {
                 value: latest.bmi?.toStringAsFixed(1) ?? '--',
                 unit: 'kg/m²',
                 icon: Icons.monitor_weight_outlined,
-                color: Colors.indigo.shade600,
+                color: AppTheme.secondaryColor,
                 statusTag: _getBmiStatus(latest.bmi),
               ),
             ),
@@ -213,7 +213,7 @@ class _PatientVitalsScreenState extends State<PatientVitalsScreen> {
                 value: latest.respiratoryRateBpm?.toString() ?? '--',
                 unit: 'breaths/min',
                 icon: Icons.waves_rounded,
-                color: Colors.blue.shade700,
+                color: AppTheme.primaryColor,
               ),
             ),
           ],
@@ -233,9 +233,9 @@ class _PatientVitalsScreenState extends State<PatientVitalsScreen> {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.neutralContainer,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppTheme.borderColor),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.02),
@@ -287,7 +287,7 @@ class _PatientVitalsScreenState extends State<PatientVitalsScreen> {
                 style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
-                  color: AppTheme.secondaryColor,
+                  color: AppTheme.textPrimary,
                 ),
               ),
               const SizedBox(width: 4),
@@ -295,7 +295,7 @@ class _PatientVitalsScreenState extends State<PatientVitalsScreen> {
                 unit,
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.grey.shade600,
+                  color: AppTheme.textSecondary,
                 ),
               ),
             ],
@@ -306,7 +306,7 @@ class _PatientVitalsScreenState extends State<PatientVitalsScreen> {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
-              color: Colors.grey.shade700,
+              color: AppTheme.textSecondary,
             ),
           ),
         ],
@@ -319,7 +319,7 @@ class _PatientVitalsScreenState extends State<PatientVitalsScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200),
+        side: BorderSide(color: AppTheme.borderColor),
       ),
       elevation: 1,
       child: Padding(
@@ -332,7 +332,7 @@ class _PatientVitalsScreenState extends State<PatientVitalsScreen> {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.access_time, size: 14, color: Colors.grey.shade600),
+                    Icon(Icons.access_time, size: 14, color: AppTheme.textSecondary),
                     const SizedBox(width: 6),
                     Text(
                       DateFormat('MMM dd, yyyy • hh:mm a')
@@ -348,7 +348,7 @@ class _PatientVitalsScreenState extends State<PatientVitalsScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: Colors.indigo.shade50,
+                      color: AppTheme.secondaryColor.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
@@ -356,7 +356,7 @@ class _PatientVitalsScreenState extends State<PatientVitalsScreen> {
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: Colors.indigo.shade800,
+                        color: AppTheme.textPrimary,
                       ),
                     ),
                   ),
@@ -373,42 +373,42 @@ class _PatientVitalsScreenState extends State<PatientVitalsScreen> {
                     'BP',
                     '${vital.systolicBloodPressure}/${vital.diastolicBloodPressure} mmHg',
                     Icons.speed,
-                    Colors.red.shade700,
+                    AppTheme.errorColor,
                   ),
                 if (vital.heartRateBpm != null)
                   _buildMetricChip(
                     'Pulse',
                     '${vital.heartRateBpm} bpm',
                     Icons.favorite,
-                    Colors.pink.shade700,
+                    AppTheme.errorColor,
                   ),
                 if (vital.temperatureCelsius != null)
                   _buildMetricChip(
                     'Temp',
                     '${vital.temperatureCelsius!.toStringAsFixed(1)} °C',
                     Icons.thermostat,
-                    Colors.orange.shade800,
+                    AppTheme.warningColor,
                   ),
                 if (vital.oxygenSaturationSpO2 != null)
                   _buildMetricChip(
                     'SpO2',
                     '${vital.oxygenSaturationSpO2!.toStringAsFixed(0)}%',
                     Icons.air,
-                    Colors.teal.shade700,
+                    AppTheme.accentColor,
                   ),
                 if (vital.weightKg != null)
                   _buildMetricChip(
                     'Weight',
                     '${vital.weightKg!.toStringAsFixed(1)} kg',
                     Icons.scale,
-                    Colors.blueGrey.shade700,
+                    AppTheme.textSecondary,
                   ),
                 if (vital.heightCm != null)
                   _buildMetricChip(
                     'Height',
                     '${vital.heightCm!.toStringAsFixed(0)} cm',
                     Icons.height,
-                    Colors.blueGrey.shade700,
+                    AppTheme.textSecondary,
                   ),
               ],
             ),
@@ -418,15 +418,15 @@ class _PatientVitalsScreenState extends State<PatientVitalsScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
+                  color: AppTheme.surfaceColor,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey.shade200),
+                  border: Border.all(color: AppTheme.borderColor),
                 ),
                 child: Text(
                   'Notes: ${vital.notes}',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey.shade800,
+                    color: AppTheme.textPrimary,
                     fontStyle: FontStyle.italic,
                   ),
                 ),
@@ -465,7 +465,7 @@ class _PatientVitalsScreenState extends State<PatientVitalsScreen> {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: Colors.grey.shade900,
+              color: AppTheme.textPrimary,
             ),
           ),
         ],
@@ -514,19 +514,19 @@ class _PatientVitalsScreenState extends State<PatientVitalsScreen> {
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
       case 'normal':
-        return Colors.green.shade700;
+        return AppTheme.successColor;
       case 'elevated':
       case 'stage 1':
       case 'low':
       case 'overweight':
-        return Colors.orange.shade800;
+        return AppTheme.warningColor;
       case 'high':
       case 'fever':
       case 'critical':
       case 'obese':
-        return Colors.red.shade700;
+        return AppTheme.errorColor;
       default:
-        return Colors.grey.shade700;
+        return AppTheme.textSecondary;
     }
   }
 }

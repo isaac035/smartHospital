@@ -39,4 +39,6 @@ public class Agent4ReasonResponse
     public string AiSummary { get; set; } = string.Empty;
     public List<string> AiRecommendations { get; set; } = new();
     public string Mode { get; set; } = "non_ai_fallback";
+    /// <summary>Optional structured lifestyle guidance (absent from older Agent 4 versions or when unavailable).</summary>
+    public JsonElement? Recommendations { get; set; }
 }

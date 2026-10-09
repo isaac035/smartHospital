@@ -82,7 +82,7 @@ class _PatientLabReportsScreenState extends State<PatientLabReportsScreen> {
             // Filter Bar
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              color: Colors.white,
+              color: AppTheme.surfaceColor,
               child: Row(
                 children: [
                   _buildFilterChip('All'),
@@ -118,14 +118,14 @@ class _PatientLabReportsScreenState extends State<PatientLabReportsScreen> {
         }
       },
       selectedColor: AppTheme.primaryColor,
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: AppTheme.surfaceColor,
       labelStyle: TextStyle(
-        color: isSelected ? Colors.white : Colors.grey.shade800,
+        color: isSelected ? Colors.white : AppTheme.textPrimary,
         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         fontSize: 13,
       ),
       side: BorderSide(
-        color: isSelected ? AppTheme.primaryColor : Colors.grey.shade300,
+        color: isSelected ? AppTheme.primaryColor : AppTheme.borderColor,
       ),
     );
   }
@@ -176,7 +176,7 @@ class _PatientLabReportsScreenState extends State<PatientLabReportsScreen> {
       elevation: 2,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
-        side: BorderSide(color: Colors.grey.shade200),
+        side: BorderSide(color: AppTheme.borderColor),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -189,14 +189,14 @@ class _PatientLabReportsScreenState extends State<PatientLabReportsScreen> {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.biotech, size: 16, color: Colors.teal.shade700),
+                    Icon(Icons.biotech, size: 16, color: AppTheme.accentColor),
                     const SizedBox(width: 6),
                     Text(
                       order.orderNumber,
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
-                        color: Colors.teal.shade900,
+                        color: AppTheme.accentColor,
                       ),
                     ),
                   ],
@@ -210,16 +210,16 @@ class _PatientLabReportsScreenState extends State<PatientLabReportsScreen> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: Colors.red.shade50,
+                          color: AppTheme.errorColor.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: Colors.red.shade200),
+                          border: Border.all(color: AppTheme.errorColor.withValues(alpha: 0.4)),
                         ),
                         child: Text(
                           order.priority.toUpperCase(),
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
-                            color: Colors.red.shade700,
+                            color: AppTheme.errorColor,
                           ),
                         ),
                       ),
@@ -236,7 +236,7 @@ class _PatientLabReportsScreenState extends State<PatientLabReportsScreen> {
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: AppTheme.secondaryColor,
+                color: AppTheme.textPrimary,
               ),
             ),
             const SizedBox(height: 4),
@@ -247,7 +247,7 @@ class _PatientLabReportsScreenState extends State<PatientLabReportsScreen> {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: Colors.teal.shade50,
+                      color: AppTheme.accentColor.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
@@ -255,7 +255,7 @@ class _PatientLabReportsScreenState extends State<PatientLabReportsScreen> {
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: Colors.teal.shade800,
+                        color: AppTheme.accentColor,
                       ),
                     ),
                   ),
@@ -265,7 +265,7 @@ class _PatientLabReportsScreenState extends State<PatientLabReportsScreen> {
                   'Ordered: $formattedOrderedDate',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey.shade600,
+                    color: AppTheme.textSecondary,
                   ),
                 ),
               ],
@@ -275,11 +275,11 @@ class _PatientLabReportsScreenState extends State<PatientLabReportsScreen> {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  Icon(Icons.person_outline, size: 14, color: Colors.grey.shade600),
+                  Icon(Icons.person_outline, size: 14, color: AppTheme.textSecondary),
                   const SizedBox(width: 4),
                   Text(
                     'Ordered by: ${order.doctorName}',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                    style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
                   ),
                 ],
               ),
@@ -295,21 +295,21 @@ class _PatientLabReportsScreenState extends State<PatientLabReportsScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.amber.shade50,
+                  color: AppTheme.warningColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.amber.shade200),
+                  border: Border.all(color: AppTheme.warningColor.withValues(alpha: 0.4)),
                 ),
                 child: Row(
                   children: [
                     Icon(Icons.hourglass_top,
-                        size: 18, color: Colors.amber.shade800),
+                        size: 18, color: AppTheme.warningColor),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Test specimen collected or processing. Official report will be available once finalized by the lab pathologist.',
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.amber.shade900,
+                          color: AppTheme.warningColor,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -331,9 +331,9 @@ class _PatientLabReportsScreenState extends State<PatientLabReportsScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.teal.shade50.withValues(alpha: 0.5),
+        color: AppTheme.accentColor.withValues(alpha: 0.12).withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.teal.shade200),
+        border: Border.all(color: AppTheme.accentColor.withValues(alpha: 0.4)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -343,14 +343,14 @@ class _PatientLabReportsScreenState extends State<PatientLabReportsScreen> {
             children: [
               Row(
                 children: [
-                  Icon(Icons.verified, size: 16, color: Colors.teal.shade800),
+                  Icon(Icons.verified, size: 16, color: AppTheme.accentColor),
                   const SizedBox(width: 6),
                   Text(
                     'Official Lab Result',
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
-                      color: Colors.teal.shade900,
+                      color: AppTheme.accentColor,
                     ),
                   ),
                 ],
@@ -359,7 +359,7 @@ class _PatientLabReportsScreenState extends State<PatientLabReportsScreen> {
                 formattedDate,
                 style: TextStyle(
                   fontSize: 11,
-                  color: Colors.teal.shade800,
+                  color: AppTheme.accentColor,
                 ),
               ),
             ],
@@ -373,7 +373,7 @@ class _PatientLabReportsScreenState extends State<PatientLabReportsScreen> {
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
-                color: Colors.teal.shade900,
+                color: AppTheme.accentColor,
               ),
             ),
             const SizedBox(height: 8),
@@ -386,7 +386,7 @@ class _PatientLabReportsScreenState extends State<PatientLabReportsScreen> {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
-                color: Colors.grey.shade800,
+                color: AppTheme.textPrimary,
               ),
             ),
             const SizedBox(height: 2),
@@ -394,7 +394,7 @@ class _PatientLabReportsScreenState extends State<PatientLabReportsScreen> {
               report.findings,
               style: TextStyle(
                 fontSize: 13,
-                color: Colors.grey.shade900,
+                color: AppTheme.textPrimary,
               ),
             ),
             const SizedBox(height: 8),
@@ -407,7 +407,7 @@ class _PatientLabReportsScreenState extends State<PatientLabReportsScreen> {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
-                color: Colors.grey.shade800,
+                color: AppTheme.textPrimary,
               ),
             ),
             const SizedBox(height: 2),
@@ -415,7 +415,7 @@ class _PatientLabReportsScreenState extends State<PatientLabReportsScreen> {
               report.referenceRange,
               style: TextStyle(
                 fontSize: 12,
-                color: Colors.grey.shade700,
+                color: AppTheme.textSecondary,
                 fontFamily: 'monospace',
               ),
             ),
@@ -428,16 +428,16 @@ class _PatientLabReportsScreenState extends State<PatientLabReportsScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppTheme.neutralContainer,
                 borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: Colors.teal.shade100),
+                border: Border.all(color: AppTheme.accentColor.withValues(alpha: 0.18)),
               ),
               child: Text(
                 'Doctor Remarks: ${report.doctorRemarks}',
                 style: TextStyle(
                   fontSize: 12,
                   fontStyle: FontStyle.italic,
-                  color: Colors.grey.shade800,
+                  color: AppTheme.textPrimary,
                 ),
               ),
             ),
@@ -448,13 +448,13 @@ class _PatientLabReportsScreenState extends State<PatientLabReportsScreen> {
             Row(
               children: [
                 Icon(Icons.badge_outlined,
-                    size: 13, color: Colors.grey.shade600),
+                    size: 13, color: AppTheme.textSecondary),
                 const SizedBox(width: 4),
                 Text(
                   'Conducted by: ${report.conductedByUserName}',
                   style: TextStyle(
                     fontSize: 11,
-                    color: Colors.grey.shade700,
+                    color: AppTheme.textSecondary,
                   ),
                 ),
               ],
