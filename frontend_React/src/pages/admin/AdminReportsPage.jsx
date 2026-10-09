@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import DashboardLayout from '../../layouts/DashboardLayout'
 import { adminNavigation } from './adminNavigation'
+import { clinicalCareManagerNavigation } from './clinicalCareManagerNavigation'
 import { useAuth } from '../../hooks/useAuth'
 import { getPatientLabOrders, getPatientMedicalProfile, getAiMedicalReports, getAiMedicalReport, generateAiMedicalReport } from '../../services/emrService'
 import LabOrdersList from '../../components/emr/LabOrdersList'
@@ -280,7 +281,7 @@ export default function AdminReportsPage() {
   return (
     <DashboardLayout
       role={user?.role || 'Admin'}
-      navigation={adminNavigation}
+      navigation={user?.role === 'ClinicalCareManager' ? clinicalCareManagerNavigation : adminNavigation}
       title="Laboratory & Diagnostic Reports"
       subtitle="Search by patient name or ID to review ordered investigations and examination findings."
     >

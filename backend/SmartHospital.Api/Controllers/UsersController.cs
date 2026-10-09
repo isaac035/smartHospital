@@ -63,7 +63,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet("patients/search")]
-    [Authorize(Roles = "Admin,Staff")]
+    [Authorize(Roles = "Admin,Staff,ClinicalCareManager")]
     public async Task<IActionResult> SearchPatients([FromQuery] string query, [FromQuery] int limit = 10)
     {
         if (string.IsNullOrWhiteSpace(query)) return Ok(Array.Empty<PatientSearchResult>());

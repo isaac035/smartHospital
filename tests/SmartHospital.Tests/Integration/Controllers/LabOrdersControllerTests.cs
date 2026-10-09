@@ -512,7 +512,7 @@ public class LabOrdersControllerTests
 
         var authAttr = method.GetCustomAttribute<Microsoft.AspNetCore.Authorization.AuthorizeAttribute>();
         Assert.NotNull(authAttr);
-        Assert.Equal("Doctor,Admin", authAttr.Roles);
+        Assert.Equal("Doctor,Admin,ClinicalCareManager", authAttr.Roles);
     }
 
     [Fact]
@@ -534,7 +534,7 @@ public class LabOrdersControllerTests
 
         var authAttr = method.GetCustomAttribute<Microsoft.AspNetCore.Authorization.AuthorizeAttribute>();
         Assert.NotNull(authAttr);
-        Assert.Equal("Staff,Doctor,Admin", authAttr.Roles);
+        Assert.Equal("Staff,Doctor,Admin,ClinicalCareManager", authAttr.Roles);
     }
 
     #endregion

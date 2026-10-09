@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import DashboardLayout from '../../layouts/DashboardLayout'
-import { adminNavigation as navigation } from './adminNavigation'
+import { adminNavigation } from './adminNavigation'
+import { doctorManagerNavigation } from './doctorManagerNavigation'
+import { useAuth } from '../../hooks/useAuth'
 import { createDepartment, deactivateDepartment, activateDepartment, listDepartments, updateDepartment } from '../../services/departmentService'
 import ToggleActiveButton from '../../components/common/ToggleActiveButton'
 import { applyServerErrors, rules } from '../../utils/validators'
@@ -43,6 +45,9 @@ function DepartmentFormModal({ department, onClose, onSaved }) {
 }
 
 export default function DepartmentManagement() {
+  const { user } = useAuth()
+  const role = user?.role === 'DoctorManager' ? 'DoctorManager' : 'Admin'
+  const navigation = role === 'DoctorManager' ? doctorManagerNavigation : adminNavigation
   const [departments, setDepartments] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -72,7 +77,7 @@ export default function DepartmentManagement() {
   const closeForm = () => { setShowForm(false); setEditingDepartment(null) }
   const handleSaved = () => { closeForm(); loadDepartments() }
 
-  return <DashboardLayout role="Admin" navigation={navigation} title="Department Management" subtitle="Manage hospital departments.">
+  return <DashboardLayout role={role} navigation={navigation} title="Department Management" subtitle="Manage hospital departments.">
     <div className="toolbar">
       <div className="filter-bar" />
       <button className="primary-button" style={{ marginTop: 0 }} onClick={() => setShowForm(true)}>+ Add Department</button>

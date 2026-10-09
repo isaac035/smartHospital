@@ -45,6 +45,8 @@ public class DoctorManagerAccessTests
     [InlineData("Leaves", "Cancel")]
     [InlineData("Departments", "GetAll")]
     [InlineData("ConsultationTypes", "GetAll")]
+    [InlineData("Departments", "Create")]
+    [InlineData("ConsultationTypes", "Update")]
     public async Task Doctor_manager_can_reach_doctor_availability_and_leave_endpoints(string controller, string action)
     {
         var (status, nextCalled) = await Run(DoctorManagerAuthorizationMiddleware.Role, controller, action);
@@ -57,8 +59,6 @@ public class DoctorManagerAccessTests
     [InlineData("Queue", "GetQueue")]
     [InlineData("Users", "GetAll")]
     [InlineData("Users", "CreateDoctorManager")]
-    [InlineData("Departments", "Create")]
-    [InlineData("ConsultationTypes", "Update")]
     [InlineData("Bed", "GetAll")]
     [InlineData("MedicalRecords", "GetById")]
     [InlineData("Agent1", "TriageDoctorMatch")]

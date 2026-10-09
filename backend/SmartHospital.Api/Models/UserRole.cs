@@ -8,5 +8,6 @@ public enum UserRole
     Admin = 4,
     AppointmentManager = 5,
     ResourceAdmin = 6,
-    DoctorManager = 7
+    DoctorManager = 7,
+    ClinicalCareManager = 8
 }

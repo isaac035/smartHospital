@@ -42,7 +42,7 @@ public class DepartmentsController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,DoctorManager")]
     public async Task<IActionResult> Create(CreateDepartmentRequest request)
     {
         try
@@ -61,7 +61,7 @@ public class DepartmentsController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,DoctorManager")]
     public async Task<IActionResult> Update(int id, UpdateDepartmentRequest request)
     {
         try
@@ -88,7 +88,7 @@ public class DepartmentsController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,DoctorManager")]
     public async Task<IActionResult> Deactivate(int id)
     {
         var success = await _departmentService.DeactivateAsync(id);
@@ -108,7 +108,7 @@ public class DepartmentsController : ControllerBase
     }
 
     [HttpPost("{id:int}/activate")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,DoctorManager")]
     public async Task<IActionResult> Activate(int id)
     {
         var success = await _departmentService.ActivateAsync(id);
