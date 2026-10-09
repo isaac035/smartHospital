@@ -9,6 +9,8 @@ public interface IUserService
 
     Task<List<PatientSearchResult>> SearchPatientsAsync(string query, int limit = 10);
 
+    Task<PatientSearchResult> CreateWalkInPatientAsync(CreateWalkInPatientRequest request);
+
     Task<UserResponse?> GetByIdAsync(int id);
 
     Task<UserResponse> CreateAppointmentManagerAsync(CreateAppointmentManagerRequest request);
