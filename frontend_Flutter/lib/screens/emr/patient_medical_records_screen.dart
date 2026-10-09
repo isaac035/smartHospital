@@ -86,7 +86,7 @@ class _PatientMedicalRecordsScreenState
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: AppTheme.secondaryColor,
+                color: AppTheme.textPrimary,
               ),
             ),
             const SizedBox(height: 10),
@@ -102,7 +102,7 @@ class _PatientMedicalRecordsScreenState
                   style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.bold,
-                    color: AppTheme.secondaryColor,
+                    color: AppTheme.textPrimary,
                   ),
                 ),
                 if (emr.medicalRecords.isNotEmpty)
@@ -134,11 +134,13 @@ class _PatientMedicalRecordsScreenState
   }
 
   Widget _buildNavigationGrid(BuildContext context, EmrProvider emr) {
-    return GridView.count(
-      crossAxisCount: 2,
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
-      childAspectRatio: 1.45,
+    return GridView(
+      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: 320,
+        mainAxisExtent: 118,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+      ),
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       children: [
@@ -148,35 +150,35 @@ class _PatientMedicalRecordsScreenState
               ? '${emr.latestVital!.systolicBloodPressure ?? "--"}/${emr.latestVital!.diastolicBloodPressure ?? "--"} mmHg'
               : 'Latest BP & metrics',
           icon: Icons.favorite_rounded,
-          color: Colors.red.shade600,
+          color: AppTheme.errorColor,
           onTap: () => context.push('/medical-records/vitals'),
         ),
         _buildNavCard(
           title: 'Prescriptions',
           subtitle: '${emr.prescriptions.length} recorded',
           icon: Icons.medication_rounded,
-          color: Colors.blue.shade700,
+          color: AppTheme.primaryColor,
           onTap: () => context.push('/medical-records/prescriptions'),
         ),
         _buildNavCard(
           title: 'Lab Reports',
           subtitle: '${emr.labOrders.length} test orders',
           icon: Icons.biotech_rounded,
-          color: Colors.teal.shade700,
+          color: AppTheme.accentColor,
           onTap: () => context.push('/medical-records/lab-reports'),
         ),
         _buildNavCard(
           title: 'Clinical Timeline',
           subtitle: 'Full health history',
           icon: Icons.timeline_rounded,
-          color: Colors.indigo.shade700,
+          color: AppTheme.secondaryColor,
           onTap: () => context.push('/medical-records/timeline'),
         ),
         _buildNavCard(
           title: 'AI Medical Reports',
           subtitle: 'View generated reports',
           icon: Icons.summarize_rounded,
-          color: Colors.deepPurple.shade600,
+          color: AppTheme.secondaryColor,
           onTap: () => context.push('/medical-records/ai-reports'),
         ),
       ],
@@ -191,15 +193,18 @@ class _PatientMedicalRecordsScreenState
     required VoidCallback onTap,
   }) {
     return Material(
-      color: Colors.white,
+      color: AppTheme.neutralContainer,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
-        side: BorderSide(color: Colors.grey.shade200),
+        side: const BorderSide(color: AppTheme.borderColor),
       ),
-      elevation: 1,
+      elevation: 0,
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(14),
+        splashColor: color.withValues(alpha: 0.16),
+        highlightColor: color.withValues(alpha: 0.08),
         child: Padding(
           padding: const EdgeInsets.all(12.0),
           child: Column(
@@ -209,10 +214,11 @@ class _PatientMedicalRecordsScreenState
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.12),
+                  color: color.withValues(alpha: 0.14),
                   borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: color.withValues(alpha: 0.25)),
                 ),
-                child: Icon(icon, color: color, size: 24),
+                child: Icon(icon, color: color, size: 22),
               ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -222,7 +228,7 @@ class _PatientMedicalRecordsScreenState
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
-                      color: AppTheme.secondaryColor,
+                      color: AppTheme.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -232,7 +238,7 @@ class _PatientMedicalRecordsScreenState
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 11,
-                      color: Colors.grey.shade600,
+                      color: AppTheme.textSecondary,
                     ),
                   ),
                 ],
@@ -284,7 +290,7 @@ class _PatientMedicalRecordsScreenState
       elevation: 1,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
-        side: BorderSide(color: Colors.grey.shade200),
+        side: BorderSide(color: AppTheme.borderColor),
       ),
       child: InkWell(
         onTap: () => _showRecordDetailsModal(context, record),
@@ -300,13 +306,13 @@ class _PatientMedicalRecordsScreenState
                   Row(
                     children: [
                       Icon(Icons.calendar_today_outlined,
-                          size: 14, color: Colors.grey.shade600),
+                          size: 14, color: AppTheme.textSecondary),
                       const SizedBox(width: 6),
                       Text(
                         formattedDate,
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey.shade600,
+                          color: AppTheme.textSecondary,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -316,16 +322,16 @@ class _PatientMedicalRecordsScreenState
                     padding: const EdgeInsets.symmetric(
                         horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
+                      color: AppTheme.surfaceColor,
                       borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: Colors.grey.shade300),
+                      border: Border.all(color: AppTheme.borderColor),
                     ),
                     child: Text(
                       record.recordNumber,
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: Colors.grey.shade800,
+                        color: AppTheme.textPrimary,
                       ),
                     ),
                   ),
@@ -357,7 +363,7 @@ class _PatientMedicalRecordsScreenState
                           style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
-                            color: AppTheme.secondaryColor,
+                            color: AppTheme.textPrimary,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -365,7 +371,7 @@ class _PatientMedicalRecordsScreenState
                           'Complaint: ${record.chiefComplaint}',
                           style: TextStyle(
                             fontSize: 13,
-                            color: Colors.grey.shade800,
+                            color: AppTheme.textPrimary,
                           ),
                         ),
                         if (record.diagnosis.isNotEmpty) ...[
@@ -374,16 +380,16 @@ class _PatientMedicalRecordsScreenState
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
-                              color: Colors.blue.shade50,
+                              color: AppTheme.primaryColor.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.blue.shade200),
+                              border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.4)),
                             ),
                             child: Text(
                               'Diagnosis: ${record.diagnosis}',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
-                                color: Colors.blue.shade800,
+                                color: AppTheme.primaryColor,
                               ),
                             ),
                           ),
@@ -399,21 +405,21 @@ class _PatientMedicalRecordsScreenState
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.amber.shade50,
+                    color: AppTheme.warningColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.amber.shade200),
+                    border: Border.all(color: AppTheme.warningColor.withValues(alpha: 0.4)),
                   ),
                   child: Row(
                     children: [
                       Icon(Icons.event_repeat,
-                          size: 16, color: Colors.amber.shade800),
+                          size: 16, color: AppTheme.warningColor),
                       const SizedBox(width: 6),
                       Text(
                         'Follow-up scheduled: ${DateFormat('MMM dd, yyyy').format(record.followUpDate!)}',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: Colors.amber.shade900,
+                          color: AppTheme.warningColor,
                         ),
                       ),
                     ],
@@ -464,7 +470,7 @@ class _PatientMedicalRecordsScreenState
                       width: 40,
                       height: 5,
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
+                        color: AppTheme.borderColor,
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),
@@ -478,7 +484,7 @@ class _PatientMedicalRecordsScreenState
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: AppTheme.secondaryColor,
+                          color: AppTheme.textPrimary,
                         ),
                       ),
                       Container(
@@ -504,7 +510,7 @@ class _PatientMedicalRecordsScreenState
                     'Recorded on ${DateFormat('MMMM dd, yyyy • hh:mm a').format(record.visitDate)}',
                     style: TextStyle(
                       fontSize: 13,
-                      color: Colors.grey.shade600,
+                      color: AppTheme.textSecondary,
                     ),
                   ),
                   const Divider(height: 24),
@@ -575,14 +581,14 @@ class _PatientMedicalRecordsScreenState
         children: [
           Row(
             children: [
-              Icon(icon, size: 16, color: isHighlight ? Colors.blue.shade800 : AppTheme.primaryColor),
+              Icon(icon, size: 16, color: isHighlight ? AppTheme.primaryColor : AppTheme.primaryColor),
               const SizedBox(width: 6),
               Text(
                 title,
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
-                  color: isHighlight ? Colors.blue.shade800 : Colors.grey.shade700,
+                  color: isHighlight ? AppTheme.primaryColor : AppTheme.textSecondary,
                 ),
               ),
             ],
@@ -592,17 +598,17 @@ class _PatientMedicalRecordsScreenState
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: isHighlight ? Colors.blue.shade50 : Colors.grey.shade50,
+              color: isHighlight ? AppTheme.primaryColor.withValues(alpha: 0.12) : AppTheme.surfaceColor,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: isHighlight ? Colors.blue.shade200 : Colors.grey.shade200,
+                color: isHighlight ? AppTheme.primaryColor.withValues(alpha: 0.4) : AppTheme.borderColor,
               ),
             ),
             child: Text(
               content.isNotEmpty ? content : 'No specific details recorded.',
               style: TextStyle(
                 fontSize: 14,
-                color: isHighlight ? Colors.blue.shade900 : Colors.black87,
+                color: isHighlight ? AppTheme.primaryColor : AppTheme.textPrimary,
                 height: 1.4,
               ),
             ),

@@ -9,6 +9,8 @@ import '../../core/theme/app_theme.dart';
 import '../../models/emr/ai_medical_report_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/emr_service.dart';
+import '../../widgets/app_ui.dart';
+import 'ai_report_view.dart';
 
 class AiMedicalReportsScreen extends StatefulWidget {
   const AiMedicalReportsScreen({super.key});
@@ -83,7 +85,7 @@ class _AiMedicalReportsScreenState extends State<AiMedicalReportsScreen> {
           children: [
             Text(
               'Reports are generated from information recorded in your medical record. Each generated report remains available in this list.',
-              style: TextStyle(color: Colors.grey.shade700, height: 1.4),
+              style: const TextStyle(color: AppTheme.textSecondary, height: 1.4),
             ),
             const SizedBox(height: 14),
             FilledButton.icon(
@@ -102,12 +104,12 @@ class _AiMedicalReportsScreenState extends State<AiMedicalReportsScreen> {
             if (_error != null) ...[
               const SizedBox(height: 12),
               Card(
-                color: Colors.red.shade50,
+                color: AppTheme.errorContainer,
                 child: Padding(
                   padding: const EdgeInsets.all(12),
                   child: Text(
                     _error!,
-                    style: TextStyle(color: Colors.red.shade800),
+                    style: const TextStyle(color: AppTheme.errorColor),
                   ),
                 ),
               ),
@@ -124,10 +126,10 @@ class _AiMedicalReportsScreenState extends State<AiMedicalReportsScreen> {
                   padding: const EdgeInsets.all(20),
                   child: Column(
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.description_outlined,
                         size: 36,
-                        color: Colors.grey.shade500,
+                        color: AppTheme.textMuted,
                       ),
                       const SizedBox(height: 8),
                       const Text('No reports generated yet.'),
@@ -135,7 +137,7 @@ class _AiMedicalReportsScreenState extends State<AiMedicalReportsScreen> {
                       Text(
                         'Generate a report to organize your recorded medical information.',
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.grey.shade600),
+                        style: const TextStyle(color: AppTheme.textSecondary),
                       ),
                     ],
                   ),
@@ -152,10 +154,10 @@ class _AiMedicalReportsScreenState extends State<AiMedicalReportsScreen> {
   Widget _reportCard(AiMedicalReportModel report) {
     final priority = report.priority ?? '—';
     final priorityColor = priority.toLowerCase() == 'emergency'
-        ? Colors.red
+        ? AppTheme.errorColor
         : priority.toLowerCase() == 'urgent'
-        ? Colors.orange
-        : Colors.teal;
+        ? AppTheme.warningColor
+        : AppTheme.successColor;
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       child: ListTile(
@@ -246,71 +248,25 @@ class _AiMedicalReportDetailScreenState
 
   @override
   Widget build(BuildContext context) {
-    final content = _report?.content ?? {};
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(title: const Text('Medical Report')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-          ? Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Text(
-                  'Unable to load this report. $_error',
-                  textAlign: TextAlign.center,
-                ),
-              ),
+          ? ErrorState(message: 'Unable to load this report. $_error')
+          : _report == null
+          ? const EmptyState(
+              title: 'Report not found',
+              message: 'This report is no longer available.',
+              icon: Icons.description_outlined,
             )
-          : ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                Text(
-                  'Version ${_report!.versionNumber} · ${DateFormat('MMMM d, yyyy · h:mm a').format(_report!.createdAt.toLocal())}',
-                  style: TextStyle(color: Colors.grey.shade700),
-                ),
-                const SizedBox(height: 12),
-                ...content.entries.map((entry) {
-                  final isRecommendation = entry.key == 'aiRecommendations';
-                  final isSummary = entry.key == 'aiSummary';
-                  final title = entry.key == 'recordedData'
-                      ? 'Recorded Data'
-                      : isSummary
-                      ? 'AI Summary'
-                      : isRecommendation
-                      ? 'AI Recommendations · for clinical review'
-                      : _label(entry.key);
-                  final color = isRecommendation
-                      ? Colors.orange.shade50
-                      : isSummary
-                      ? Colors.indigo.shade50
-                      : Colors.white;
-                  return Card(
-                    color: color,
-                    margin: const EdgeInsets.only(bottom: 12),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            title,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          _ReportValue(value: entry.value),
-                        ],
-                      ),
-                    ),
-                  );
-                }),
-                const SizedBox(height: 8),
-                Text(
+          : AiReportView(
+              report: _report!,
+              trailing: [
+                const Text(
                   'AI recommendations are suggestions for clinical review and are not a diagnosis or directive.',
-                  style: TextStyle(color: Colors.grey.shade700, fontSize: 12),
+                  style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
                 ),
                 const SizedBox(height: 24),
                 SizedBox(
@@ -327,64 +283,3 @@ class _AiMedicalReportDetailScreenState
     );
   }
 }
-
-class _ReportValue extends StatelessWidget {
-  final dynamic value;
-  const _ReportValue({required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    if (value == null || value == '') return const Text('Not recorded');
-    if (value is List) {
-      if ((value as List).isEmpty) {
-        return Text(
-          'None recorded',
-          style: TextStyle(color: Colors.grey.shade600),
-        );
-      }
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: (value as List)
-            .map(
-              (item) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: _ReportValue(value: item),
-              ),
-            )
-            .toList(),
-      );
-    }
-    if (value is Map) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: (value as Map).entries
-            .map(
-              (entry) => Padding(
-                padding: const EdgeInsets.only(bottom: 9),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _label(entry.key.toString()),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade700,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    _ReportValue(value: entry.value),
-                  ],
-                ),
-              ),
-            )
-            .toList(),
-      );
-    }
-    return Text(value.toString(), style: const TextStyle(height: 1.35));
-  }
-}
-
-String _label(String key) => key
-    .replaceAllMapped(RegExp(r'([A-Z])'), (match) => ' ${match[1]}')
-    .replaceFirstMapped(RegExp(r'^.'), (match) => match[0]!.toUpperCase());

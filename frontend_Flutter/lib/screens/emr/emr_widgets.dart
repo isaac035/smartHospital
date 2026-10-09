@@ -21,7 +21,7 @@ class EmrLoadingView extends StatelessWidget {
           Text(
             message,
             style: TextStyle(
-              color: Colors.grey.shade600,
+              color: AppTheme.textSecondary,
               fontSize: 14,
             ),
           ),
@@ -56,7 +56,7 @@ class EmrErrorView extends StatelessWidget {
             Icon(
               isAuthError ? Icons.lock_person_outlined : Icons.cloud_off_outlined,
               size: 56,
-              color: isAuthError ? Colors.amber.shade800 : AppTheme.errorColor,
+              color: isAuthError ? AppTheme.warningColor : AppTheme.errorColor,
             ),
             const SizedBox(height: 16),
             Text(
@@ -70,7 +70,7 @@ class EmrErrorView extends StatelessWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey.shade700, fontSize: 14),
+              style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
             ),
             const SizedBox(height: 20),
             ElevatedButton.icon(
@@ -126,7 +126,7 @@ class EmrEmptyState extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: AppTheme.secondaryColor,
+                color: AppTheme.textPrimary,
               ),
             ),
             const SizedBox(height: 8),
@@ -135,7 +135,7 @@ class EmrEmptyState extends StatelessWidget {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.grey.shade600,
+                color: AppTheme.textSecondary,
               ),
             ),
             if (action != null) ...[
@@ -161,18 +161,18 @@ class EmrStatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color badgeColor = color ?? Colors.blue;
+    Color badgeColor = color ?? AppTheme.primaryColor;
     final lower = status.toLowerCase();
 
     if (color == null) {
       if (lower.contains('active') || lower.contains('completed') || lower.contains('normal')) {
-        badgeColor = Colors.green.shade700;
+        badgeColor = AppTheme.successColor;
       } else if (lower.contains('pending') || lower.contains('ordered') || lower.contains('in progress')) {
-        badgeColor = Colors.orange.shade800;
+        badgeColor = AppTheme.warningColor;
       } else if (lower.contains('discontinued') || lower.contains('cancelled') || lower.contains('high') || lower.contains('stat')) {
-        badgeColor = Colors.red.shade700;
+        badgeColor = AppTheme.errorColor;
       } else {
-        badgeColor = Colors.grey.shade700;
+        badgeColor = AppTheme.textSecondary;
       }
     }
 
@@ -213,8 +213,9 @@ class PatientProfileCard extends StatelessWidget {
         height: 140,
         margin: const EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(
-          color: Colors.grey.shade100,
+          color: AppTheme.neutralContainer,
           borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppTheme.borderColor),
         ),
         child: const Center(
           child: CircularProgressIndicator(strokeWidth: 2),
@@ -264,7 +265,7 @@ class PatientProfileCard extends StatelessWidget {
                           '${profile!.gender} • Blood: ${profile!.bloodGroup.isNotEmpty ? profile!.bloodGroup : "Not recorded"}',
                           style: TextStyle(
                             fontSize: 13,
-                            color: Colors.grey.shade700,
+                            color: AppTheme.textSecondary,
                           ),
                         ),
                     ],
@@ -274,20 +275,20 @@ class PatientProfileCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: Colors.red.shade50,
+                      color: AppTheme.errorColor.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.red.shade200),
+                      border: Border.all(color: AppTheme.errorColor.withValues(alpha: 0.4)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.water_drop, size: 16, color: Colors.red.shade700),
+                        Icon(Icons.water_drop, size: 16, color: AppTheme.errorColor),
                         const SizedBox(width: 4),
                         Text(
                           profile!.bloodGroup,
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: Colors.red.shade700,
+                            color: AppTheme.errorColor,
                             fontSize: 13,
                           ),
                         ),
@@ -303,10 +304,10 @@ class PatientProfileCard extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: hasAllergies ? Colors.red.shade50 : Colors.green.shade50,
+                color: hasAllergies ? AppTheme.errorColor.withValues(alpha: 0.12) : AppTheme.successColor.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: hasAllergies ? Colors.red.shade300 : Colors.green.shade200,
+                  color: hasAllergies ? AppTheme.errorColor.withValues(alpha: 0.4) : AppTheme.successColor.withValues(alpha: 0.4),
                 ),
               ),
               child: Row(
@@ -314,7 +315,7 @@ class PatientProfileCard extends StatelessWidget {
                   Icon(
                     hasAllergies ? Icons.warning_amber_rounded : Icons.check_circle_outline,
                     size: 18,
-                    color: hasAllergies ? Colors.red.shade700 : Colors.green.shade700,
+                    color: hasAllergies ? AppTheme.errorColor : AppTheme.successColor,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -325,7 +326,7 @@ class PatientProfileCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: hasAllergies ? Colors.red.shade800 : Colors.green.shade800,
+                        color: hasAllergies ? AppTheme.errorColor : AppTheme.successColor,
                       ),
                     ),
                   ),
@@ -339,13 +340,13 @@ class PatientProfileCard extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: Colors.amber.shade50,
+                  color: AppTheme.warningColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.amber.shade300),
+                  border: Border.all(color: AppTheme.warningColor.withValues(alpha: 0.4)),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.healing, size: 18, color: Colors.amber.shade800),
+                    Icon(Icons.healing, size: 18, color: AppTheme.warningColor),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -353,7 +354,7 @@ class PatientProfileCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
-                          color: Colors.amber.shade900,
+                          color: AppTheme.warningColor,
                         ),
                       ),
                     ),
@@ -368,13 +369,13 @@ class PatientProfileCard extends StatelessWidget {
               const SizedBox(height: 10),
               Row(
                 children: [
-                  Icon(Icons.contact_phone_outlined, size: 16, color: Colors.grey.shade600),
+                  Icon(Icons.contact_phone_outlined, size: 16, color: AppTheme.textSecondary),
                   const SizedBox(width: 6),
                   Text(
                     'Emergency: ${profile!.emergencyContactName} (${profile!.emergencyContactPhone})',
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.grey.shade700,
+                      color: AppTheme.textSecondary,
                     ),
                   ),
                 ],

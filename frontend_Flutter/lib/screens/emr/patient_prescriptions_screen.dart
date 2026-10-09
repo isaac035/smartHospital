@@ -82,7 +82,7 @@ class _PatientPrescriptionsScreenState
             // Filter Bar
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              color: Colors.white,
+              color: AppTheme.surfaceColor,
               child: Row(
                 children: [
                   _buildFilterChip('All'),
@@ -120,14 +120,14 @@ class _PatientPrescriptionsScreenState
         }
       },
       selectedColor: AppTheme.primaryColor,
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: AppTheme.surfaceColor,
       labelStyle: TextStyle(
-        color: isSelected ? Colors.white : Colors.grey.shade800,
+        color: isSelected ? Colors.white : AppTheme.textPrimary,
         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         fontSize: 13,
       ),
       side: BorderSide(
-        color: isSelected ? AppTheme.primaryColor : Colors.grey.shade300,
+        color: isSelected ? AppTheme.primaryColor : AppTheme.borderColor,
       ),
     );
   }
@@ -180,7 +180,7 @@ class _PatientPrescriptionsScreenState
       elevation: 2,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
-        side: BorderSide(color: Colors.grey.shade200),
+        side: BorderSide(color: AppTheme.borderColor),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -193,14 +193,14 @@ class _PatientPrescriptionsScreenState
               children: [
                 Row(
                   children: [
-                    Icon(Icons.receipt_long, size: 16, color: Colors.blue.shade700),
+                    Icon(Icons.receipt_long, size: 16, color: AppTheme.primaryColor),
                     const SizedBox(width: 6),
                     Text(
                       prescription.prescriptionNumber,
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
-                        color: Colors.blue.shade900,
+                        color: AppTheme.primaryColor,
                       ),
                     ),
                   ],
@@ -230,14 +230,14 @@ class _PatientPrescriptionsScreenState
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: AppTheme.secondaryColor,
+                          color: AppTheme.textPrimary,
                         ),
                       ),
                       Text(
                         'Issued: $formattedIssueDate${formattedExpiryDate != null ? ' • Valid until: $formattedExpiryDate' : ''}',
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey.shade600,
+                          color: AppTheme.textSecondary,
                         ),
                       ),
                     ],
@@ -252,21 +252,21 @@ class _PatientPrescriptionsScreenState
                 width: double.infinity,
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
+                  color: AppTheme.primaryColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue.shade200),
+                  border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.4)),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.info_outline, size: 16, color: Colors.blue.shade800),
+                    Icon(Icons.info_outline, size: 16, color: AppTheme.primaryColor),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         prescription.generalInstructions,
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.blue.shade900,
+                          color: AppTheme.primaryColor,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -282,7 +282,7 @@ class _PatientPrescriptionsScreenState
               style: const TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.bold,
-                color: AppTheme.secondaryColor,
+                color: AppTheme.textPrimary,
               ),
             ),
             const SizedBox(height: 8),
@@ -295,9 +295,9 @@ class _PatientPrescriptionsScreenState
                 margin: const EdgeInsets.only(bottom: 8),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
+                  color: AppTheme.surfaceColor,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.grey.shade200),
+                  border: Border.all(color: AppTheme.borderColor),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -332,7 +332,7 @@ class _PatientPrescriptionsScreenState
                                 style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
-                                  color: AppTheme.secondaryColor,
+                                  color: AppTheme.textPrimary,
                                 ),
                               ),
                               const SizedBox(height: 2),
@@ -341,7 +341,7 @@ class _PatientPrescriptionsScreenState
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
-                                  color: Colors.blue.shade800,
+                                  color: AppTheme.primaryColor,
                                 ),
                               ),
                             ],
@@ -363,7 +363,7 @@ class _PatientPrescriptionsScreenState
                         'Note: ${item.specialInstructions}',
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey.shade700,
+                          color: AppTheme.textSecondary,
                           fontStyle: FontStyle.italic,
                         ),
                       ),
@@ -382,21 +382,21 @@ class _PatientPrescriptionsScreenState
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.neutralContainer,
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(color: AppTheme.borderColor),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 12, color: Colors.grey.shade700),
+          Icon(icon, size: 12, color: AppTheme.textSecondary),
           const SizedBox(width: 4),
           Text(
             text,
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w500,
-              color: Colors.grey.shade800,
+              color: AppTheme.textPrimary,
             ),
           ),
         ],

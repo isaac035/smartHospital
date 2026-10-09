@@ -8,6 +8,7 @@ import { getPatientLabOrders, getPatientMedicalProfile, getAiMedicalReports, get
 import LabOrdersList from '../../components/emr/LabOrdersList'
 import RecordLabReportModal from '../../components/emr/RecordLabReportModal'
 import NewLabOrderModal from '../../components/emr/NewLabOrderModal'
+import AiMedicalReportView from '../../components/emr/AiMedicalReportView'
 import { searchPatients } from '../../services/userService'
 
 export default function AdminReportsPage() {
@@ -184,20 +185,6 @@ export default function AdminReportsPage() {
     } finally {
       setAiReportActionLoading(false)
     }
-  }
-
-  const renderReportValue = (value) => {
-    if (value == null || value === '') return <span className="text-gray-500">Not recorded</span>
-    if (Array.isArray(value)) {
-      if (!value.length) return <span className="text-gray-500">None recorded</span>
-      return <ul className="list-disc pl-5 space-y-1">{value.map((item, index) => <li key={index}>{renderReportValue(item)}</li>)}</ul>
-    }
-    if (typeof value === 'object') {
-      return <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">{Object.entries(value).map(([key, child]) => (
-        <div key={key} className="min-w-0"><dt className="text-xs font-semibold text-gray-500">{key.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase())}</dt><dd className="text-sm text-gray-800 break-words">{renderReportValue(child)}</dd></div>
-      ))}</dl>
-    }
-    return String(value)
   }
 
   const triggerSuccess = (msg) => {
@@ -542,9 +529,9 @@ export default function AdminReportsPage() {
               </div>
             )}
             {selectedAiReport?.content && (
-              <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4" role="region" aria-label="AI medical report detail">
-                <div className="flex justify-between items-center mb-3"><h3 className="m-0 font-bold">Medical Report · Version {selectedAiReport.versionNumber}</h3><button className="link-button" onClick={() => setSelectedAiReport(null)}>Close</button></div>
-                {Object.entries(selectedAiReport.content).map(([section, value]) => <section key={section} className="mb-4 last:mb-0 rounded-lg bg-white border p-3"><h4 className="mt-0 mb-2 font-semibold">{section === 'recordedData' ? 'Recorded Data' : section === 'aiSummary' ? 'AI Summary' : section === 'aiRecommendations' ? 'AI Recommendations (for clinical review)' : section.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase())}</h4>{renderReportValue(value)}</section>)}
+              <div className="mt-5" role="region" aria-label="AI medical report detail">
+                <div className="flex justify-end mb-2"><button className="link-button" onClick={() => setSelectedAiReport(null)}>Close</button></div>
+                <AiMedicalReportView report={selectedAiReport} />
               </div>
             )}
           </section>

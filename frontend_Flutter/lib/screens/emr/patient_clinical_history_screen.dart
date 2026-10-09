@@ -94,7 +94,7 @@ class _PatientClinicalHistoryScreenState
             // Filter Bar
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              color: Colors.white,
+              color: AppTheme.surfaceColor,
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
@@ -137,14 +137,14 @@ class _PatientClinicalHistoryScreenState
         }
       },
       selectedColor: AppTheme.primaryColor,
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: AppTheme.surfaceColor,
       labelStyle: TextStyle(
-        color: isSelected ? Colors.white : Colors.grey.shade800,
+        color: isSelected ? Colors.white : AppTheme.textPrimary,
         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         fontSize: 13,
       ),
       side: BorderSide(
-        color: isSelected ? AppTheme.primaryColor : Colors.grey.shade300,
+        color: isSelected ? AppTheme.primaryColor : AppTheme.borderColor,
       ),
     );
   }
@@ -214,7 +214,7 @@ class _PatientClinicalHistoryScreenState
                   child: Container(
                     width: 2,
                     margin: const EdgeInsets.symmetric(vertical: 4),
-                    color: Colors.grey.shade300,
+                    color: AppTheme.borderColor,
                   ),
                 ),
             ],
@@ -227,9 +227,9 @@ class _PatientClinicalHistoryScreenState
               margin: const EdgeInsets.only(bottom: 16),
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppTheme.neutralContainer,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade200),
+                border: Border.all(color: AppTheme.borderColor),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.03),
@@ -264,7 +264,7 @@ class _PatientClinicalHistoryScreenState
                         formattedDate,
                         style: TextStyle(
                           fontSize: 11,
-                          color: Colors.grey.shade600,
+                          color: AppTheme.textSecondary,
                         ),
                       ),
                     ],
@@ -275,7 +275,7 @@ class _PatientClinicalHistoryScreenState
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: AppTheme.secondaryColor,
+                      color: AppTheme.textPrimary,
                     ),
                   ),
                   if (event.doctorName != null &&
@@ -284,13 +284,13 @@ class _PatientClinicalHistoryScreenState
                     Row(
                       children: [
                         Icon(Icons.person_outline,
-                            size: 14, color: Colors.grey.shade600),
+                            size: 14, color: AppTheme.textSecondary),
                         const SizedBox(width: 4),
                         Text(
                           event.doctorName!,
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey.shade700,
+                            color: AppTheme.textSecondary,
                           ),
                         ),
                       ],
@@ -314,15 +314,15 @@ class _PatientClinicalHistoryScreenState
     final cat = (event.category ?? '').toLowerCase();
 
     if (type.contains('vital') || cat.contains('vital')) {
-      return (Icons.favorite_rounded, Colors.red.shade600, 'VITAL SIGNS');
+      return (Icons.favorite_rounded, AppTheme.errorColor, 'VITAL SIGNS');
     } else if (type.contains('prescription') || cat.contains('prescription')) {
-      return (Icons.medication_rounded, Colors.blue.shade700, 'PRESCRIPTION');
+      return (Icons.medication_rounded, AppTheme.primaryColor, 'PRESCRIPTION');
     } else if (type.contains('lab') || cat.contains('lab')) {
-      return (Icons.biotech_rounded, Colors.teal.shade700, 'LAB ORDER / REPORT');
+      return (Icons.biotech_rounded, AppTheme.accentColor, 'LAB ORDER / REPORT');
     } else if (type.contains('diagnosis')) {
-      return (Icons.medical_information_rounded, Colors.orange.shade800, 'DIAGNOSIS');
+      return (Icons.medical_information_rounded, AppTheme.warningColor, 'DIAGNOSIS');
     } else if (type.contains('treatment')) {
-      return (Icons.healing_rounded, Colors.green.shade700, 'TREATMENT PLAN');
+      return (Icons.healing_rounded, AppTheme.successColor, 'TREATMENT PLAN');
     } else {
       return (Icons.assignment_rounded, AppTheme.primaryColor, 'CONSULTATION');
     }
