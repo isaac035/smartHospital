@@ -8,7 +8,7 @@ namespace SmartHospital.Api.Controllers;
 
 [ApiController]
 [Route("api/agent4/reports")]
-[Authorize(Roles = "Patient,Admin,Staff,Doctor")]
+[Authorize(Roles = "Patient,Admin,Staff,Doctor,ClinicalCareManager")]
 public class Agent4Controller : ControllerBase
 {
     private readonly IAgent4MedicalReportService _service;

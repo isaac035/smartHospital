@@ -88,7 +88,7 @@ public class LabOrdersController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Doctor,Admin")]
+    [Authorize(Roles = "Doctor,Admin,ClinicalCareManager")]
     public async Task<IActionResult> CreateOrder([FromBody] CreateLabOrderRequest request)
     {
         if (request == null)
@@ -175,7 +175,7 @@ public class LabOrdersController : ControllerBase
     }
 
     [HttpPost("{id:int}/report")]
-    [Authorize(Roles = "Staff,Doctor,Admin")]
+    [Authorize(Roles = "Staff,Doctor,Admin,ClinicalCareManager")]
     public async Task<IActionResult> RecordReport(int id, [FromBody] RecordLabReportRequest request)
     {
         if (id <= 0)

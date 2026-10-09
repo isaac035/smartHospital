@@ -3,9 +3,9 @@ using Microsoft.AspNetCore.Mvc.Controllers;
 namespace SmartHospital.Api.Middleware;
 
 /// <summary>
-/// Limits Doctor Manager tokens to the Doctor Management, Doctor Availability Calendar and
-/// Leave / Unavailability API surface (plus the read-only department and consultation-type
-/// lists those screens need). Every other endpoint returns 403 for this role.
+/// Limits Doctor Manager tokens to the Doctor Management, Department Management,
+/// Consultation Types, Doctor Availability Calendar and Leave / Unavailability API surface.
+/// Every other endpoint returns 403 for this role.
 /// </summary>
 public sealed class DoctorManagerAuthorizationMiddleware
 {
@@ -38,11 +38,21 @@ public sealed class DoctorManagerAuthorizationMiddleware
         ("Leaves", "Update"),
         ("Leaves", "Cancel"),
 
-        // Lookups used by the forms above (read-only)
+        // Department Management
         ("Departments", "GetAll"),
         ("Departments", "GetById"),
+        ("Departments", "Create"),
+        ("Departments", "Update"),
+        ("Departments", "Deactivate"),
+        ("Departments", "Activate"),
+
+        // Consultation Types
         ("ConsultationTypes", "GetAll"),
         ("ConsultationTypes", "GetById"),
+        ("ConsultationTypes", "Create"),
+        ("ConsultationTypes", "Update"),
+        ("ConsultationTypes", "Deactivate"),
+        ("ConsultationTypes", "Activate"),
     };
 
     private readonly RequestDelegate _next;

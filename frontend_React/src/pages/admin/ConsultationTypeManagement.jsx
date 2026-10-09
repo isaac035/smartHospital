@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import DashboardLayout from '../../layouts/DashboardLayout'
-import { adminNavigation as navigation } from './adminNavigation'
+import { adminNavigation } from './adminNavigation'
+import { doctorManagerNavigation } from './doctorManagerNavigation'
+import { useAuth } from '../../hooks/useAuth'
 import { createConsultationType, deactivateConsultationType, activateConsultationType, listConsultationTypes, updateConsultationType } from '../../services/consultationTypeService'
 import ToggleActiveButton from '../../components/common/ToggleActiveButton'
 import { applyServerErrors, rules } from '../../utils/validators'
@@ -51,6 +53,9 @@ function ConsultationTypeFormModal({ consultationType, onClose, onSaved }) {
 }
 
 export default function ConsultationTypeManagement() {
+  const { user } = useAuth()
+  const role = user?.role === 'DoctorManager' ? 'DoctorManager' : 'Admin'
+  const navigation = role === 'DoctorManager' ? doctorManagerNavigation : adminNavigation
   const [consultationTypes, setConsultationTypes] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -80,7 +85,7 @@ export default function ConsultationTypeManagement() {
   const closeForm = () => { setShowForm(false); setEditingType(null) }
   const handleSaved = () => { closeForm(); loadConsultationTypes() }
 
-  return <DashboardLayout role="Admin" navigation={navigation} title="Consultation Types" subtitle="Define the session types and durations doctors can be scheduled for.">
+  return <DashboardLayout role={role} navigation={navigation} title="Consultation Types" subtitle="Define the session types and durations doctors can be scheduled for.">
     <div className="toolbar">
       <div className="filter-bar" />
       <button className="primary-button" style={{ marginTop: 0 }} onClick={() => setShowForm(true)}>+ Add Consultation Type</button>

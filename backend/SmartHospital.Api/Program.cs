@@ -332,6 +332,19 @@ using (var scope = app.Services.CreateScope())
 
     await DbSeeder.SeedAsync(dbContext);
 
+    // Feature-manager logins (idempotent; failures are logged and never stop startup).
+    try
+    {
+        await ManagerAccountSeeder.SeedAsync(
+            dbContext,
+            app.Configuration,
+            app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("ManagerAccountSeeder"));
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogError(ex, "[ManagerSeeder] Manager account seeding failed.");
+    }
+
     if (app.Environment.IsDevelopment())
     {
         await SampleDataSeeder.SeedAsync(dbContext);

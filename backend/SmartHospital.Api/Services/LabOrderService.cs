@@ -159,7 +159,7 @@ public class LabOrderService : ILabOrderService
         }
 
         var doctor = await _context.Users
-            .FirstOrDefaultAsync(u => u.Id == doctorId && (u.Role == UserRole.Doctor || u.Role == UserRole.Admin) && u.Status == UserStatus.Active);
+            .FirstOrDefaultAsync(u => u.Id == doctorId && (u.Role == UserRole.Doctor || u.Role == UserRole.Admin || u.Role == UserRole.ClinicalCareManager) && u.Status == UserStatus.Active);
         if (doctor == null)
         {
             throw new InvalidOperationException("Active ordering doctor not found.");
@@ -356,7 +356,7 @@ public class LabOrderService : ILabOrderService
             throw new InvalidOperationException("Active user recording the report not found.");
         }
 
-        if (conductedByUser.Role != UserRole.Staff && conductedByUser.Role != UserRole.Doctor && conductedByUser.Role != UserRole.Admin)
+        if (conductedByUser.Role != UserRole.Staff && conductedByUser.Role != UserRole.Doctor && conductedByUser.Role != UserRole.Admin && conductedByUser.Role != UserRole.ClinicalCareManager)
         {
             throw new InvalidOperationException("User recording the report must have Staff, Doctor, or Admin role.");
         }

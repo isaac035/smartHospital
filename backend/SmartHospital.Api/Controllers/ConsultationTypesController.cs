@@ -42,7 +42,7 @@ public class ConsultationTypesController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,DoctorManager")]
     public async Task<IActionResult> Create(CreateConsultationTypeRequest request)
     {
         try
@@ -61,7 +61,7 @@ public class ConsultationTypesController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,DoctorManager")]
     public async Task<IActionResult> Update(int id, UpdateConsultationTypeRequest request)
     {
         try
@@ -88,7 +88,7 @@ public class ConsultationTypesController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,DoctorManager")]
     public async Task<IActionResult> Deactivate(int id)
     {
         var success = await _consultationTypeService.DeactivateAsync(id);
@@ -108,7 +108,7 @@ public class ConsultationTypesController : ControllerBase
     }
 
     [HttpPost("{id:int}/activate")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,DoctorManager")]
     public async Task<IActionResult> Activate(int id)
     {
         var success = await _consultationTypeService.ActivateAsync(id);

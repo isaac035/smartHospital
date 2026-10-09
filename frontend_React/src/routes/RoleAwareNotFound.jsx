@@ -6,6 +6,7 @@ const limitedRoleHome = {
   AppointmentManager: '/admin/appointments',
   ResourceAdmin: '/hospital-resources',
   DoctorManager: '/admin/doctors',
+  ClinicalCareManager: '/admin/reports',
 }
 
 export default function RoleAwareNotFound() {
