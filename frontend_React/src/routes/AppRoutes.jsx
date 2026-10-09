@@ -43,7 +43,6 @@ export default function AppRoutes() {
       <Route element={<RoleRoute allowedRoles={['Admin']} />}>
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/admin/users" element={<UserManagement />} />
-        <Route path="/admin/appointments/book" element={<BookAppointment />} />
         <Route path="/admin/appointments/calendar" element={<NotFound />} />
       </Route>
       <Route element={<RoleRoute allowedRoles={['Admin', 'ClinicalCareManager']} />}>
@@ -51,6 +50,7 @@ export default function AppRoutes() {
       </Route>
       <Route element={<RoleRoute allowedRoles={['Admin', 'AppointmentManager']} />}>
         <Route path="/admin/appointments" element={<AppointmentsDashboard />} />
+        <Route path="/admin/appointments/book" element={<BookAppointment />} />
         <Route path="/admin/appointments/:id" element={<AppointmentDetails />} />
         <Route path="/admin/appointments/:id/reschedule" element={<RescheduleAppointment />} />
         <Route path="/admin/doctor-appointments" element={<DoctorAppointmentManagement />} />

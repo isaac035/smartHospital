@@ -63,7 +63,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet("patients/search")]
-    [Authorize(Roles = "Admin,Staff,ClinicalCareManager")]
+    [Authorize(Roles = "Admin,Staff,ClinicalCareManager,AppointmentManager")]
     public async Task<IActionResult> SearchPatients([FromQuery] string query, [FromQuery] int limit = 10)
     {
         if (string.IsNullOrWhiteSpace(query)) return Ok(Array.Empty<PatientSearchResult>());
@@ -72,7 +72,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpPost("patients/walk-in")]
-    [Authorize(Roles = "Admin,Staff")]
+    [Authorize(Roles = "Admin,Staff,AppointmentManager")]
     public async Task<IActionResult> CreateWalkInPatient(CreateWalkInPatientRequest request)
     {
         var patient = await _userService.CreateWalkInPatientAsync(request);

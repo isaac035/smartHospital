@@ -381,8 +381,8 @@ public class AuthAndUsersControllerTests
     [InlineData(nameof(UsersController.Deactivate), "Admin")]
     [InlineData(nameof(UsersController.Activate), "Admin")]
     [InlineData(nameof(UsersController.GetAll), "Admin,Staff,ResourceAdmin")]
-    [InlineData(nameof(UsersController.SearchPatients), "Admin,Staff,ClinicalCareManager")]
-    [InlineData(nameof(UsersController.CreateWalkInPatient), "Admin,Staff")]
+    [InlineData(nameof(UsersController.SearchPatients), "Admin,Staff,ClinicalCareManager,AppointmentManager")]
+    [InlineData(nameof(UsersController.CreateWalkInPatient), "Admin,Staff,AppointmentManager")]
     public void UsersController_ActionsAreRestrictedToExpectedRoles(string action, string expectedRoles)
     {
         var attribute = typeof(UsersController).GetMethod(action)!.GetCustomAttribute<AuthorizeAttribute>();
