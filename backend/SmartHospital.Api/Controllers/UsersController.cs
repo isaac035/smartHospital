@@ -71,6 +71,14 @@ public class UsersController : ControllerBase
         return Ok(patients);
     }
 
+    [HttpPost("patients/walk-in")]
+    [Authorize(Roles = "Admin,Staff")]
+    public async Task<IActionResult> CreateWalkInPatient(CreateWalkInPatientRequest request)
+    {
+        var patient = await _userService.CreateWalkInPatientAsync(request);
+        return Created($"/api/users/{patient.Id}", patient);
+    }
+
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)
     {

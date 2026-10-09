@@ -325,6 +325,48 @@ public class AuthAndUsersControllerTests
         Assert.Equal("DoctorManager", Assert.IsType<AuthResponse>(ok.Value).Role);
     }
 
+    [Fact]
+    public async Task Users_CreateWalkInPatientCreatesActivePatientWithoutUsableLogin()
+    {
+        await using var context = CreateContext();
+
+        var result = await CreateUsersController(context, "Staff").CreateWalkInPatient(new CreateWalkInPatientRequest { FullName = "  Kamala  Devi Silva " });
+
+        var body = Assert.IsType<PatientSearchResult>(Assert.IsType<CreatedResult>(result).Value);
+        Assert.Equal("Kamala Devi Silva", body.DisplayName);
+        var stored = await context.Users.SingleAsync(u => u.Id == body.Id);
+        Assert.Equal(UserRole.Patient, stored.Role);
+        Assert.Equal(UserStatus.Active, stored.Status);
+        Assert.Equal(("Kamala", "Devi Silva"), (stored.FirstName, stored.LastName));
+        Assert.EndsWith("@walkin.invalid", stored.Email);
+        Assert.False(BCrypt.Net.BCrypt.Verify("", stored.PasswordHash));
+    }
+
+    [Fact]
+    public async Task Users_CreateWalkInPatientAcceptsSingleWordNameAndIsSearchable()
+    {
+        await using var context = CreateContext();
+        var controller = CreateUsersController(context, "Admin");
+
+        var body = Assert.IsType<PatientSearchResult>(Assert.IsType<CreatedResult>(
+            await controller.CreateWalkInPatient(new CreateWalkInPatientRequest { FullName = "Kamal" })).Value);
+        Assert.Equal("Kamal", body.DisplayName);
+
+        var second = Assert.IsType<PatientSearchResult>(Assert.IsType<CreatedResult>(
+            await controller.CreateWalkInPatient(new CreateWalkInPatientRequest { FullName = "Kamal" })).Value);
+        Assert.NotEqual(body.Id, second.Id);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("K")]
+    [InlineData("Kamal123")]
+    [InlineData("<b>Kamal</b>")]
+    public void CreateWalkInPatientRequest_InvalidNamesFail(string name)
+    {
+        Assert.NotEmpty(Validate(new CreateWalkInPatientRequest { FullName = name }));
+    }
+
     // ── Role restrictions declared on UsersController ────────────────────
 
     [Fact]
@@ -340,6 +382,7 @@ public class AuthAndUsersControllerTests
     [InlineData(nameof(UsersController.Activate), "Admin")]
     [InlineData(nameof(UsersController.GetAll), "Admin,Staff,ResourceAdmin")]
     [InlineData(nameof(UsersController.SearchPatients), "Admin,Staff,ClinicalCareManager")]
+    [InlineData(nameof(UsersController.CreateWalkInPatient), "Admin,Staff")]
     public void UsersController_ActionsAreRestrictedToExpectedRoles(string action, string expectedRoles)
     {
         var attribute = typeof(UsersController).GetMethod(action)!.GetCustomAttribute<AuthorizeAttribute>();

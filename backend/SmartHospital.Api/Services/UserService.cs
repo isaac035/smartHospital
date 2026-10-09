@@ -66,6 +66,33 @@ public class UserService : IUserService
             .ToListAsync();
     }
 
+    // Patient record for a typed name (no login): placeholder unique email, unknown random password, no phone.
+    public async Task<PatientSearchResult> CreateWalkInPatientAsync(CreateWalkInPatientRequest request)
+    {
+        var parts = request.FullName.Trim().Split(' ', 2, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var now = DateTime.UtcNow;
+        var patient = new User
+        {
+            FirstName = parts[0],
+            LastName = parts.Length > 1 ? parts[1] : string.Empty,
+            Email = $"walkin-{Guid.NewGuid():N}@walkin.invalid",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32))),
+            PhoneNumber = string.Empty,
+            Role = UserRole.Patient,
+            Status = UserStatus.Active,
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+
+        _context.Users.Add(patient);
+        await _context.SaveChangesAsync();
+        return new PatientSearchResult
+        {
+            Id = patient.Id,
+            DisplayName = (patient.FirstName + " " + patient.LastName).Trim()
+        };
+    }
+
     public async Task<UserResponse?> GetByIdAsync(int id)
     {
         return await _context.Users

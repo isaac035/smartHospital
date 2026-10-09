@@ -2,16 +2,18 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import DashboardLayout from '../../layouts/DashboardLayout'
 import { bookAppointment } from '../../services/appointmentService'
+import { createWalkInPatient } from '../../services/userService'
 import SlotPicker from '../../components/appointments/SlotPicker'
 import PatientLookupInput from '../../components/appointments/PatientLookupInput'
 import { useAuth } from '../../hooks/useAuth'
 import { useBookableDoctors } from '../../hooks/useBookableDoctors'
 import { useFormValidation } from '../../hooks/useFormValidation'
 import FieldError from '../../components/common/FieldError'
-import { first, notBeforeToday, number, required, selection, text } from '../../utils/validators'
+import { first, notBeforeToday, number, personName, required, selection, text } from '../../utils/validators'
 
 const BOOKING_SCHEMA = {
-  patientId: (value) => first(required(value, 'Patient ID'), number(value, 'Patient ID', { min: 1, max: 2147483647, integer: true, message: 'Patient ID must be a positive whole number.' })),
+  // A picked suggestion is an existing patient; a typed name must be a valid new patient name.
+  patientName: (value, values) => values.selectedPatientId ? undefined : personName(value, 'Patient name'),
   doctorId: (value) => selection(value, 'a doctor'),
   appointmentType: (value) => selection(value, 'an appointment type'),
   priority: (value) => selection(value, 'a priority'),
@@ -33,7 +35,8 @@ export default function BookAppointment() {
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState(null)
 
-  const [patientId, setPatientId] = useState('')
+  const [patientName, setPatientName] = useState('')
+  const [selectedPatient, setSelectedPatient] = useState(null)
   const [doctorId, setDoctorId] = useState('')
   const doctorOptions = useBookableDoctors()
 
@@ -43,7 +46,7 @@ export default function BookAppointment() {
   const [selectedSlot, setSelectedSlot] = useState('')
   const [duration, setDuration] = useState('30')
   const [notes, setNotes] = useState('')
-  const formValues = { patientId, doctorId, appointmentType, priority, duration, date, selectedSlot, notes }
+  const formValues = { patientName, selectedPatientId: selectedPatient?.id ?? null, doctorId, appointmentType, priority, duration, date, selectedSlot, notes }
   const validation = useFormValidation(BOOKING_SCHEMA, formValues)
   const touch = (name) => () => validation.touch(name, formValues)
 
@@ -55,8 +58,15 @@ export default function BookAppointment() {
 
     try {
       setSubmitting(true)
+      let patient = selectedPatient
+      if (!patient) {
+        // Typed name not picked from suggestions: create the patient once, then keep it selected for retries.
+        patient = await createWalkInPatient(patientName.trim())
+        setSelectedPatient(patient)
+        setPatientName(patient.displayName)
+      }
       const result = await bookAppointment({
-        patientId: parseInt(patientId),
+        patientId: patient.id,
         doctorId: parseInt(doctorId),
         appointmentType: parseInt(appointmentType),
         scheduledStart: selectedSlot,
@@ -69,9 +79,10 @@ export default function BookAppointment() {
       setFormError(validation.applyServerErrors(err, {
         conflicts: [
           { match: /slot|future|capacity|scheduled|available/i, field: 'selectedSlot' },
-          { match: /patient/i, field: 'patientId' },
+          { match: /patient/i, field: 'patientName' },
           { match: /doctor/i, field: 'doctorId' },
         ],
+        rename: { fullName: 'patientName' },
         fallback: 'Failed to book appointment',
       }) || null)
     } finally {
@@ -87,7 +98,14 @@ export default function BookAppointment() {
 
         <form onSubmit={handleSubmit} noValidate className="grid gap-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <PatientLookupInput value={patientId} onChange={setPatientId} onBlur={touch('patientId')} error={validation.errorFor('patientId')} />
+            <PatientLookupInput
+              value={patientName}
+              selectedPatient={selectedPatient}
+              onChange={(text) => { setPatientName(text); setSelectedPatient(null) }}
+              onSelect={(patient) => { setSelectedPatient(patient); setPatientName(patient.displayName) }}
+              onBlur={touch('patientName')}
+              error={validation.errorFor('patientName')}
+            />
 
             <div className="flex flex-col gap-1">
               <label htmlFor="doctorId" className="required">Doctor</label>

@@ -16,5 +16,4 @@ export const adminNavigation = [
     ]
   },
   { label: 'Reports', path: '/admin/reports' },
-  { label: 'Settings' },
 ]
