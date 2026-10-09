@@ -50,6 +50,8 @@ class SlotPickerGrid extends StatelessWidget {
         crossAxisSpacing: 8,
         childAspectRatio: 2.5,
       ),
+      
+      //grid picker val
       itemCount: slots.length,
       itemBuilder: (context, index) {
         final slot = slots[index];

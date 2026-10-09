@@ -119,6 +119,7 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+
           // Filter chips
           Container(
             color: AppTheme.surfaceColor,
@@ -255,6 +256,7 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
                     ),
                   );
                 }
+                
                 return RefreshIndicator(
                   onRefresh: _refresh,
                   child: ListView.builder(
@@ -262,6 +264,9 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen> {
                       horizontal: 16,
                       vertical: 12,
                     ),
+
+
+                    //checkin date val
                     itemCount: provider.appointments.length,
                     itemBuilder: (context, index) {
                       final appointment = provider.appointments[index];

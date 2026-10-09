@@ -20,7 +20,7 @@ export default function DashboardLayout({ role, navigation, title, subtitle, chi
 
   return <div className="dashboard-shell">
     <aside className={`sidebar ${menuOpen ? 'sidebar-open' : ''}`}>
-      <div className="brand"><span className="brand-mark">+</span><span>Smart Hospital</span></div>
+      <div className="brand"><span className="brand-mark">+</span><span>MediMate</span></div>
       <nav className="sidebar-nav" aria-label={`${role} navigation`}>
         {navigation.map((item) => {
           const hasChildren = item.children && item.children.length > 0;

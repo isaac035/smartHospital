@@ -62,7 +62,7 @@ export default function Login() {
   }
 
   return <main className="auth-page"><section className="login-card">
-    <div className="login-brand"><span className="brand-mark">+</span><span>Smart Hospital</span></div>
+    <div className="login-brand"><span className="brand-mark">+</span><span>MediMate</span></div>
     <div className="login-heading"><p className="eyebrow">Secure staff access</p><h1>Welcome back</h1><p>Sign in to access your hospital workspace.</p></div>
     <form onSubmit={handleSubmit} noValidate>
       {error && <p className="form-error" role="alert">{error}</p>}

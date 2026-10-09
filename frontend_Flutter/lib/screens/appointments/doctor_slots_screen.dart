@@ -125,7 +125,7 @@ class _DoctorSlotsScreenState extends State<DoctorSlotsScreen> {
       date: _dateString,
     );
   }
-
+//date
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,

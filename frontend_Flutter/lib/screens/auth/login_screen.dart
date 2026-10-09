@@ -154,7 +154,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                 ),
                                 const SizedBox(height: 24),
                                 Text(
-                                  'Smart Hospital',
+                                  'MediMate',
                                   style: Theme.of(context).textTheme.headlineMedium,
                                 ),
                                 const SizedBox(height: 4),

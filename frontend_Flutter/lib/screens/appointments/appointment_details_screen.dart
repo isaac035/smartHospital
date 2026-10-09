@@ -202,7 +202,7 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
                         ),
                         const SizedBox(height: 8),
                         const Text(
-                          'Show this at the reception kiosk to check in.',
+                          'Show this at the reception to check in.',
                           style: TextStyle(
                             color: AppTheme.surfaceColor,
                             fontSize: AppTheme.fontBodyMedium,

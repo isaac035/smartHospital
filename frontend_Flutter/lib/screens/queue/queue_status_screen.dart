@@ -88,6 +88,9 @@ class _QueueStatusScreenState extends State<QueueStatusScreen> {
             ),
         ],
       ),
+      
+
+      //checkin only for related doctor
       body: Consumer<AppointmentProvider>(
         builder: (context, provider, _) {
           // Build doctor picker from confirmed appointments

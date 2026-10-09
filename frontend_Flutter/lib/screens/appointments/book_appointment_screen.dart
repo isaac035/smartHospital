@@ -283,7 +283,8 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
               ],
 
               const SizedBox(height: 20),
-
+              
+              //text filed val
               AppTextField(
                 label: 'Additional Notes (Optional)',
                 hint: 'Briefly describe your symptoms or reason for visit...',

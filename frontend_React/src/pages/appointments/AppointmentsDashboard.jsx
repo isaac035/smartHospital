@@ -212,7 +212,7 @@ export default function AppointmentsDashboard() {
         )}
       </div>
 
-      
+//filter bar    
       {role === 'Doctor' ? (
         <DoctorServingList user={user} />
       ) : (
