@@ -204,9 +204,9 @@ export default function AppointmentsDashboard() {
           Appointment List
         </h2>
         
-        {/* Only Staff/Admin can book appointments for patients */}
-        {(role === 'Staff' || role === 'Admin') && (
-          <Link to={`/${role.toLowerCase()}/appointments/book`} className="primary-button" style={{ textDecoration: 'none', marginTop: 0 }}>
+        {/* Only Staff/Admin/Appointment Manager can book appointments for patients */}
+        {(role === 'Staff' || role === 'Admin' || role === 'AppointmentManager') && (
+          <Link to={`/${routeRole}/appointments/book`} className="primary-button" style={{ textDecoration: 'none', marginTop: 0 }}>
             + Book Appointment
           </Link>
         )}

@@ -9,6 +9,7 @@ import { useAuth } from '../../hooks/useAuth'
 import { useBookableDoctors } from '../../hooks/useBookableDoctors'
 import { useFormValidation } from '../../hooks/useFormValidation'
 import FieldError from '../../components/common/FieldError'
+import { appointmentManagerNavigation } from './appointmentManagerNavigation'
 import { first, notBeforeToday, number, personName, required, selection, text } from '../../utils/validators'
 
 const BOOKING_SCHEMA = {
@@ -30,7 +31,8 @@ export default function BookAppointment() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const role = user?.role || 'Staff'
-  const navigation = role === 'Admin' ? adminNav : staffNav
+  const navigation = role === 'AppointmentManager' ? appointmentManagerNavigation : role === 'Admin' ? adminNav : staffNav
+  const routeRole = role === 'AppointmentManager' ? 'admin' : role.toLowerCase()
 
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState(null)
@@ -74,7 +76,7 @@ export default function BookAppointment() {
         priority: parseInt(priority),
         notes: notes
       })
-      navigate(`/${role.toLowerCase()}/appointments/${result.id}`)
+      navigate(`/${routeRole}/appointments/${result.id}`)
     } catch (err) {
       setFormError(validation.applyServerErrors(err, {
         conflicts: [
@@ -183,6 +185,7 @@ export default function BookAppointment() {
                 selectedSlot={selectedSlot}
                 onSlotSelect={setSelectedSlot}
                 durationMinutes={parseInt(duration)}
+                appointmentManager={role === 'AppointmentManager'}
               />
               <FieldError name="selectedSlot" message={validation.errorFor('selectedSlot')} />
             </div>
