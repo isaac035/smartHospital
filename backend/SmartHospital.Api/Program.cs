@@ -302,7 +302,8 @@ var app = builder.Build();
 // Middleware
 // --------------------------------------------------
 
-if (app.Environment.IsDevelopment())
+// Swagger is always on in Development; set EnableSwagger=true to expose it elsewhere (e.g. Render).
+if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("EnableSwagger"))
 {
     app.UseSwagger();
     app.UseSwaggerUI();
