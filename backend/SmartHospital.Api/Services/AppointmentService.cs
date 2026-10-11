@@ -212,10 +212,47 @@ public class AppointmentService : IAppointmentService
             return await GetResponseAsync(appointment.Id)
                    ?? throw new InvalidOperationException("Appointment not found after creation.");
         }
+        catch (Exception ex) when (IsBookingConflict(ex))
+        {
+            // Two concurrent bookings collided; the serializable transaction let only one win.
+            await SafeRollbackAsync(transaction);
+            _logger.LogInformation(
+                "Concurrent booking conflict for doctor {DoctorId} at {ScheduledStart}.",
+                request.DoctorId, request.ScheduledStart);
+            throw new InvalidOperationException("This appointment slot is no longer available.", ex);
+        }
         catch
         {
-            if (transaction != null) await transaction.RollbackAsync();
+            await SafeRollbackAsync(transaction);
             throw;
+        }
+    }
+
+    // PostgreSQL aborts one side of a clashing serializable transaction (40001) or a deadlock (40P01).
+    private static bool IsBookingConflict(Exception ex)
+    {
+        for (var current = ex; current != null; current = current.InnerException)
+        {
+            if (current is Npgsql.PostgresException pg &&
+                (pg.SqlState == Npgsql.PostgresErrorCodes.SerializationFailure ||
+                 pg.SqlState == Npgsql.PostgresErrorCodes.DeadlockDetected))
+                return true;
+        }
+        return false;
+    }
+
+    // A failed commit has already ended the transaction; rolling it back again must not
+    // replace the original error with "This NpgsqlTransaction has completed".
+    private async Task SafeRollbackAsync(Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction? transaction)
+    {
+        if (transaction == null) return;
+        try
+        {
+            await transaction.RollbackAsync();
+        }
+        catch (Exception rollbackEx)
+        {
+            _logger.LogDebug(rollbackEx, "Booking transaction was already completed; rollback skipped.");
         }
     }
 

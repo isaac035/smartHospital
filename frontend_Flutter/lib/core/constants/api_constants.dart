@@ -20,10 +20,10 @@ class ApiConstants {
       if (Platform.isAndroid) {
         // Use the development PC's current Wi-Fi address. Override with
         // --dart-define=API_BASE_URL=... when the network assigns another one.
-        return 'http://192.168.1.3:5100/api';
+        return 'https://smarthospital-api-fghq.onrender.com/api';
       }
     } catch (_) {}
-    return 'http://localhost:5100/api'; // Windows, iOS Simulator, Web
+    return 'https://smarthospital-api-fghq.onrender.com/api'; // Windows, iOS Simulator, Web
   }
 
   // Auth Endpoints
