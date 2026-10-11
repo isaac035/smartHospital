@@ -1,0 +1,401 @@
+timeStamp,elapsed,label,responseCode,responseMessage,threadName,dataType,success,failureMessage,bytes,sentBytes,grpThreads,allThreads,URL,Latency,IdleTime,Connect
+1791644166519,2786,01 Login,200,OK,100 Concurrent Patients 1-5,text,true,,943,308,32,32,http://localhost:5100/api/auth/login,2769,0,125
+1791644166688,2617,01 Login,200,OK,100 Concurrent Patients 1-7,text,true,,943,308,32,32,http://localhost:5100/api/auth/login,2600,0,22
+1791644166819,2632,01 Login,200,OK,100 Concurrent Patients 1-8,text,true,,943,308,33,33,http://localhost:5100/api/auth/login,2632,0,3
+1791644167181,2645,01 Login,200,OK,100 Concurrent Patients 1-12,text,true,,943,308,37,37,http://localhost:5100/api/auth/login,2645,0,5
+1791644166889,2994,01 Login,200,OK,100 Concurrent Patients 1-9,text,true,,943,308,38,38,http://localhost:5100/api/auth/login,2994,0,1
+1791644166520,3578,01 Login,200,OK,100 Concurrent Patients 1-2,text,true,,943,308,40,40,http://localhost:5100/api/auth/login,3578,0,125
+1791644166568,3567,01 Login,200,OK,100 Concurrent Patients 1-6,text,true,,943,308,40,40,http://localhost:5100/api/auth/login,3566,0,77
+1791644167315,2840,01 Login,200,OK,100 Concurrent Patients 1-13,text,true,,943,308,40,40,http://localhost:5100/api/auth/login,2840,0,3
+1791644166520,3637,01 Login,200,OK,100 Concurrent Patients 1-4,text,true,,943,308,40,40,http://localhost:5100/api/auth/login,3637,0,126
+1791644167112,3047,01 Login,200,OK,100 Concurrent Patients 1-11,text,true,,943,308,41,41,http://localhost:5100/api/auth/login,3046,0,13
+1791644166517,3663,01 Login,200,OK,100 Concurrent Patients 1-1,text,true,,943,308,41,41,http://localhost:5100/api/auth/login,3663,0,128
+1791644166520,3897,01 Login,200,OK,100 Concurrent Patients 1-3,text,true,,943,308,43,43,http://localhost:5100/api/auth/login,3897,0,126
+1791644169451,1076,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-7,text,true,,420,855,45,45,http://localhost:5100/api/appointments/doctor-options,1075,0,0
+1791644167477,3050,01 Login,200,OK,100 Concurrent Patients 1-15,text,true,,943,308,45,45,http://localhost:5100/api/auth/login,3049,0,2
+1791644170100,659,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-2,text,true,,420,855,47,47,http://localhost:5100/api/appointments/doctor-options,659,0,0
+1791644170157,602,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-13,text,true,,420,855,47,47,http://localhost:5100/api/appointments/doctor-options,602,0,0
+1791644167426,3335,01 Login,200,OK,100 Concurrent Patients 1-14,text,true,,943,308,47,47,http://localhost:5100/api/auth/login,3335,0,5
+1791644170183,583,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-1,text,true,,420,855,47,47,http://localhost:5100/api/appointments/doctor-options,583,0,0
+1791644169828,938,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-12,text,true,,420,855,47,47,http://localhost:5100/api/appointments/doctor-options,938,0,0
+1791644169453,1313,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-8,text,true,,420,855,47,47,http://localhost:5100/api/appointments/doctor-options,1313,0,0
+1791644167574,3193,01 Login,200,OK,100 Concurrent Patients 1-16,text,true,,943,308,47,47,http://localhost:5100/api/auth/login,3193,0,2
+1791644170136,635,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-6,text,true,,420,855,47,47,http://localhost:5100/api/appointments/doctor-options,635,0,0
+1791644166990,3781,01 Login,200,OK,100 Concurrent Patients 1-10,text,true,,943,308,47,47,http://localhost:5100/api/auth/login,3781,0,2
+1791644170160,613,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-11,text,true,,420,855,47,47,http://localhost:5100/api/appointments/doctor-options,613,0,0
+1791644170158,615,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-4,text,true,,420,855,47,47,http://localhost:5100/api/appointments/doctor-options,615,0,0
+1791644169403,1373,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-5,text,true,,420,855,47,47,http://localhost:5100/api/appointments/doctor-options,1373,0,0
+1791644169885,891,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-9,text,true,,420,855,47,47,http://localhost:5100/api/appointments/doctor-options,891,0,0
+1791644167738,3039,01 Login,200,OK,100 Concurrent Patients 1-17,text,true,,943,308,47,47,http://localhost:5100/api/auth/login,3039,0,2
+1791644167822,3009,01 Login,200,OK,100 Concurrent Patients 1-18,text,true,,943,308,47,47,http://localhost:5100/api/auth/login,3008,0,2
+1791644168240,2608,01 Login,200,OK,100 Concurrent Patients 1-22,text,true,,943,308,47,47,http://localhost:5100/api/auth/login,2608,0,1
+1791644168281,2571,01 Login,200,OK,100 Concurrent Patients 1-23,text,true,,943,308,47,47,http://localhost:5100/api/auth/login,2571,0,2
+1791644167887,3034,01 Login,200,OK,100 Concurrent Patients 1-19,text,true,,943,308,48,48,http://localhost:5100/api/auth/login,3034,0,3
+1791644170420,584,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-3,text,true,,420,855,49,49,http://localhost:5100/api/appointments/doctor-options,584,0,0
+1791644170763,245,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-14,text,true,,420,855,49,49,http://localhost:5100/api/appointments/doctor-options,245,0,0
+1791644170529,506,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-15,text,true,,420,855,49,49,http://localhost:5100/api/appointments/doctor-options,506,0,0
+1791644167983,3053,01 Login,200,OK,100 Concurrent Patients 1-20,text,true,,943,308,49,49,http://localhost:5100/api/auth/login,3053,0,1
+1791644170768,275,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-16,text,true,,420,855,49,49,http://localhost:5100/api/appointments/doctor-options,275,0,0
+1791644170772,281,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-10,text,true,,420,855,49,49,http://localhost:5100/api/appointments/doctor-options,281,0,0
+1791644170834,220,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-18,text,true,,420,855,49,49,http://localhost:5100/api/appointments/doctor-options,220,0,0
+1791644168550,2506,01 Login,200,OK,100 Concurrent Patients 1-25,text,true,,943,308,49,49,http://localhost:5100/api/auth/login,2506,0,2
+1791644170780,277,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-17,text,true,,420,855,49,49,http://localhost:5100/api/appointments/doctor-options,277,0,0
+1791644170923,162,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-19,text,true,,420,855,49,49,http://localhost:5100/api/appointments/doctor-options,162,0,0
+1791644170853,253,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-23,text,true,,420,855,49,49,http://localhost:5100/api/appointments/doctor-options,252,0,0
+1791644170852,254,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-22,text,true,,420,855,49,49,http://localhost:5100/api/appointments/doctor-options,253,0,0
+1791644168662,2587,01 Login,200,OK,100 Concurrent Patients 1-26,text,true,,943,308,51,51,http://localhost:5100/api/auth/login,2587,0,4
+1791644171058,195,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-25,text,true,,420,855,51,51,http://localhost:5100/api/appointments/doctor-options,195,0,0
+1791644171037,216,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-20,text,true,,420,855,51,51,http://localhost:5100/api/appointments/doctor-options,216,0,0
+1791644168125,3128,01 Login,200,OK,100 Concurrent Patients 1-21,text,true,,943,308,51,51,http://localhost:5100/api/auth/login,3128,0,2
+1791644170009,1902,01 Login,200,OK,100 Concurrent Patients 1-40,text,true,,942,308,59,59,http://localhost:5100/api/auth/login,1902,0,2
+1791644169175,2736,01 Login,200,OK,100 Concurrent Patients 1-32,text,true,,943,308,59,59,http://localhost:5100/api/auth/login,2736,0,2
+1791644168374,3537,01 Login,200,OK,100 Concurrent Patients 1-24,text,true,,943,308,59,59,http://localhost:5100/api/auth/login,3537,0,3
+1791644170311,1670,01 Login,200,OK,100 Concurrent Patients 1-43,text,true,,942,308,59,59,http://localhost:5100/api/auth/login,1670,0,4
+1791644168773,3207,01 Login,200,OK,100 Concurrent Patients 1-27,text,true,,943,308,59,59,http://localhost:5100/api/auth/login,3207,0,21
+1791644171254,733,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-21,text,true,,420,855,59,59,http://localhost:5100/api/appointments/doctor-options,733,0,0
+1791644169744,2243,01 Login,200,OK,100 Concurrent Patients 1-37,text,true,,943,308,59,59,http://localhost:5100/api/auth/login,2243,0,3
+1791644169908,2080,01 Login,200,OK,100 Concurrent Patients 1-39,text,true,,943,308,59,59,http://localhost:5100/api/auth/login,2080,0,2
+1791644168954,3033,01 Login,200,OK,100 Concurrent Patients 1-29,text,true,,943,308,59,59,http://localhost:5100/api/auth/login,3033,0,2
+1791644169104,2884,01 Login,200,OK,100 Concurrent Patients 1-31,text,true,,943,308,59,59,http://localhost:5100/api/auth/login,2884,0,1
+1791644168931,3070,01 Login,200,OK,100 Concurrent Patients 1-28,text,true,,943,308,59,59,http://localhost:5100/api/auth/login,3070,0,3
+1791644169610,2391,01 Login,200,OK,100 Concurrent Patients 1-36,text,true,,942,308,59,59,http://localhost:5100/api/auth/login,2391,0,2
+1791644169070,2932,01 Login,200,OK,100 Concurrent Patients 1-30,text,true,,943,308,59,59,http://localhost:5100/api/auth/login,2932,0,2
+1791644169849,2152,01 Login,200,OK,100 Concurrent Patients 1-38,text,true,,943,308,59,59,http://localhost:5100/api/auth/login,2152,0,2
+1791644170451,1556,01 Login,200,OK,100 Concurrent Patients 1-44,text,true,,943,308,59,59,http://localhost:5100/api/auth/login,1556,0,2
+1791644170159,1855,01 Login,200,OK,100 Concurrent Patients 1-41,text,true,,943,308,59,59,http://localhost:5100/api/auth/login,1855,0,2
+1791644169489,2525,01 Login,200,OK,100 Concurrent Patients 1-34,text,true,,943,308,59,59,http://localhost:5100/api/auth/login,2525,0,1
+1791644170235,1778,01 Login,200,OK,100 Concurrent Patients 1-42,text,true,,942,308,59,59,http://localhost:5100/api/auth/login,1778,0,1
+1791644169357,2656,01 Login,200,OK,100 Concurrent Patients 1-33,text,true,,943,308,59,59,http://localhost:5100/api/auth/login,2656,0,2
+1791644171252,764,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-26,text,true,,420,855,59,59,http://localhost:5100/api/appointments/doctor-options,764,0,0
+1791644172005,250,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-28,text,true,,420,855,62,62,http://localhost:5100/api/appointments/doctor-options,250,0,0
+1791644172015,274,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-42,text,true,,420,855,62,62,http://localhost:5100/api/appointments/doctor-options,273,0,0
+1791644170488,1801,01 Login,200,OK,100 Concurrent Patients 1-45,text,true,,942,308,62,62,http://localhost:5100/api/auth/login,1800,0,2
+1791644171990,299,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-37,text,true,,420,855,62,62,http://localhost:5100/api/appointments/doctor-options,299,0,0
+1791644171114,1176,01 Login,200,OK,100 Concurrent Patients 1-50,text,true,,943,308,62,62,http://localhost:5100/api/auth/login,1176,0,2
+1791644171991,300,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-29,text,true,,420,855,62,62,http://localhost:5100/api/appointments/doctor-options,300,0,0
+1791644172015,277,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-34,text,true,,420,855,62,62,http://localhost:5100/api/appointments/doctor-options,277,0,0
+1791644170958,1338,01 Login,200,OK,100 Concurrent Patients 1-49,text,true,,943,308,62,62,http://localhost:5100/api/auth/login,1338,0,3
+1791644172015,284,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-33,text,true,,420,855,62,62,http://localhost:5100/api/appointments/doctor-options,283,0,0
+1791644172015,284,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-41,text,true,,420,855,62,62,http://localhost:5100/api/appointments/doctor-options,284,0,0
+1791644171912,390,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-32,text,true,,420,855,62,62,http://localhost:5100/api/appointments/doctor-options,390,0,0
+1791644171913,389,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-24,text,true,,420,855,62,62,http://localhost:5100/api/appointments/doctor-options,389,0,0
+1791644171915,387,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-40,text,true,,420,855,62,62,http://localhost:5100/api/appointments/doctor-options,387,0,0
+1791644170744,1559,01 Login,200,OK,100 Concurrent Patients 1-47,text,true,,943,308,62,62,http://localhost:5100/api/auth/login,1559,0,2
+1791644170864,1438,01 Login,200,OK,100 Concurrent Patients 1-48,text,true,,943,308,62,62,http://localhost:5100/api/auth/login,1438,0,2
+1791644171991,313,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-39,text,true,,420,855,62,62,http://localhost:5100/api/appointments/doctor-options,313,0,0
+1791644171992,312,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-31,text,true,,420,855,62,62,http://localhost:5100/api/appointments/doctor-options,312,0,0
+1791644172006,299,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-30,text,true,,420,855,62,62,http://localhost:5100/api/appointments/doctor-options,299,0,0
+1791644170699,1606,01 Login,200,OK,100 Concurrent Patients 1-46,text,true,,943,308,62,62,http://localhost:5100/api/auth/login,1606,0,2
+1791644172006,301,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-38,text,true,,420,855,62,62,http://localhost:5100/api/appointments/doctor-options,301,0,0
+1791644171983,339,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-43,text,true,,420,855,62,62,http://localhost:5100/api/appointments/doctor-options,338,0,0
+1791644171983,339,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-27,text,true,,420,855,62,62,http://localhost:5100/api/appointments/doctor-options,339,0,0
+1791644172008,383,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-44,text,true,,420,855,63,63,http://localhost:5100/api/appointments/doctor-options,383,0,0
+1791644172006,385,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-36,text,true,,420,855,63,63,http://localhost:5100/api/appointments/doctor-options,385,0,0
+1791644172291,133,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-50,text,true,,420,855,64,64,http://localhost:5100/api/appointments/doctor-options,133,0,0
+1791644172290,250,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-45,text,true,,420,855,64,64,http://localhost:5100/api/appointments/doctor-options,250,0,0
+1791644172297,253,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-49,text,true,,420,855,64,64,http://localhost:5100/api/appointments/doctor-options,253,0,0
+1791644172304,255,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-48,text,true,,420,855,64,64,http://localhost:5100/api/appointments/doctor-options,255,0,0
+1791644172304,257,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-47,text,true,,420,855,64,64,http://localhost:5100/api/appointments/doctor-options,257,0,0
+1791644172306,258,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-46,text,true,,420,855,64,64,http://localhost:5100/api/appointments/doctor-options,257,0,0
+1791644169514,3336,01 Login,200,OK,100 Concurrent Patients 1-35,text,true,,943,308,68,68,http://localhost:5100/api/auth/login,3336,0,3
+1791644171381,1485,01 Login,200,OK,100 Concurrent Patients 1-52,text,true,,943,308,68,68,http://localhost:5100/api/auth/login,1485,0,3
+1791644172851,44,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-35,text,true,,420,855,69,69,http://localhost:5100/api/appointments/doctor-options,44,0,0
+1791644172867,32,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-52,text,true,,420,855,69,69,http://localhost:5100/api/appointments/doctor-options,32,0,0
+1791644171250,1718,01 Login,200,OK,100 Concurrent Patients 1-51,text,true,,943,308,69,69,http://localhost:5100/api/auth/login,1718,0,3
+1791644172969,6,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-51,text,true,,420,855,69,69,http://localhost:5100/api/appointments/doctor-options,6,0,0
+1791644171504,1533,01 Login,200,OK,100 Concurrent Patients 1-54,text,true,,943,308,69,69,http://localhost:5100/api/auth/login,1533,0,2
+1791644173038,20,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-54,text,true,,420,855,69,69,http://localhost:5100/api/appointments/doctor-options,20,0,0
+1791644171907,1217,01 Login,200,OK,100 Concurrent Patients 1-59,text,true,,943,308,70,70,http://localhost:5100/api/auth/login,1217,0,2
+1791644171504,1635,01 Login,200,OK,100 Concurrent Patients 1-53,text,true,,943,308,70,70,http://localhost:5100/api/auth/login,1635,0,2
+1791644173141,8,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-53,text,true,,420,855,70,70,http://localhost:5100/api/appointments/doctor-options,8,0,0
+1791644171505,1698,01 Login,200,OK,100 Concurrent Patients 1-55,text,true,,943,308,71,71,http://localhost:5100/api/auth/login,1697,0,2
+1791644173204,13,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-55,text,true,,420,855,71,71,http://localhost:5100/api/appointments/doctor-options,13,0,0
+1791644171600,1625,01 Login,200,OK,100 Concurrent Patients 1-56,text,true,,943,308,71,71,http://localhost:5100/api/auth/login,1625,0,2
+1791644173126,104,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-59,text,true,,420,855,71,71,http://localhost:5100/api/appointments/doctor-options,104,0,0
+1791644171867,1372,01 Login,200,OK,100 Concurrent Patients 1-58,text,true,,942,308,71,71,http://localhost:5100/api/auth/login,1372,0,2
+1791644173226,19,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-56,text,true,,420,855,71,71,http://localhost:5100/api/appointments/doctor-options,19,0,0
+1791644173241,16,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-58,text,true,,420,855,72,72,http://localhost:5100/api/appointments/doctor-options,16,0,0
+1791644171905,1352,01 Login,200,OK,100 Concurrent Patients 1-57,text,true,,942,308,72,72,http://localhost:5100/api/auth/login,1352,0,2
+1791644172242,1364,01 Login,200,OK,100 Concurrent Patients 1-62,text,true,,943,308,75,75,http://localhost:5100/api/auth/login,1364,0,2
+1791644172455,1153,01 Login,200,OK,100 Concurrent Patients 1-64,text,true,,943,308,75,75,http://localhost:5100/api/auth/login,1153,0,2
+1791644173259,353,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-57,text,true,,420,855,75,75,http://localhost:5100/api/appointments/doctor-options,352,0,0
+1791644172048,1564,01 Login,200,OK,100 Concurrent Patients 1-60,text,true,,943,308,75,75,http://localhost:5100/api/auth/login,1564,0,4
+1791644172090,1525,01 Login,200,OK,100 Concurrent Patients 1-61,text,true,,942,308,75,75,http://localhost:5100/api/auth/login,1525,0,1
+1791644172353,1267,01 Login,200,OK,100 Concurrent Patients 1-63,text,true,,943,308,75,75,http://localhost:5100/api/auth/login,1267,0,2
+1791644172594,1026,01 Login,200,OK,100 Concurrent Patients 1-65,text,true,,943,308,75,75,http://localhost:5100/api/auth/login,1026,0,2
+1791644173613,417,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-60,text,true,,420,855,80,80,http://localhost:5100/api/appointments/doctor-options,417,0,0
+1791644172817,1213,01 Login,200,OK,100 Concurrent Patients 1-68,text,true,,940,308,80,80,http://localhost:5100/api/auth/login,1213,0,2
+1791644173191,843,01 Login,200,OK,100 Concurrent Patients 1-71,text,true,,943,308,80,80,http://localhost:5100/api/auth/login,843,0,1
+1791644173621,414,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-63,text,true,,420,855,80,80,http://localhost:5100/api/appointments/doctor-options,414,0,0
+1791644173356,736,01 Login,200,OK,100 Concurrent Patients 1-73,text,true,,943,308,80,80,http://localhost:5100/api/auth/login,735,0,6
+1791644173621,475,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-65,text,true,,420,855,80,80,http://localhost:5100/api/appointments/doctor-options,475,0,0
+1791644173607,608,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-62,text,true,,420,855,81,81,http://localhost:5100/api/appointments/doctor-options,608,0,0
+1791644173250,971,01 Login,200,OK,100 Concurrent Patients 1-72,text,true,,942,308,81,81,http://localhost:5100/api/auth/login,971,0,3
+1791644173611,610,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-64,text,true,,420,855,81,81,http://localhost:5100/api/appointments/doctor-options,610,0,0
+1791644173616,609,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-61,text,true,,420,855,81,81,http://localhost:5100/api/appointments/doctor-options,609,0,0
+1791644172631,1594,01 Login,200,OK,100 Concurrent Patients 1-66,text,true,,943,308,81,81,http://localhost:5100/api/auth/login,1594,0,4
+1791644173557,671,01 Login,200,OK,100 Concurrent Patients 1-74,text,true,,943,308,81,81,http://localhost:5100/api/auth/login,670,0,2
+1791644173603,749,01 Login,200,OK,100 Concurrent Patients 1-76,text,true,,943,308,82,82,http://localhost:5100/api/auth/login,748,0,3
+1791644172707,1646,01 Login,200,OK,100 Concurrent Patients 1-67,text,true,,942,308,82,82,http://localhost:5100/api/auth/login,1646,0,4
+1791644174031,332,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-68,text,true,,420,855,82,82,http://localhost:5100/api/appointments/doctor-options,332,0,0
+1791644174094,273,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-73,text,true,,420,855,82,82,http://localhost:5100/api/appointments/doctor-options,273,0,0
+1791644174222,146,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-72,text,true,,420,855,82,82,http://localhost:5100/api/appointments/doctor-options,146,0,0
+1791644174036,333,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-71,text,true,,420,855,82,82,http://localhost:5100/api/appointments/doctor-options,333,0,0
+1791644174226,153,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-66,text,true,,420,855,82,82,http://localhost:5100/api/appointments/doctor-options,153,0,0
+1791644174229,151,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-74,text,true,,420,855,82,82,http://localhost:5100/api/appointments/doctor-options,151,0,0
+1791644174353,36,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-76,text,true,,420,855,82,82,http://localhost:5100/api/appointments/doctor-options,36,0,0
+1791644174355,40,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-67,text,true,,420,855,82,82,http://localhost:5100/api/appointments/doctor-options,40,0,0
+1791644173649,942,01 Login,200,OK,100 Concurrent Patients 1-75,text,true,,943,308,85,85,http://localhost:5100/api/auth/login,942,0,4
+1791644174595,14,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-75,text,true,,420,855,85,85,http://localhost:5100/api/appointments/doctor-options,14,0,0
+1791644172885,1724,01 Login,200,OK,100 Concurrent Patients 1-69,text,true,,943,308,85,85,http://localhost:5100/api/auth/login,1724,0,2
+1791644174610,23,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-69,text,true,,420,855,85,85,http://localhost:5100/api/appointments/doctor-options,23,0,0
+1791644173756,891,01 Login,200,OK,100 Concurrent Patients 1-78,text,true,,943,308,86,86,http://localhost:5100/api/auth/login,891,0,2
+1791644174649,33,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-78,text,true,,420,855,86,86,http://localhost:5100/api/appointments/doctor-options,33,0,0
+1791644174002,710,01 Login,200,OK,100 Concurrent Patients 1-80,text,true,,943,308,86,86,http://localhost:5100/api/auth/login,710,0,3
+1791644174714,22,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-80,text,true,,420,855,87,87,http://localhost:5100/api/appointments/doctor-options,22,0,0
+1791644174022,731,01 Login,200,OK,100 Concurrent Patients 1-79,text,true,,943,308,87,87,http://localhost:5100/api/auth/login,730,0,5
+1791644174754,10,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-79,text,true,,420,855,87,87,http://localhost:5100/api/appointments/doctor-options,10,0,0
+1791644173101,1712,01 Login,200,OK,100 Concurrent Patients 1-70,text,true,,943,308,88,88,http://localhost:5100/api/auth/login,1712,0,1
+1791644174815,16,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-70,text,true,,420,855,88,88,http://localhost:5100/api/appointments/doctor-options,16,0,0
+1791644174433,458,01 Login,200,OK,100 Concurrent Patients 1-84,text,true,,943,308,89,89,http://localhost:5100/api/auth/login,458,0,3
+1791644174892,9,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-84,text,true,,420,855,89,89,http://localhost:5100/api/appointments/doctor-options,9,0,0
+1791644174477,459,01 Login,200,OK,100 Concurrent Patients 1-83,text,true,,943,308,89,89,http://localhost:5100/api/auth/login,458,0,2
+1791644174936,75,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-83,text,true,,420,855,89,89,http://localhost:5100/api/appointments/doctor-options,75,0,0
+1791644174644,367,01 Login,200,OK,100 Concurrent Patients 1-86,text,true,,943,308,89,89,http://localhost:5100/api/auth/login,367,0,2
+1791644175012,54,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-86,text,true,,420,855,89,89,http://localhost:5100/api/appointments/doctor-options,54,0,0
+1791644173690,1399,01 Login,200,OK,100 Concurrent Patients 1-77,text,true,,943,308,90,90,http://localhost:5100/api/auth/login,1399,0,2
+1791644175090,10,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-77,text,true,,420,855,90,90,http://localhost:5100/api/appointments/doctor-options,10,0,0
+1791644174783,336,01 Login,200,OK,100 Concurrent Patients 1-88,text,true,,943,308,91,91,http://localhost:5100/api/auth/login,336,0,1
+1791644175120,14,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-88,text,true,,420,855,91,91,http://localhost:5100/api/appointments/doctor-options,14,0,0
+1791644174104,1030,01 Login,200,OK,100 Concurrent Patients 1-81,text,true,,943,308,91,91,http://localhost:5100/api/auth/login,1030,0,2
+1791644175135,13,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-81,text,true,,420,855,91,91,http://localhost:5100/api/appointments/doctor-options,13,0,0
+1791644174510,685,01 Login,200,OK,100 Concurrent Patients 1-85,text,true,,943,308,92,92,http://localhost:5100/api/auth/login,685,0,2
+1791644175197,23,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-85,text,true,,420,855,92,92,http://localhost:5100/api/appointments/doctor-options,23,0,0
+1791644174263,1000,01 Login,200,OK,100 Concurrent Patients 1-82,text,true,,943,308,92,92,http://localhost:5100/api/auth/login,1000,0,2
+1791644175264,9,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-82,text,true,,420,855,92,92,http://localhost:5100/api/appointments/doctor-options,9,0,0
+1791644174736,667,01 Login,200,OK,100 Concurrent Patients 1-87,text,true,,943,308,94,94,http://localhost:5100/api/auth/login,667,0,1
+1791644175404,18,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-87,text,true,,420,855,94,94,http://localhost:5100/api/appointments/doctor-options,18,0,0
+1791644175122,373,01 Login,200,OK,100 Concurrent Patients 1-91,text,true,,943,308,95,95,http://localhost:5100/api/auth/login,373,0,1
+1791644175496,11,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-91,text,true,,420,855,95,95,http://localhost:5100/api/appointments/doctor-options,10,0,0
+1791644175094,509,01 Login,200,OK,100 Concurrent Patients 1-90,text,true,,943,308,96,96,http://localhost:5100/api/auth/login,508,0,2
+1791644175604,10,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-90,text,true,,420,855,96,96,http://localhost:5100/api/appointments/doctor-options,9,0,0
+1791644175301,403,01 Login,200,OK,100 Concurrent Patients 1-93,text,true,,943,308,97,97,http://localhost:5100/api/auth/login,403,0,2
+1791644175705,20,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-93,text,true,,420,855,97,97,http://localhost:5100/api/appointments/doctor-options,20,0,0
+1791644175400,422,01 Login,200,OK,100 Concurrent Patients 1-94,text,true,,943,308,97,97,http://localhost:5100/api/auth/login,422,0,12
+1791644175823,5,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-94,text,true,,420,855,97,97,http://localhost:5100/api/appointments/doctor-options,5,0,0
+1791644175180,668,01 Login,200,OK,100 Concurrent Patients 1-92,text,true,,942,308,98,98,http://localhost:5100/api/auth/login,668,0,2
+1791644175502,377,01 Login,200,OK,100 Concurrent Patients 1-95,text,true,,943,308,99,99,http://localhost:5100/api/auth/login,377,0,8
+1791644175849,37,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-92,text,true,,420,855,99,99,http://localhost:5100/api/appointments/doctor-options,37,0,0
+1791644174938,954,01 Login,200,OK,100 Concurrent Patients 1-89,text,true,,943,308,99,99,http://localhost:5100/api/auth/login,954,0,2
+1791644175883,13,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-95,text,true,,420,855,99,99,http://localhost:5100/api/appointments/doctor-options,13,0,0
+1791644175893,13,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-89,text,true,,420,855,99,99,http://localhost:5100/api/appointments/doctor-options,13,0,0
+1791644175574,718,01 Login,200,OK,100 Concurrent Patients 1-96,text,true,,943,308,100,100,http://localhost:5100/api/auth/login,718,0,3
+1791644176293,27,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-96,text,true,,420,855,100,100,http://localhost:5100/api/appointments/doctor-options,27,0,0
+1791644175671,694,01 Login,200,OK,100 Concurrent Patients 1-97,text,true,,943,308,100,100,http://localhost:5100/api/auth/login,694,0,2
+1791644176366,11,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-97,text,true,,420,855,100,100,http://localhost:5100/api/appointments/doctor-options,11,0,0
+1791644175876,506,01 Login,200,OK,100 Concurrent Patients 1-99,text,true,,943,308,100,100,http://localhost:5100/api/auth/login,505,0,6
+1791644176383,14,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-99,text,true,,420,855,100,100,http://localhost:5100/api/appointments/doctor-options,14,0,0
+1791644175891,621,01 Login,200,OK,100 Concurrent Patients 1-98,text,true,,943,308,100,100,http://localhost:5100/api/auth/login,621,0,2
+1791644176513,15,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-98,text,true,,420,855,100,100,http://localhost:5100/api/appointments/doctor-options,15,0,0
+1791644171106,140,03 Get Available Slots,200,OK,100 Concurrent Patients 1-22,text,true,,1937,874,50,50,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,140,0,0
+1791644171086,894,03 Get Available Slots,200,OK,100 Concurrent Patients 1-19,text,true,,1937,874,59,59,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,894,0,0
+1791644172323,244,03 Get Available Slots,200,OK,100 Concurrent Patients 1-27,text,true,,1937,874,64,64,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,244,0,0
+1791644174098,321,03 Get Available Slots,200,OK,100 Concurrent Patients 1-65,text,true,,1937,874,82,82,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,321,0,0
+1791644172308,256,03 Get Available Slots,200,OK,100 Concurrent Patients 1-38,text,true,,1937,874,64,64,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,255,0,0
+1791644176378,27,03 Get Available Slots,200,OK,100 Concurrent Patients 1-97,text,true,,1937,874,100,100,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,27,0,0
+1791644172897,34,03 Get Available Slots,200,OK,100 Concurrent Patients 1-35,text,true,,1937,874,69,69,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,33,0,0
+1791644173231,374,03 Get Available Slots,200,OK,100 Concurrent Patients 1-59,text,true,,1937,874,75,75,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,374,0,0
+1791644172899,69,03 Get Available Slots,200,OK,100 Concurrent Patients 1-52,text,true,,1937,874,69,69,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,69,0,0
+1791644171106,140,03 Get Available Slots,200,OK,100 Concurrent Patients 1-23,text,true,,1937,874,50,50,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,140,0,0
+1791644175149,11,03 Get Available Slots,200,OK,100 Concurrent Patients 1-81,text,true,,1937,874,91,91,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,11,0,0
+1791644174368,46,03 Get Available Slots,200,OK,100 Concurrent Patients 1-73,text,true,,1937,874,82,82,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,46,0,0
+1791644171257,998,03 Get Available Slots,200,OK,100 Concurrent Patients 1-20,text,true,,1937,874,62,62,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,998,0,0
+1791644172561,40,03 Get Available Slots,200,OK,100 Concurrent Patients 1-47,text,true,,1937,874,65,65,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,40,0,0
+1791644171055,196,03 Get Available Slots,200,OK,100 Concurrent Patients 1-18,text,true,,1937,874,51,51,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,196,0,0
+1791644172306,285,03 Get Available Slots,200,OK,100 Concurrent Patients 1-30,text,true,,1937,874,65,65,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,285,0,0
+1791644172299,251,03 Get Available Slots,200,OK,100 Concurrent Patients 1-33,text,true,,1937,874,64,64,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,251,0,0
+1791644174390,115,03 Get Available Slots,200,OK,100 Concurrent Patients 1-76,text,true,,1937,874,84,84,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,115,0,0
+1791644171058,194,03 Get Available Slots,200,OK,100 Concurrent Patients 1-17,text,true,,1937,874,51,51,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,194,0,0
+1791644171036,217,03 Get Available Slots,200,OK,100 Concurrent Patients 1-15,text,true,,1937,874,51,51,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,217,0,0
+1791644170760,283,03 Get Available Slots,200,OK,100 Concurrent Patients 1-2,text,true,,1937,874,49,49,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,283,0,0
+1791644174633,46,03 Get Available Slots,200,OK,100 Concurrent Patients 1-69,text,true,,1937,874,86,86,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,46,0,0
+1791644172323,244,03 Get Available Slots,200,OK,100 Concurrent Patients 1-43,text,true,,1937,874,64,64,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,244,0,0
+1791644176006,697,01 Login,200,OK,100 Concurrent Patients 1-100,text,true,,943,308,100,100,http://localhost:5100/api/auth/login,695,0,2
+1791644174380,40,03 Get Available Slots,200,OK,100 Concurrent Patients 1-74,text,true,,1937,874,82,82,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,40,0,0
+1791644175135,19,03 Get Available Slots,200,OK,100 Concurrent Patients 1-88,text,true,,1937,874,91,91,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,19,0,0
+1791644176529,59,03 Get Available Slots,200,OK,100 Concurrent Patients 1-98,text,true,,1937,874,100,100,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,59,0,0
+1791644172305,256,03 Get Available Slots,200,OK,100 Concurrent Patients 1-31,text,true,,1937,874,64,64,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,256,0,0
+1791644175507,67,03 Get Available Slots,200,OK,100 Concurrent Patients 1-91,text,true,,1937,874,96,96,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,67,0,0
+1791644174222,153,03 Get Available Slots,200,OK,100 Concurrent Patients 1-64,text,true,,1937,874,82,82,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,153,0,0
+1791644174380,37,03 Get Available Slots,200,OK,100 Concurrent Patients 1-66,text,true,,1937,874,82,82,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,37,0,0
+1791644175067,26,03 Get Available Slots,200,OK,100 Concurrent Patients 1-86,text,true,,1937,874,90,90,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,26,0,0
+1791644172289,268,03 Get Available Slots,200,OK,100 Concurrent Patients 1-42,text,true,,1937,874,64,64,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,268,0,0
+1791644172291,253,03 Get Available Slots,200,OK,100 Concurrent Patients 1-29,text,true,,1937,874,64,64,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,253,0,0
+1791644173259,360,03 Get Available Slots,200,OK,100 Concurrent Patients 1-58,text,true,,1937,874,75,75,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,360,0,0
+1791644172976,54,03 Get Available Slots,200,OK,100 Concurrent Patients 1-51,text,true,,1937,874,69,69,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,54,0,0
+1791644175274,30,03 Get Available Slots,200,OK,100 Concurrent Patients 1-82,text,true,,1937,874,93,93,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,30,0,0
+1791644172392,187,03 Get Available Slots,200,OK,100 Concurrent Patients 1-36,text,true,,1937,874,64,64,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,187,0,0
+1791644175897,36,03 Get Available Slots,200,OK,100 Concurrent Patients 1-95,text,true,,1937,874,99,99,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,35,0,0
+1791644172293,134,03 Get Available Slots,200,OK,100 Concurrent Patients 1-34,text,true,,1937,874,64,64,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,133,0,0
+1791644170767,268,03 Get Available Slots,200,OK,100 Concurrent Patients 1-1,text,true,,1937,874,49,49,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,268,0,0
+1791644173218,29,03 Get Available Slots,200,OK,100 Concurrent Patients 1-55,text,true,,1937,874,71,71,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,29,0,0
+1791644171055,194,03 Get Available Slots,200,OK,100 Concurrent Patients 1-10,text,true,,1937,874,51,51,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,194,0,0
+1791644175726,96,03 Get Available Slots,200,OK,100 Concurrent Patients 1-93,text,true,,1937,874,97,97,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,96,0,0
+1791644170768,267,03 Get Available Slots,200,OK,100 Concurrent Patients 1-12,text,true,,1937,874,49,49,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,267,0,0
+1791644174765,12,03 Get Available Slots,200,OK,100 Concurrent Patients 1-79,text,true,,1937,874,87,87,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,12,0,0
+1791644172560,36,03 Get Available Slots,200,OK,100 Concurrent Patients 1-48,text,true,,1937,874,65,65,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,36,0,0
+1791644170767,276,03 Get Available Slots,200,OK,100 Concurrent Patients 1-8,text,true,,1937,874,49,49,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,276,0,0
+1791644174226,163,03 Get Available Slots,200,OK,100 Concurrent Patients 1-61,text,true,,1937,874,82,82,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,163,0,0
+1791644173246,362,03 Get Available Slots,200,OK,100 Concurrent Patients 1-56,text,true,,1937,874,75,75,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,361,0,0
+1791644172304,257,03 Get Available Slots,200,OK,100 Concurrent Patients 1-39,text,true,,1937,874,64,64,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,257,0,0
+1791644175101,16,03 Get Available Slots,200,OK,100 Concurrent Patients 1-77,text,true,,1937,874,90,90,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,16,0,0
+1791644176704,33,02 Get Doctor Options,200,OK,100 Concurrent Patients 1-100,text,true,,420,855,100,100,http://localhost:5100/api/appointments/doctor-options,33,0,0
+1791644171006,100,03 Get Available Slots,200,OK,100 Concurrent Patients 1-3,text,true,,1937,874,49,49,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,100,0,0
+1791644173612,613,03 Get Available Slots,200,OK,100 Concurrent Patients 1-57,text,true,,1937,874,81,81,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,613,0,0
+1791644170774,307,03 Get Available Slots,200,OK,100 Concurrent Patients 1-4,text,true,,1937,874,49,49,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,307,0,0
+1791644174369,46,03 Get Available Slots,200,OK,100 Concurrent Patients 1-71,text,true,,1937,874,82,82,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,46,0,0
+1791644172392,187,03 Get Available Slots,200,OK,100 Concurrent Patients 1-44,text,true,,1937,874,64,64,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,187,0,0
+1791644172425,166,03 Get Available Slots,200,OK,100 Concurrent Patients 1-50,text,true,,1937,874,65,65,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,166,0,0
+1791644175887,103,03 Get Available Slots,200,OK,100 Concurrent Patients 1-92,text,true,,1937,874,99,99,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,103,0,0
+1791644175221,61,03 Get Available Slots,200,OK,100 Concurrent Patients 1-85,text,true,,1937,874,92,92,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,61,0,0
+1791644174610,23,03 Get Available Slots,200,OK,100 Concurrent Patients 1-75,text,true,,1937,874,85,85,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,23,0,0
+1791644172551,43,03 Get Available Slots,200,OK,100 Concurrent Patients 1-49,text,true,,1937,874,65,65,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,43,0,0
+1791644172303,255,03 Get Available Slots,200,OK,100 Concurrent Patients 1-40,text,true,,1937,874,64,64,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,255,0,0
+1791644172303,254,03 Get Available Slots,200,OK,100 Concurrent Patients 1-24,text,true,,1937,874,64,64,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,254,0,0
+1791644173190,416,03 Get Available Slots,200,OK,100 Concurrent Patients 1-53,text,true,,1937,874,75,75,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,416,0,0
+1791644176398,20,03 Get Available Slots,200,OK,100 Concurrent Patients 1-99,text,true,,1937,874,100,100,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,19,0,0
+1791644170760,283,03 Get Available Slots,200,OK,100 Concurrent Patients 1-13,text,true,,1937,874,49,49,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,283,0,0
+1791644171009,97,03 Get Available Slots,200,OK,100 Concurrent Patients 1-14,text,true,,1937,874,49,49,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,96,0,0
+1791644172541,50,03 Get Available Slots,200,OK,100 Concurrent Patients 1-45,text,true,,1937,874,65,65,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,50,0,0
+1791644171989,300,03 Get Available Slots,200,OK,100 Concurrent Patients 1-21,text,true,,1937,874,62,62,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,299,0,0
+1791644170772,474,03 Get Available Slots,200,OK,100 Concurrent Patients 1-6,text,true,,1937,874,50,50,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,474,0,0
+1791644174683,43,03 Get Available Slots,200,OK,100 Concurrent Patients 1-78,text,true,,1937,874,86,86,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,43,0,0
+1791644172303,255,03 Get Available Slots,200,OK,100 Concurrent Patients 1-32,text,true,,1937,874,64,64,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,254,0,0
+1791644174364,48,03 Get Available Slots,200,OK,100 Concurrent Patients 1-68,text,true,,1937,874,82,82,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,48,0,0
+1791644170532,503,03 Get Available Slots,200,OK,100 Concurrent Patients 1-7,text,true,,1937,874,49,49,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,503,0,0
+1791644171254,765,03 Get Available Slots,200,OK,100 Concurrent Patients 1-25,text,true,,1937,874,59,59,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,765,0,0
+1791644175907,87,03 Get Available Slots,200,OK,100 Concurrent Patients 1-89,text,true,,1937,874,99,99,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,87,0,0
+1791644170778,468,03 Get Available Slots,200,OK,100 Concurrent Patients 1-9,text,true,,1937,874,50,50,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,468,0,0
+1791644172290,250,03 Get Available Slots,200,OK,100 Concurrent Patients 1-37,text,true,,1937,874,64,64,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,250,0,0
+1791644174737,16,03 Get Available Slots,200,OK,100 Concurrent Patients 1-80,text,true,,1937,874,87,87,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,15,0,0
+1791644174396,27,03 Get Available Slots,200,OK,100 Concurrent Patients 1-67,text,true,,1937,874,83,83,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,27,0,0
+1791644174216,153,03 Get Available Slots,200,OK,100 Concurrent Patients 1-62,text,true,,1937,874,82,82,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,153,0,0
+1791644172565,78,03 Get Available Slots,200,OK,100 Concurrent Patients 1-46,text,true,,1937,874,66,66,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,78,0,0
+1791644172016,408,03 Get Available Slots,200,OK,100 Concurrent Patients 1-26,text,true,,1937,874,64,64,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,408,0,0
+1791644170777,279,03 Get Available Slots,200,OK,100 Concurrent Patients 1-5,text,true,,1937,874,49,49,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,279,0,0
+1791644176321,36,03 Get Available Slots,200,OK,100 Concurrent Patients 1-96,text,true,,1937,874,100,100,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,36,0,0
+1791644174368,47,03 Get Available Slots,200,OK,100 Concurrent Patients 1-72,text,true,,1937,874,82,82,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,47,0,0
+1791644174832,52,03 Get Available Slots,200,OK,100 Concurrent Patients 1-70,text,true,,1937,874,88,88,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,52,0,0
+1791644170774,308,03 Get Available Slots,200,OK,100 Concurrent Patients 1-11,text,true,,1937,874,49,49,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,308,0,0
+1791644174037,336,03 Get Available Slots,200,OK,100 Concurrent Patients 1-63,text,true,,1937,874,82,82,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,336,0,0
+1791644174034,329,03 Get Available Slots,200,OK,100 Concurrent Patients 1-60,text,true,,1937,874,82,82,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,329,0,0
+1791644174902,26,03 Get Available Slots,200,OK,100 Concurrent Patients 1-84,text,true,,1937,874,89,89,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,26,0,0
+1791644175615,28,03 Get Available Slots,200,OK,100 Concurrent Patients 1-90,text,true,,1937,874,96,96,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,28,0,0
+1791644172256,284,03 Get Available Slots,200,OK,100 Concurrent Patients 1-28,text,true,,1937,874,64,64,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,284,0,0
+1791644171044,867,03 Get Available Slots,200,OK,100 Concurrent Patients 1-16,text,true,,1937,874,59,59,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,867,0,0
+1791644175422,40,03 Get Available Slots,200,OK,100 Concurrent Patients 1-87,text,true,,1937,874,94,94,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,40,0,0
+1791644173059,35,03 Get Available Slots,200,OK,100 Concurrent Patients 1-54,text,true,,1937,874,69,69,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,35,0,0
+1791644172300,252,03 Get Available Slots,200,OK,100 Concurrent Patients 1-41,text,true,,1937,874,64,64,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,252,0,0
+1791644175012,54,03 Get Available Slots,200,OK,100 Concurrent Patients 1-83,text,true,,1937,874,89,89,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,54,0,0
+1791644175829,18,03 Get Available Slots,200,OK,100 Concurrent Patients 1-94,text,true,,1937,874,98,98,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,17,0,0
+1791644176744,422,03 Get Available Slots,200,OK,100 Concurrent Patients 1-100,text,true,,1937,874,100,100,http://localhost:5100/api/availability/slots?doctorId=24&date=2026-10-20,422,0,0
+1791644176796,2308,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-46,text,true,,227,988,100,100,http://localhost:5100/api/appointments,2308,0,0
+1791644176790,2313,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-83,text,true,,227,988,100,100,http://localhost:5100/api/appointments,2313,0,0
+1791644176825,2270,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-93,text,true,,227,988,100,100,http://localhost:5100/api/appointments,2270,0,0
+1791644176791,2306,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-16,text,true,,227,988,100,100,http://localhost:5100/api/appointments,2306,0,0
+1791644176793,2308,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-60,text,true,,227,988,100,100,http://localhost:5100/api/appointments,2308,0,0
+1791644176842,2261,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-52,text,true,,227,988,100,100,http://localhost:5100/api/appointments,2261,0,0
+1791644176797,2357,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-67,text,true,,227,988,100,100,http://localhost:5100/api/appointments,2356,0,0
+1791644176822,2357,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-8,text,true,,227,988,100,100,http://localhost:5100/api/appointments,2357,0,0
+1791644176789,2371,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-94,text,true,,227,988,100,100,http://localhost:5100/api/appointments,2365,0,0
+1791644176818,2277,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-57,text,true,,227,988,100,100,http://localhost:5100/api/appointments,2277,0,0
+1791644176798,2302,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-9,text,true,,227,988,100,100,http://localhost:5100/api/appointments,2302,0,0
+1791644176801,2323,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-32,text,true,,227,988,100,100,http://localhost:5100/api/appointments,2322,0,0
+1791644176790,2364,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-28,text,true,,227,988,100,100,http://localhost:5100/api/appointments,2363,0,0
+1791644176807,2292,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-49,text,true,,227,988,100,100,http://localhost:5100/api/appointments,2292,0,0
+1791644176789,2316,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-27,text,true,,227,988,100,100,http://localhost:5100/api/appointments,2316,0,0
+1791644176808,2287,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-85,text,true,,227,988,100,100,http://localhost:5100/api/appointments,2287,0,0
+1791644176806,2290,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-24,text,true,,227,988,100,100,http://localhost:5100/api/appointments,2290,0,0
+1791644176798,2297,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-37,text,true,,227,988,100,100,http://localhost:5100/api/appointments,2297,0,0
+1791644176789,2315,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-41,text,true,,227,988,100,100,http://localhost:5100/api/appointments,2315,0,0
+1791644176803,2292,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-6,text,true,,227,988,100,100,http://localhost:5100/api/appointments,2292,0,0
+1791644176792,2313,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-87,text,true,,227,988,100,100,http://localhost:5100/api/appointments,2313,0,0
+1791644176805,2301,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-53,text,true,,227,988,100,100,http://localhost:5100/api/appointments,2301,0,0
+1791644176808,2298,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-92,text,true,,227,988,100,100,http://localhost:5100/api/appointments,2298,0,0
+1791644176799,2306,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-89,text,true,,227,988,100,100,http://localhost:5100/api/appointments,2306,0,0
+1791644176796,2327,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-5,text,true,,227,988,100,100,http://localhost:5100/api/appointments,2327,0,0
+1791644176799,2306,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-68,text,true,,227,988,100,100,http://localhost:5100/api/appointments,2306,0,0
+1791644176792,2313,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-84,text,true,,227,988,100,100,http://localhost:5100/api/appointments,2313,0,0
+1791644176791,2553,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-54,text,true,,227,988,73,73,http://localhost:5100/api/appointments,2553,0,0
+1791644176797,2791,04 Book Appointment,201,Created,100 Concurrent Patients 1-80,text,true,,814,988,72,72,http://localhost:5100/api/appointments,2791,0,0
+1791644176807,2783,04 Book Appointment,201,Created,100 Concurrent Patients 1-75,text,true,,814,988,72,72,http://localhost:5100/api/appointments,2782,0,0
+1791644176826,2817,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-1,text,true,,227,988,70,70,http://localhost:5100/api/appointments,2817,0,0
+1791644176794,3077,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-72,text,true,,227,988,69,69,http://localhost:5100/api/appointments,3077,0,0
+1791644176802,3070,04 Book Appointment,201,Created,100 Concurrent Patients 1-99,text,true,,814,988,69,69,http://localhost:5100/api/appointments,3070,0,0
+1791644176804,3068,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-45,text,true,,227,988,69,69,http://localhost:5100/api/appointments,3068,0,0
+1791644176823,3049,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-79,text,true,,227,988,69,69,http://localhost:5100/api/appointments,3049,0,0
+1791644176824,3049,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-12,text,true,,227,988,69,69,http://localhost:5100/api/appointments,3049,0,0
+1791644176832,3046,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-86,text,true,,227,988,64,64,http://localhost:5100/api/appointments,3046,0,0
+1791644176808,3092,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-48,text,true,,227,988,63,63,http://localhost:5100/api/appointments,3092,0,0
+1791644176830,3139,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-82,text,true,,227,988,62,62,http://localhost:5100/api/appointments,3139,0,0
+1791644176806,3164,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-40,text,true,,227,988,62,62,http://localhost:5100/api/appointments,3164,0,0
+1791644176797,3296,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-62,text,true,,227,988,60,60,http://localhost:5100/api/appointments,3296,0,0
+1791644176812,3391,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-56,text,true,,227,988,59,59,http://localhost:5100/api/appointments,3391,0,0
+1791644176791,3412,04 Book Appointment,201,Created,100 Concurrent Patients 1-90,text,true,,814,988,59,59,http://localhost:5100/api/appointments,3412,0,0
+1791644176809,3417,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-61,text,true,,227,988,57,57,http://localhost:5100/api/appointments,3417,0,0
+1791644176805,3975,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-13,text,true,,227,988,56,56,http://localhost:5100/api/appointments,3975,0,0
+1791644176814,3971,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-3,text,true,,227,988,55,55,http://localhost:5100/api/appointments,3971,0,0
+1791644176800,4144,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-7,text,true,,227,988,54,54,http://localhost:5100/api/appointments,4144,0,0
+1791644176843,4101,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-59,text,true,,227,988,54,54,http://localhost:5100/api/appointments,4100,0,0
+1791644176837,4162,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-30,text,true,,227,988,52,52,http://localhost:5100/api/appointments,4162,0,0
+1791644176831,4179,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-42,text,true,,227,988,51,51,http://localhost:5100/api/appointments,4179,0,0
+1791644176833,4328,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-91,text,true,,227,988,50,50,http://localhost:5100/api/appointments,4328,0,0
+1791644176830,4331,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-51,text,true,,227,988,50,50,http://localhost:5100/api/appointments,4331,0,0
+1791644176794,4367,04 Book Appointment,201,Created,100 Concurrent Patients 1-70,text,true,,814,988,50,50,http://localhost:5100/api/appointments,4367,0,0
+1791644176826,4335,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-55,text,true,,227,988,50,50,http://localhost:5100/api/appointments,4335,0,0
+1791644176831,4396,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-29,text,true,,227,988,46,46,http://localhost:5100/api/appointments,4396,0,0
+1791644176836,4391,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-69,text,true,,227,988,46,46,http://localhost:5100/api/appointments,4391,0,0
+1791644176837,4483,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-17,text,true,,227,988,44,44,http://localhost:5100/api/appointments,4483,0,0
+1791644176844,4476,04 Book Appointment,201,Created,100 Concurrent Patients 1-65,text,true,,814,988,44,44,http://localhost:5100/api/appointments,4476,0,0
+1791644176799,4521,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-78,text,true,,227,988,44,44,http://localhost:5100/api/appointments,4521,0,0
+1791644176827,4496,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-34,text,true,,227,988,42,42,http://localhost:5100/api/appointments,4496,0,0
+1791644176839,4484,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-18,text,true,,227,988,42,42,http://localhost:5100/api/appointments,4484,0,0
+1791644176836,4491,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-15,text,true,,227,988,41,41,http://localhost:5100/api/appointments,4491,0,0
+1791644176829,4499,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-36,text,true,,227,988,41,41,http://localhost:5100/api/appointments,4499,0,0
+1791644176840,4490,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-20,text,true,,227,988,41,41,http://localhost:5100/api/appointments,4490,0,0
+1791644176810,4520,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-44,text,true,,227,988,41,41,http://localhost:5100/api/appointments,4520,0,0
+1791644176832,4499,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-66,text,true,,227,988,40,40,http://localhost:5100/api/appointments,4499,0,0
+1791644176793,4534,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-63,text,true,,227,988,41,41,http://localhost:5100/api/appointments,4534,0,0
+1791644176835,4649,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-2,text,true,,227,988,33,33,http://localhost:5100/api/appointments,4649,0,0
+1791644176795,5174,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-96,text,true,,227,988,32,32,http://localhost:5100/api/appointments,5174,0,0
+1791644176800,5169,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-25,text,true,,227,988,32,32,http://localhost:5100/api/appointments,5169,0,0
+1791644176796,5173,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-26,text,true,,227,988,32,32,http://localhost:5100/api/appointments,5173,0,0
+1791644176837,5132,04 Book Appointment,201,Created,100 Concurrent Patients 1-76,text,true,,814,988,32,32,http://localhost:5100/api/appointments,5132,0,0
+1791644176841,5135,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-23,text,true,,227,988,28,28,http://localhost:5100/api/appointments,5135,0,0
+1791644176828,5149,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-95,text,true,,227,988,28,28,http://localhost:5100/api/appointments,5149,0,0
+1791644176834,5143,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-74,text,true,,227,988,28,28,http://localhost:5100/api/appointments,5143,0,0
+1791644176834,5215,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-88,text,true,,227,988,25,25,http://localhost:5100/api/appointments,5215,0,0
+1791644176835,5216,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-43,text,true,,227,988,25,25,http://localhost:5100/api/appointments,5215,0,0
+1791644176830,5220,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-58,text,true,,227,988,25,25,http://localhost:5100/api/appointments,5220,0,0
+1791644176832,5218,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-64,text,true,,227,988,25,25,http://localhost:5100/api/appointments,5218,0,0
+1791644176841,5210,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-81,text,true,,227,988,25,25,http://localhost:5100/api/appointments,5210,0,0
+1791644176840,5211,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-73,text,true,,227,988,25,25,http://localhost:5100/api/appointments,5211,0,0
+1791644176839,5213,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-47,text,true,,227,988,24,24,http://localhost:5100/api/appointments,5213,0,0
+1791644176843,5211,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-97,text,true,,227,988,19,19,http://localhost:5100/api/appointments,5211,0,0
+1791644176843,5273,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-38,text,true,,227,988,17,17,http://localhost:5100/api/appointments,5273,0,0
+1791644176803,5321,04 Book Appointment,201,Created,100 Concurrent Patients 1-21,text,true,,814,988,16,16,http://localhost:5100/api/appointments,5321,0,0
+1791644176794,5361,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-11,text,true,,227,988,15,15,http://localhost:5100/api/appointments,5360,0,0
+1791644176804,5511,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-14,text,true,,227,988,14,14,http://localhost:5100/api/appointments,5511,0,0
+1791644176810,5646,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-50,text,true,,227,988,13,13,http://localhost:5100/api/appointments,5646,0,0
+1791644176834,5622,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-98,text,true,,227,988,13,13,http://localhost:5100/api/appointments,5622,0,0
+1791644176819,5637,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-77,text,true,,227,988,13,13,http://localhost:5100/api/appointments,5637,0,0
+1791644176833,5623,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-31,text,true,,227,988,13,13,http://localhost:5100/api/appointments,5623,0,0
+1791644176825,5688,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-10,text,true,,227,988,9,9,http://localhost:5100/api/appointments,5688,0,0
+1791644176836,5677,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-33,text,true,,227,988,9,9,http://localhost:5100/api/appointments,5677,0,0
+1791644176842,5683,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-22,text,true,,227,988,7,7,http://localhost:5100/api/appointments,5683,0,0
+1791644176844,5684,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-19,text,true,,227,988,6,6,http://localhost:5100/api/appointments,5684,0,0
+1791644176818,5710,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-4,text,true,,227,988,6,6,http://localhost:5100/api/appointments,5710,0,0
+1791644176815,5714,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-39,text,true,,227,988,6,6,http://localhost:5100/api/appointments,5714,0,0
+1791644176811,5790,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-71,text,true,,227,988,3,3,http://localhost:5100/api/appointments,5790,0,0
+1791644177170,5564,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-100,text,true,,227,988,2,2,http://localhost:5100/api/appointments,5563,0,0
+1791644176842,5903,04 Book Appointment,400,Bad Request,100 Concurrent Patients 1-35,text,true,,227,988,1,1,http://localhost:5100/api/appointments,5903,0,0

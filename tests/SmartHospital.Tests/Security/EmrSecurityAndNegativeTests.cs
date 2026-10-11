@@ -474,12 +474,15 @@ public class EmrSecurityAndNegativeTests
     [InlineData(typeof(LabOrdersController))]
     [InlineData(typeof(MedicalHistoryController))]
     [InlineData(typeof(AuditLogsController))]
+
+    //Every EMR controller must require login
     public void AllEmrControllers_MustHaveAuthorizeAttribute(Type controllerType)
     {
         var authAttr = controllerType.GetCustomAttribute<AuthorizeAttribute>();
         Assert.True(authAttr != null, $"{controllerType.Name} is missing the [Authorize] attribute!");
     }
 
+  //Without login, the API returns 401 Unauthorized.
     [Fact]
     public async Task MedicalRecords_Create_WithoutAuthentication_ReturnsUnauthorized()
     {
